@@ -47,6 +47,9 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
     {
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-cb-length");
+        // Must have two outputs
+        if (tx.vout.size() < 2)
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-cb-sizeinvalid");
     }
     else
     {
