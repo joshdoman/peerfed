@@ -158,6 +158,7 @@ class CTxOut
 public:
     CAmount nValue;
     CScript scriptPubKey;
+    bool coinType;
 
     CTxOut()
     {
@@ -172,6 +173,7 @@ public:
     {
         nValue = -1;
         scriptPubKey.clear();
+        coinType = 0;
     }
 
     bool IsNull() const
@@ -182,7 +184,8 @@ public:
     friend bool operator==(const CTxOut& a, const CTxOut& b)
     {
         return (a.nValue       == b.nValue &&
-                a.scriptPubKey == b.scriptPubKey);
+                a.scriptPubKey == b.scriptPubKey &&
+                a.coinType     == b.coinType);
     }
 
     friend bool operator!=(const CTxOut& a, const CTxOut& b)

@@ -53,7 +53,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 TransactionRecord sub(hash, nTime);
                 sub.idx = i; // vout index
                 sub.credit = txout.nValue;
-                sub.coinType = 1; // TODO: Implement (type 0 = 'cash', 1 = 'bond')
+                sub.coinType = txout.coinType; // TODO: Implement (type 0 = 'cash', 1 = 'bond')
                 sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
                 if (wtx.txout_address_is_mine[i])
                 {
