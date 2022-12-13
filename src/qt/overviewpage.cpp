@@ -59,6 +59,7 @@ public:
         QDateTime date = index.data(TransactionTableModel::DateRole).toDateTime();
         QString address = index.data(Qt::DisplayRole).toString();
         qint64 amount = index.data(TransactionTableModel::AmountRole).toLongLong();
+        bool coinType = index.data(TransactionTableModel::CoinTypeRole).toBool();
         bool confirmed = index.data(TransactionTableModel::ConfirmedRole).toBool();
         QVariant value = index.data(Qt::ForegroundRole);
         QColor foreground = option.palette.color(QPalette::Text);
@@ -96,7 +97,7 @@ public:
         QString amountText = BitcoinUnits::formatWithUnit(unit, amount, true, BitcoinUnits::SeparatorStyle::ALWAYS);
         if(!confirmed)
         {
-            amountText = QString("[") + amountText + QString("]");
+            amountText = QString("[") + amountText + QString::number(coinType) + QString("]");
         }
 
         QRect amount_bounding_rect;

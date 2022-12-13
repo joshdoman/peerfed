@@ -60,6 +60,8 @@ public:
         LabelRole,
         /** Net amount of transaction */
         AmountRole,
+        /** Coin type of transaction */
+        CoinTypeRole,
         /** Transaction hash */
         TxHashRole,
         /** Transaction data, hex-encoded */

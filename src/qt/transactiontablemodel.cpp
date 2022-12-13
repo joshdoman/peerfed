@@ -615,6 +615,8 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         return walletModel->getAddressTableModel()->labelForAddress(QString::fromStdString(rec->address));
     case AmountRole:
         return qint64(rec->credit + rec->debit);
+    case CoinTypeRole:
+        return rec->coinType;
     case TxHashRole:
         return rec->getTxHash();
     case TxHexRole:

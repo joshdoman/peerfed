@@ -107,6 +107,7 @@ public:
     std::string address;
     CAmount debit;
     CAmount credit;
+    bool coinType;
     /**@}*/
 
     /** Subtransaction index, for sort key */
