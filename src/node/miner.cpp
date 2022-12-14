@@ -153,6 +153,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vin.resize(1);
     coinbaseTx.vin[0].prevout.SetNull();
     coinbaseTx.vout.resize(2); // 2 outputs to miner, 1 for bonds, 1 for cash
+    coinbaseTx.vout[0].coinType = 0;
+    coinbaseTx.vout[1].coinType = 1;
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
     coinbaseTx.vout[1].scriptPubKey = scriptPubKeyIn;
     // TODO: Set values correctly and properly implement fees

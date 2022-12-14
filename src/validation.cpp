@@ -1854,6 +1854,9 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                 Coin coin;
                 bool is_spent = view.SpendCoin(out, &coin);
                 if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
+                    LogPrintf("tx.vout coinType: %d\n", tx.vout[o].coinType);
+                    LogPrintf("coin.out coinType: %d\n", coin.out.coinType);
+                    LogPrintf("Transaction output mismatch\n");
                     fClean = false; // transaction output mismatch
                 }
             }
