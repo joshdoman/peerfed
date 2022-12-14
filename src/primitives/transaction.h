@@ -169,7 +169,7 @@ public:
 
     CTxOut(bool coinTypeIn, const CAmount& nValueIn, CScript scriptPubKeyIn);
 
-    SERIALIZE_METHODS(CTxOut, obj) { READWRITE(obj.nValue, obj.scriptPubKey); }
+    SERIALIZE_METHODS(CTxOut, obj) { READWRITE(obj.coinType, obj.nValue, obj.scriptPubKey); }
 
     void SetNull()
     {
