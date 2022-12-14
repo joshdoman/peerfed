@@ -28,7 +28,7 @@
 #define DECORATION_SIZE 54
 #define NUM_ITEMS 5
 
-Q_DECLARE_METATYPE(interfaces::WalletBalances)
+Q_DECLARE_METATYPE(interfaces::WalletBalancesForCoinType)
 
 class TxViewDelegate : public QAbstractItemDelegate
 {
@@ -196,7 +196,7 @@ OverviewPage::~OverviewPage()
     delete ui;
 }
 
-void OverviewPage::setBalance(const interfaces::WalletBalances& balances)
+void OverviewPage::setBalance(const interfaces::WalletBalancesForCoinType& balances)
 {
     BitcoinUnit unit = walletModel->getOptionsModel()->getDisplayUnit();
     if (walletModel->wallet().isLegacy()) {

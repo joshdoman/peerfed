@@ -156,7 +156,7 @@ public:
     uint256 getLastBlockProcessed() const;
 
     // Retrieve the cached wallet balance
-    interfaces::WalletBalances getCachedBalance() const;
+    interfaces::WalletBalancesForCoinType getCachedBalance() const;
 
     // If coin control has selected outputs, searches the total amount inside the wallet.
     // Otherwise, uses the wallet's cached available balance.
@@ -186,7 +186,7 @@ private:
     RecentRequestsTableModel *recentRequestsTableModel;
 
     // Cache some values to be able to detect changes
-    interfaces::WalletBalances m_cached_balances;
+    interfaces::WalletBalancesForCoinType m_cached_balances;
     EncryptionStatus cachedEncryptionStatus;
     QTimer* timer;
 
@@ -195,11 +195,11 @@ private:
 
     void subscribeToCoreSignals();
     void unsubscribeFromCoreSignals();
-    void checkBalanceChanged(const interfaces::WalletBalances& new_balances);
+    void checkBalanceChanged(const interfaces::WalletBalancesForCoinType& new_balances);
 
 Q_SIGNALS:
     // Signal that balance in wallet changed
-    void balanceChanged(const interfaces::WalletBalances& balances);
+    void balanceChanged(const interfaces::WalletBalancesForCoinType& balances);
 
     // Encryption status of wallet changed
     void encryptionStatusChanged();

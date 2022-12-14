@@ -694,7 +694,7 @@ bool SendCoinsDialog::handlePaymentRequest(const SendCoinsRecipient &rv)
     return true;
 }
 
-void SendCoinsDialog::setBalance(const interfaces::WalletBalances& balances)
+void SendCoinsDialog::setBalance(const interfaces::WalletBalancesForCoinType& balances)
 {
     if(model && model->getOptionsModel())
     {

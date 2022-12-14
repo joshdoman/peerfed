@@ -39,7 +39,7 @@ using interfaces::Handler;
 using interfaces::MakeHandler;
 using interfaces::Wallet;
 using interfaces::WalletAddress;
-using interfaces::WalletBalances;
+using interfaces::WalletBalancesForCoinType;
 using interfaces::WalletLoader;
 using interfaces::WalletOrderForm;
 using interfaces::WalletTx;
@@ -374,10 +374,10 @@ public:
     {
         return m_wallet->FillPSBT(psbtx, complete, sighash_type, sign, bip32derivs, n_signed);
     }
-    WalletBalances getBalances() override
+    WalletBalancesForCoinType getBalances() override
     {
         const auto bal = GetBalance(*m_wallet);
-        WalletBalances result;
+        WalletBalancesForCoinType result;
         result.balance = bal.m_mine_trusted;
         result.unconfirmed_balance = bal.m_mine_untrusted_pending;
         result.immature_balance = bal.m_mine_immature;
@@ -389,7 +389,7 @@ public:
         }
         return result;
     }
-    bool tryGetBalances(WalletBalances& balances, uint256& block_hash) override
+    bool tryGetBalances(WalletBalancesForCoinType& balances, uint256& block_hash) override
     {
         TRY_LOCK(m_wallet->cs_wallet, locked_wallet);
         if (!locked_wallet) {

@@ -45,7 +45,7 @@ namespace interfaces {
 
 class Handler;
 struct WalletAddress;
-struct WalletBalances;
+struct WalletBalancesForCoinType;
 struct WalletTx;
 struct WalletTxOut;
 struct WalletTxStatus;
@@ -207,10 +207,10 @@ public:
         bool& complete) = 0;
 
     //! Get balances.
-    virtual WalletBalances getBalances() = 0;
+    virtual WalletBalancesForCoinType getBalances() = 0;
 
     //! Get balances if possible without blocking.
-    virtual bool tryGetBalances(WalletBalances& balances, uint256& block_hash) = 0;
+    virtual bool tryGetBalances(WalletBalancesForCoinType& balances, uint256& block_hash) = 0;
 
     //! Get balance.
     virtual CAmount getBalance() = 0;
@@ -361,8 +361,8 @@ struct WalletAddress
     }
 };
 
-//! Collection of wallet balances.
-struct WalletBalances
+//! Collection of wallet balances for a given coin type.
+struct WalletBalancesForCoinType
 {
     CAmount balance = 0;
     CAmount unconfirmed_balance = 0;
@@ -372,12 +372,24 @@ struct WalletBalances
     CAmount unconfirmed_watch_only_balance = 0;
     CAmount immature_watch_only_balance = 0;
 
-    bool balanceChanged(const WalletBalances& prev) const
+    bool balanceChanged(const WalletBalancesForCoinType& prev) const
     {
         return balance != prev.balance || unconfirmed_balance != prev.unconfirmed_balance ||
                immature_balance != prev.immature_balance || watch_only_balance != prev.watch_only_balance ||
                unconfirmed_watch_only_balance != prev.unconfirmed_watch_only_balance ||
                immature_watch_only_balance != prev.immature_watch_only_balance;
+    }
+};
+
+//! Collection of wallet balances for each coin type.
+struct WalletBalances
+{
+    WalletBalancesForCoinType cash;
+    WalletBalancesForCoinType bond;
+
+    bool balanceChanged(const WalletBalances& prev) const
+    {
+        return cash.balanceChanged(prev.cash) || bond.balanceChanged(prev.bond);
     }
 };
 
