@@ -156,9 +156,9 @@ public:
 class CTxOut
 {
 public:
+    bool coinType;
     CAmount nValue;
     CScript scriptPubKey;
-    bool coinType;
 
     CTxOut()
     {
@@ -167,13 +167,15 @@ public:
 
     CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn);
 
+    CTxOut(bool coinTypeIn, const CAmount& nValueIn, CScript scriptPubKeyIn);
+
     SERIALIZE_METHODS(CTxOut, obj) { READWRITE(obj.nValue, obj.scriptPubKey); }
 
     void SetNull()
     {
+        coinType = 0;
         nValue = -1;
         scriptPubKey.clear();
-        coinType = 0;
     }
 
     bool IsNull() const
@@ -183,9 +185,9 @@ public:
 
     friend bool operator==(const CTxOut& a, const CTxOut& b)
     {
-        return (a.nValue       == b.nValue &&
-                a.scriptPubKey == b.scriptPubKey &&
-                a.coinType     == b.coinType);
+        return (a.coinType     == b.coinType &&
+                a.nValue       == b.nValue &&
+                a.scriptPubKey == b.scriptPubKey);
     }
 
     friend bool operator!=(const CTxOut& a, const CTxOut& b)
