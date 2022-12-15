@@ -170,8 +170,9 @@ FUZZ_TARGET_INIT(wallet_notifications, initialize_setup)
         auto& [coins, first_block]{chain.front()};
         if (!first_block.vtx.empty()) {
             // Only check balance when at least one block was submitted
-            const auto bal_a{GetBalance(*a.wallet).m_mine_trusted};
-            const auto bal_b{GetBalance(*b.wallet).m_mine_trusted};
+            // TODO: Implement second coin type
+            const auto bal_a{GetBalance(*a.wallet, 0).m_mine_trusted};
+            const auto bal_b{GetBalance(*b.wallet, 0).m_mine_trusted};
             assert(total_amount == bal_a + bal_b);
         }
     }

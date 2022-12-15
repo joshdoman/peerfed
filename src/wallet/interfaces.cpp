@@ -377,21 +377,22 @@ public:
     }
     WalletBalances getBalances() override
     {
-        const auto bal = GetBalance(*m_wallet);
-        WalletBalancesForCoinType cash_balance;
-        cash_balance.balance = bal.m_mine_trusted;
-        cash_balance.unconfirmed_balance = bal.m_mine_untrusted_pending;
-        cash_balance.immature_balance = bal.m_mine_immature;
-        cash_balance.have_watch_only = haveWatchOnly();
-        if (cash_balance.have_watch_only) {
-            cash_balance.watch_only_balance = bal.m_watchonly_trusted;
-            cash_balance.unconfirmed_watch_only_balance = bal.m_watchonly_untrusted_pending;
-            cash_balance.immature_watch_only_balance = bal.m_watchonly_immature;
-        }
-
         WalletBalances result;
-        result.cash = cash_balance;
-        result.bond = cash_balance;
+        for(int coinType = 0; coinType <= 1; coinType++) {
+            const auto bal = GetBalance(*m_wallet, coinType);
+            WalletBalancesForCoinType balance;
+            balance.balance = bal.m_mine_trusted;
+            balance.unconfirmed_balance = bal.m_mine_untrusted_pending;
+            balance.immature_balance = bal.m_mine_immature;
+            balance.have_watch_only = haveWatchOnly();
+            if (balance.have_watch_only) {
+                balance.watch_only_balance = bal.m_watchonly_trusted;
+                balance.unconfirmed_watch_only_balance = bal.m_watchonly_untrusted_pending;
+                balance.immature_watch_only_balance = bal.m_watchonly_immature;
+            }
+            if (coinType == 0) result.cash = balance;
+            else result.bond = balance;
+        }
         return result;
     }
     bool tryGetBalances(WalletBalances& balances, uint256& block_hash) override
@@ -404,7 +405,7 @@ public:
         balances = getBalances();
         return true;
     }
-    CAmount getBalance() override { return GetBalance(*m_wallet).m_mine_trusted; }
+    CAmount getBalance() override { return GetBalance(*m_wallet, 0).m_mine_trusted; } // TODO: Implement coin type
     CAmount getAvailableBalance(const CCoinControl& coin_control) override
     {
         return GetAvailableBalance(*m_wallet, &coin_control);

@@ -79,7 +79,7 @@ static RPCHelpMan getwalletinfo()
     UniValue obj(UniValue::VOBJ);
 
     size_t kpExternalSize = pwallet->KeypoolCountExternalKeys();
-    const auto bal = GetBalance(*pwallet);
+    const auto bal = GetBalance(*pwallet, 0); // TODO: Implement second coin type and reformat output
     obj.pushKV("walletname", pwallet->GetName());
     obj.pushKV("walletversion", pwallet->GetVersion());
     obj.pushKV("format", pwallet->GetDatabase().Format());

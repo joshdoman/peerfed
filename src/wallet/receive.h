@@ -56,7 +56,7 @@ struct Balance {
     CAmount m_watchonly_untrusted_pending{0};
     CAmount m_watchonly_immature{0};
 };
-Balance GetBalance(const CWallet& wallet, int min_depth = 0, bool avoid_reuse = true);
+Balance GetBalance(const CWallet& wallet, bool coinType, int min_depth = 0, bool avoid_reuse = true);
 
 std::map<CTxDestination, CAmount> GetAddressBalances(const CWallet& wallet);
 std::set<std::set<CTxDestination>> GetAddressGroupings(const CWallet& wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);

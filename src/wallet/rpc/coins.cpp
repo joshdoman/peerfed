@@ -206,7 +206,7 @@ RPCHelpMan getbalance()
 
     bool avoid_reuse = GetAvoidReuseFlag(*pwallet, request.params[3]);
 
-    const auto bal = GetBalance(*pwallet, min_depth, avoid_reuse);
+    const auto bal = GetBalance(*pwallet, 0, min_depth, avoid_reuse); // Implement coin type
 
     return ValueFromAmount(bal.m_mine_trusted + (include_watchonly ? bal.m_watchonly_trusted : 0));
 },
@@ -231,7 +231,7 @@ RPCHelpMan getunconfirmedbalance()
 
     LOCK(pwallet->cs_wallet);
 
-    return ValueFromAmount(GetBalance(*pwallet).m_mine_untrusted_pending);
+    return ValueFromAmount(GetBalance(*pwallet, 0).m_mine_untrusted_pending); // Implement coin type
 },
     };
 }
@@ -468,7 +468,8 @@ RPCHelpMan getbalances()
 
     LOCK(wallet.cs_wallet);
 
-    const auto bal = GetBalance(wallet);
+    bool coinType = 0;
+    const auto bal = GetBalance(wallet, coinType); // TODO: Implement coin type
     UniValue balances{UniValue::VOBJ};
     {
         UniValue balances_mine{UniValue::VOBJ};
@@ -478,7 +479,7 @@ RPCHelpMan getbalances()
         if (wallet.IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE)) {
             // If the AVOID_REUSE flag is set, bal has been set to just the un-reused address balance. Get
             // the total balance, and then subtract bal to get the reused address balance.
-            const auto full_bal = GetBalance(wallet, 0, false);
+            const auto full_bal = GetBalance(wallet, coinType, 0, false);
             balances_mine.pushKV("used", ValueFromAmount(full_bal.m_mine_trusted + full_bal.m_mine_untrusted_pending - bal.m_mine_trusted - bal.m_mine_untrusted_pending));
         }
         balances.pushKV("mine", balances_mine);

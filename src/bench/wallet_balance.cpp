@@ -43,12 +43,15 @@ static void WalletBalance(benchmark::Bench& bench, const bool set_dirty, const b
     }
     SyncWithValidationInterfaceQueue();
 
-    auto bal = GetBalance(wallet); // Cache
+    // TODO: Implement bench for both coin types
+    auto cash_bal = GetBalance(wallet, 0); // Cache
 
     bench.run([&] {
         if (set_dirty) wallet.MarkDirty();
-        bal = GetBalance(wallet);
-        if (add_mine) assert(bal.m_mine_trusted > 0);
+        cash_bal = GetBalance(wallet, 0);
+        if (add_mine) {
+            assert(cash_bal.m_mine_trusted > 0);
+        }
     });
 }
 
