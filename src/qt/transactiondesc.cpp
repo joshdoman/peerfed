@@ -188,12 +188,23 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
         //
         // Coinbase
         //
-        CAmount nUnmatured = 0;
-        for (const CTxOut& txout : wtx.tx->vout)
-            nUnmatured += wallet.getCredit(txout, ISMINE_ALL);
+        CAmount nUnmatured0 = 0;
+        CAmount nUnmatured1 = 0;
+        for (const CTxOut& txout : wtx.tx->vout) {
+            if (txout.coinType == 0)
+                nUnmatured0 += wallet.getCredit(txout, ISMINE_ALL);
+            else
+                nUnmatured1 += wallet.getCredit(txout, ISMINE_ALL);
+        }
         strHTML += "<b>" + tr("Credit") + ":</b> ";
-        if (status.is_in_main_chain)
-            strHTML += BitcoinUnits::formatHtmlWithUnit(unit, nUnmatured)+ " (" + tr("matures in %n more block(s)", "", status.blocks_to_maturity) + ")";
+        if (status.is_in_main_chain) {
+            if (nUnmatured0 > 0)
+                strHTML += BitcoinUnits::formatHtmlWithUnit(unit, nUnmatured0) + "0";
+                if (nUnmatured1 > 0) strHTML += ", ";
+            if (nUnmatured1 > 0)
+                strHTML += BitcoinUnits::formatHtmlWithUnit(unit, nUnmatured1) + "1";
+            strHTML += " (" + tr("matures in %n more block(s)", "", status.blocks_to_maturity) + ")";
+        }
         else
             strHTML += "(" + tr("not accepted") + ")";
         strHTML += "<br>";
