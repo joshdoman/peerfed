@@ -419,6 +419,11 @@ public:
         LOCK(m_wallet->cs_wallet);
         return m_wallet->IsMine(txout);
     }
+    bool getDebitCoinType(const CTxIn& txin) override
+    {
+        LOCK(m_wallet->cs_wallet);
+        return m_wallet->GetDebitCoinType(txin);
+    }
     CAmount getDebit(const CTxIn& txin, isminefilter filter) override
     {
         LOCK(m_wallet->cs_wallet);
@@ -427,7 +432,8 @@ public:
     CAmount getCredit(const CTxOut& txout, isminefilter filter) override
     {
         LOCK(m_wallet->cs_wallet);
-        return OutputGetCredit(*m_wallet, txout, filter);
+        CWalletTx::CoinType coinTypeEnum = static_cast<CWalletTx::CoinType>(txout.coinType);
+        return OutputGetCredit(*m_wallet, txout, coinTypeEnum, filter);
     }
     CoinsList listCoins() override
     {

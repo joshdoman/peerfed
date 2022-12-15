@@ -683,6 +683,9 @@ public:
 
     isminetype IsMine(const CTxDestination& dest) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     isminetype IsMine(const CScript& script) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+
+    bool GetDebitCoinType(const CTxIn &txin) const;
+
     /**
      * Returns amount of debit if the input matches the
      * filter, otherwise returns 0
@@ -693,7 +696,7 @@ public:
     isminetype IsMine(const COutPoint& outpoint) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     /** should probably be renamed to IsRelevantToMe */
     bool IsFromMe(const CTransaction& tx) const;
-    CAmount GetDebit(const CTransaction& tx, const isminefilter& filter) const;
+    CAmount GetDebit(const CTransaction& tx, CWalletTx::CoinType coinType, const isminefilter& filter) const;
     void chainStateFlushed(const CBlockLocator& loc) override;
 
     DBErrors LoadWallet();

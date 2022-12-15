@@ -186,8 +186,10 @@ public:
     std::multimap<int64_t, CWalletTx*>::const_iterator m_it_wtxOrdered;
 
     // memory only
+    enum CoinType { CASH, BOND, COINTYPE_ENUM_ELEMENTS };
     enum AmountType { DEBIT, CREDIT, IMMATURE_CREDIT, AVAILABLE_CREDIT, AMOUNTTYPE_ENUM_ELEMENTS };
-    mutable CachableAmount m_amounts[AMOUNTTYPE_ENUM_ELEMENTS];
+    mutable CachableAmount m_amounts[COINTYPE_ENUM_ELEMENTS][AMOUNTTYPE_ENUM_ELEMENTS];
+
     /**
      * This flag is true if all m_amounts caches are empty. This is particularly
      * useful in places where MarkDirty is conditionally called and the
@@ -273,10 +275,14 @@ public:
     //! make sure balances are recalculated
     void MarkDirty()
     {
-        m_amounts[DEBIT].Reset();
-        m_amounts[CREDIT].Reset();
-        m_amounts[IMMATURE_CREDIT].Reset();
-        m_amounts[AVAILABLE_CREDIT].Reset();
+        m_amounts[CASH][DEBIT].Reset();
+        m_amounts[CASH][CREDIT].Reset();
+        m_amounts[CASH][IMMATURE_CREDIT].Reset();
+        m_amounts[CASH][AVAILABLE_CREDIT].Reset();
+        m_amounts[BOND][DEBIT].Reset();
+        m_amounts[BOND][CREDIT].Reset();
+        m_amounts[BOND][IMMATURE_CREDIT].Reset();
+        m_amounts[BOND][AVAILABLE_CREDIT].Reset();
         fChangeCached = false;
         m_is_cache_empty = true;
     }

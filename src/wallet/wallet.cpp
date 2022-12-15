@@ -1387,6 +1387,23 @@ void CWallet::BlockUntilSyncedToCurrentChain() const {
     chain().waitForNotificationsIfTipChanged(last_block_hash);
 }
 
+bool CWallet::GetDebitCoinType(const CTxIn &txin) const
+{
+    {
+        LOCK(cs_wallet);
+        const auto mi = mapWallet.find(txin.prevout.hash);
+        if (mi != mapWallet.end())
+        {
+            const CWalletTx& prev = (*mi).second;
+            if (txin.prevout.n < prev.tx->vout.size()) {
+                const CTxOut& prevtxout = prev.tx->vout[txin.prevout.n];
+                return prevtxout.coinType;
+            }
+        }
+    }
+    return 0;
+}
+
 // Note that this function doesn't distinguish between a 0-valued input,
 // and a not-"is mine" (according to the filter) input.
 CAmount CWallet::GetDebit(const CTxIn &txin, const isminefilter& filter) const
@@ -1397,9 +1414,11 @@ CAmount CWallet::GetDebit(const CTxIn &txin, const isminefilter& filter) const
         if (mi != mapWallet.end())
         {
             const CWalletTx& prev = (*mi).second;
-            if (txin.prevout.n < prev.tx->vout.size())
-                if (IsMine(prev.tx->vout[txin.prevout.n]) & filter)
+            if (txin.prevout.n < prev.tx->vout.size()) {
+                const CTxOut& prevtxout = prev.tx->vout[txin.prevout.n];
+                if (IsMine(prevtxout) & filter)
                     return prev.tx->vout[txin.prevout.n].nValue;
+            }
         }
     }
     return 0;
@@ -1451,15 +1470,16 @@ isminetype CWallet::IsMine(const COutPoint& outpoint) const
 
 bool CWallet::IsFromMe(const CTransaction& tx) const
 {
-    return (GetDebit(tx, ISMINE_ALL) > 0);
+    return ((GetDebit(tx, CWalletTx::CASH, ISMINE_ALL) + GetDebit(tx, CWalletTx::BOND, ISMINE_ALL)) > 0);
 }
 
-CAmount CWallet::GetDebit(const CTransaction& tx, const isminefilter& filter) const
+CAmount CWallet::GetDebit(const CTransaction& tx, CWalletTx::CoinType coinType, const isminefilter& filter) const
 {
     CAmount nDebit = 0;
     for (const CTxIn& txin : tx.vin)
     {
-        nDebit += GetDebit(txin, filter);
+        if (GetDebitCoinType(txin) == coinType)
+            nDebit += GetDebit(txin, filter);
         if (!MoneyRange(nDebit))
             throw std::runtime_error(std::string(__func__) + ": value out of range");
     }
