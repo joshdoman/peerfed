@@ -171,7 +171,11 @@ RPCHelpMan getbalance()
                     {"avoid_reuse", RPCArg::Type::BOOL, RPCArg::Default{true}, "(only available if avoid_reuse wallet flag is set) Do not include balance in dirty outputs; addresses are considered dirty if they have previously been used in a transaction."},
                 },
                 RPCResult{
-                    RPCResult::Type::STR_AMOUNT, "amount", "The total amount in " + CURRENCY_UNIT + " received for this wallet."
+                    RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::STR_AMOUNT, "cash", "The total cash amount in " + CURRENCY_UNIT + " received for this wallet."},
+                        {RPCResult::Type::STR_AMOUNT, "bond", "The total bond amount in " + CURRENCY_UNIT + " received for this wallet."},
+                    }
                 },
                 RPCExamples{
             "\nThe total amount in the wallet with 0 or more confirmations\n"
@@ -206,9 +210,15 @@ RPCHelpMan getbalance()
 
     bool avoid_reuse = GetAvoidReuseFlag(*pwallet, request.params[3]);
 
-    const auto bal = GetBalance(*pwallet, 0, min_depth, avoid_reuse); // Implement coin type
+    UniValue ret(UniValue::VOBJ);
 
-    return ValueFromAmount(bal.m_mine_trusted + (include_watchonly ? bal.m_watchonly_trusted : 0));
+    for (int coinType = 0; coinType <= 1; coinType++) {
+        const auto bal = GetBalance(*pwallet, coinType, min_depth, avoid_reuse);
+        const auto amount = ValueFromAmount(bal.m_mine_trusted + (include_watchonly ? bal.m_watchonly_trusted : 0));
+        const auto coinTypeStr = coinType ? "bond" : "cash";
+        ret.pushKV(coinTypeStr, amount);
+    }
+    return ret;
 },
     };
 }
