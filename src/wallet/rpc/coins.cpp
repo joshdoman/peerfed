@@ -448,19 +448,72 @@ RPCHelpMan getbalances()
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
+                // {RPCResult::Type::OBJ, "cash", "cash balances",
+                //     {
+                //     {RPCResult::Type::OBJ, "mine", "balances from outputs that the wallet can sign",
+                //     {
+                //         {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
+                //         {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
+                //         {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
+                //         {RPCResult::Type::STR_AMOUNT, "used", /*optional=*/true, "(only present if avoid_reuse is set) balance from coins sent to addresses that were previously spent from (potentially privacy violating)"},
+                //     }},
+                //     {RPCResult::Type::OBJ, "watchonly", /*optional=*/true, "watchonly balances (not present if wallet does not watch anything)",
+                //     {
+                //         {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
+                //         {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
+                //         {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
+                //     }},
+                //     }
+                // },
+                // {RPCResult::Type::OBJ, "bond", "bond balances",
+                //     {RPCResult::Type::OBJ, "mine", "balances from outputs that the wallet can sign",
+                //     {
+                //         {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
+                //         {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
+                //         {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
+                //         {RPCResult::Type::STR_AMOUNT, "used", /*optional=*/true, "(only present if avoid_reuse is set) balance from coins sent to addresses that were previously spent from (potentially privacy violating)"},
+                //     }},
+                //     {RPCResult::Type::OBJ, "watchonly", /*optional=*/true, "watchonly balances (not present if wallet does not watch anything)",
+                //     {
+                //         {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
+                //         {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
+                //         {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
+                //     }},
+                // },
                 {RPCResult::Type::OBJ, "mine", "balances from outputs that the wallet can sign",
+                {
+                {RPCResult::Type::OBJ, "cash", "cash balances",
                 {
                     {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
                     {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
                     {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
                     {RPCResult::Type::STR_AMOUNT, "used", /*optional=*/true, "(only present if avoid_reuse is set) balance from coins sent to addresses that were previously spent from (potentially privacy violating)"},
                 }},
+                {RPCResult::Type::OBJ, "bond", "bond balances",
+                {
+                    {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
+                    {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
+                    {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
+                    {RPCResult::Type::STR_AMOUNT, "used", /*optional=*/true, "(only present if avoid_reuse is set) balance from coins sent to addresses that were previously spent from (potentially privacy violating)"},
+                }},
+                }
+                },
                 {RPCResult::Type::OBJ, "watchonly", /*optional=*/true, "watchonly balances (not present if wallet does not watch anything)",
+                {
+                {RPCResult::Type::OBJ, "cash", "cash balances",
                 {
                     {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
                     {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
                     {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
                 }},
+                {RPCResult::Type::OBJ, "bond", "bond balances",
+                {
+                    {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
+                    {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
+                    {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
+                }},
+                }
+                },
             }
             },
         RPCExamples{
@@ -478,31 +531,39 @@ RPCHelpMan getbalances()
 
     LOCK(wallet.cs_wallet);
 
-    bool coinType = 0;
-    const auto bal = GetBalance(wallet, coinType); // TODO: Implement coin type
-    UniValue balances{UniValue::VOBJ};
-    {
-        UniValue balances_mine{UniValue::VOBJ};
-        balances_mine.pushKV("trusted", ValueFromAmount(bal.m_mine_trusted));
-        balances_mine.pushKV("untrusted_pending", ValueFromAmount(bal.m_mine_untrusted_pending));
-        balances_mine.pushKV("immature", ValueFromAmount(bal.m_mine_immature));
-        if (wallet.IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE)) {
-            // If the AVOID_REUSE flag is set, bal has been set to just the un-reused address balance. Get
-            // the total balance, and then subtract bal to get the reused address balance.
-            const auto full_bal = GetBalance(wallet, coinType, 0, false);
-            balances_mine.pushKV("used", ValueFromAmount(full_bal.m_mine_trusted + full_bal.m_mine_untrusted_pending - bal.m_mine_trusted - bal.m_mine_untrusted_pending));
+    UniValue mine{UniValue::VOBJ};
+    UniValue watchonly{UniValue::VOBJ};
+    UniValue ret{UniValue::VOBJ};
+
+    for (int coinType = 0; coinType <= 1; coinType++) {
+        const auto bal = GetBalance(wallet, coinType); // TODO: Implement coin type
+        const auto coinTypeStr = coinType ? "bond" : "cash";
+        {
+            UniValue balances_mine{UniValue::VOBJ};
+            balances_mine.pushKV("trusted", ValueFromAmount(bal.m_mine_trusted));
+            balances_mine.pushKV("untrusted_pending", ValueFromAmount(bal.m_mine_untrusted_pending));
+            balances_mine.pushKV("immature", ValueFromAmount(bal.m_mine_immature));
+            if (wallet.IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE)) {
+                // If the AVOID_REUSE flag is set, bal has been set to just the un-reused address balance. Get
+                // the total balance, and then subtract bal to get the reused address balance.
+                const auto full_bal = GetBalance(wallet, coinType, 0, false);
+                balances_mine.pushKV("used", ValueFromAmount(full_bal.m_mine_trusted + full_bal.m_mine_untrusted_pending - bal.m_mine_trusted - bal.m_mine_untrusted_pending));
+            }
+            mine.pushKV(coinTypeStr, balances_mine);
         }
-        balances.pushKV("mine", balances_mine);
+        auto spk_man = wallet.GetLegacyScriptPubKeyMan();
+        if (spk_man && spk_man->HaveWatchOnly()) {
+            UniValue balances_watchonly{UniValue::VOBJ};
+            balances_watchonly.pushKV("trusted", ValueFromAmount(bal.m_watchonly_trusted));
+            balances_watchonly.pushKV("untrusted_pending", ValueFromAmount(bal.m_watchonly_untrusted_pending));
+            balances_watchonly.pushKV("immature", ValueFromAmount(bal.m_watchonly_immature));
+            watchonly.pushKV(coinTypeStr, balances_watchonly);
+        }
     }
-    auto spk_man = wallet.GetLegacyScriptPubKeyMan();
-    if (spk_man && spk_man->HaveWatchOnly()) {
-        UniValue balances_watchonly{UniValue::VOBJ};
-        balances_watchonly.pushKV("trusted", ValueFromAmount(bal.m_watchonly_trusted));
-        balances_watchonly.pushKV("untrusted_pending", ValueFromAmount(bal.m_watchonly_untrusted_pending));
-        balances_watchonly.pushKV("immature", ValueFromAmount(bal.m_watchonly_immature));
-        balances.pushKV("watchonly", balances_watchonly);
-    }
-    return balances;
+    ret.pushKV("mine", mine);
+    if (!watchonly.empty())
+        ret.pushKV("watchonly", watchonly);
+    return ret;
 },
     };
 }
