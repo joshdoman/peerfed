@@ -55,7 +55,7 @@ public Q_SLOTS:
     void accept() override;
     SendCoinsEntry *addEntry();
     void updateTabsAndLabels();
-    void setBalance(const interfaces::WalletBalancesForCoinType& balances);
+    void setBalance(const interfaces::WalletBalances& balances);
 
 Q_SIGNALS:
     void coinsSent(const uint256& txid);

@@ -104,7 +104,7 @@ void WalletModel::pollBalanceChanged()
     // avoids the GUI from getting stuck on periodical polls if the core is
     // holding the locks for a longer time - for example, during a wallet
     // rescan.
-    interfaces::WalletBalancesForCoinType new_balances;
+    interfaces::WalletBalances new_balances;
     uint256 block_hash;
     if (!m_wallet->tryGetBalances(new_balances, block_hash)) {
         return;
@@ -122,7 +122,7 @@ void WalletModel::pollBalanceChanged()
     }
 }
 
-void WalletModel::checkBalanceChanged(const interfaces::WalletBalancesForCoinType& new_balances)
+void WalletModel::checkBalanceChanged(const interfaces::WalletBalances& new_balances)
 {
     if (new_balances.balanceChanged(m_cached_balances)) {
         m_cached_balances = new_balances;
@@ -130,7 +130,7 @@ void WalletModel::checkBalanceChanged(const interfaces::WalletBalancesForCoinTyp
     }
 }
 
-interfaces::WalletBalancesForCoinType WalletModel::getCachedBalance() const
+interfaces::WalletBalances WalletModel::getCachedBalance() const
 {
     return m_cached_balances;
 }
@@ -616,5 +616,6 @@ uint256 WalletModel::getLastBlockProcessed() const
 
 CAmount WalletModel::getAvailableBalance(const CCoinControl* control)
 {
-    return control && control->HasSelected() ? wallet().getAvailableBalance(*control) : getCachedBalance().balance;
+    // TODO: Implement balance type
+    return control && control->HasSelected() ? wallet().getAvailableBalance(*control) : getCachedBalance().cash.balance;
 }

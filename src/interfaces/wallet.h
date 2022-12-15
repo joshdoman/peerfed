@@ -46,6 +46,7 @@ namespace interfaces {
 class Handler;
 struct WalletAddress;
 struct WalletBalancesForCoinType;
+struct WalletBalances;
 struct WalletTx;
 struct WalletTxOut;
 struct WalletTxStatus;
@@ -207,10 +208,10 @@ public:
         bool& complete) = 0;
 
     //! Get balances.
-    virtual WalletBalancesForCoinType getBalances() = 0;
+    virtual WalletBalances getBalances() = 0;
 
     //! Get balances if possible without blocking.
-    virtual bool tryGetBalances(WalletBalancesForCoinType& balances, uint256& block_hash) = 0;
+    virtual bool tryGetBalances(WalletBalances& balances, uint256& block_hash) = 0;
 
     //! Get balance.
     virtual CAmount getBalance() = 0;

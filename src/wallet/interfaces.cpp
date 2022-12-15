@@ -39,6 +39,7 @@ using interfaces::Handler;
 using interfaces::MakeHandler;
 using interfaces::Wallet;
 using interfaces::WalletAddress;
+using interfaces::WalletBalances;
 using interfaces::WalletBalancesForCoinType;
 using interfaces::WalletLoader;
 using interfaces::WalletOrderForm;
@@ -374,22 +375,26 @@ public:
     {
         return m_wallet->FillPSBT(psbtx, complete, sighash_type, sign, bip32derivs, n_signed);
     }
-    WalletBalancesForCoinType getBalances() override
+    WalletBalances getBalances() override
     {
         const auto bal = GetBalance(*m_wallet);
-        WalletBalancesForCoinType result;
-        result.balance = bal.m_mine_trusted;
-        result.unconfirmed_balance = bal.m_mine_untrusted_pending;
-        result.immature_balance = bal.m_mine_immature;
-        result.have_watch_only = haveWatchOnly();
-        if (result.have_watch_only) {
-            result.watch_only_balance = bal.m_watchonly_trusted;
-            result.unconfirmed_watch_only_balance = bal.m_watchonly_untrusted_pending;
-            result.immature_watch_only_balance = bal.m_watchonly_immature;
+        WalletBalancesForCoinType cash_balance;
+        cash_balance.balance = bal.m_mine_trusted;
+        cash_balance.unconfirmed_balance = bal.m_mine_untrusted_pending;
+        cash_balance.immature_balance = bal.m_mine_immature;
+        cash_balance.have_watch_only = haveWatchOnly();
+        if (cash_balance.have_watch_only) {
+            cash_balance.watch_only_balance = bal.m_watchonly_trusted;
+            cash_balance.unconfirmed_watch_only_balance = bal.m_watchonly_untrusted_pending;
+            cash_balance.immature_watch_only_balance = bal.m_watchonly_immature;
         }
+
+        WalletBalances result;
+        result.cash = cash_balance;
+        result.bond = cash_balance;
         return result;
     }
-    bool tryGetBalances(WalletBalancesForCoinType& balances, uint256& block_hash) override
+    bool tryGetBalances(WalletBalances& balances, uint256& block_hash) override
     {
         TRY_LOCK(m_wallet->cs_wallet, locked_wallet);
         if (!locked_wallet) {
