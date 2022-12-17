@@ -107,6 +107,26 @@ int BitcoinUnits::decimals(Unit unit)
     assert(false);
 }
 
+CAmountType BitcoinUnits::type(Unit unit)
+{
+    switch (unit) {
+    case Unit::CASH: return CASH;
+    case Unit::BOND: return BOND;
+    case Unit::mCASH: return CASH;
+    case Unit::mBOND: return BOND;
+    case Unit::uCASH: return CASH;
+    case Unit::uBOND: return BOND;
+    case Unit::sCASH: return CASH;
+    case Unit::sBOND: return BOND;
+    } // no default case, so the compiler can warn about missing cases
+    assert(false);
+}
+
+BitcoinUnit BitcoinUnits::unitOfType(Unit unit, CAmountType type)
+{
+    return (BitcoinUnit)((static_cast<int>(unit) / 2) * 2 + type);
+}
+
 QString BitcoinUnits::format(Unit unit, const CAmount& nIn, bool fPlus, SeparatorStyle separators, bool justify)
 {
     // Note: not using straight sprintf here because we do NOT want

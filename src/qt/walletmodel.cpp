@@ -616,6 +616,14 @@ uint256 WalletModel::getLastBlockProcessed() const
 
 CAmount WalletModel::getAvailableBalance(const CCoinControl* control)
 {
-    // TODO: Implement balance type
     return control && control->HasSelected() ? wallet().getAvailableBalance(*control) : getCachedBalance().cash.balance;
+}
+
+CAmount WalletModel::getAvailableBalance(const CCoinControl* control, CAmountType amountType)
+{
+    // TODO: Implement amount type
+    if (control && control->HasSelected())
+        return wallet().getAvailableBalance(*control);
+    else
+        return amountType == CASH ? getCachedBalance().cash.balance : getCachedBalance().bond.balance;
 }

@@ -29,6 +29,9 @@ class BitcoinAmountField: public QWidget
 public:
     explicit BitcoinAmountField(QWidget *parent = nullptr);
 
+    CAmountType type() const;
+    void setType(const CAmountType& type);
+
     CAmount value(bool *value=nullptr) const;
     void setValue(const CAmount& value);
 

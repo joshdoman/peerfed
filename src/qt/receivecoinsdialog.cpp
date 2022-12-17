@@ -159,7 +159,7 @@ void ReceiveCoinsDialog::on_receiveButton_clicked()
     {
     case AddressTableModel::EditStatus::OK: {
         // Success
-        SendCoinsRecipient info(address, label,
+        SendCoinsRecipient info(address, label, CASH, // TODO: Implement amount type
             ui->reqAmount->value(), ui->reqMessage->text());
         ReceiveRequestDialog *dialog = new ReceiveRequestDialog(this);
         dialog->setAttribute(Qt::WA_DeleteOnClose);

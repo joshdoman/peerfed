@@ -74,6 +74,10 @@ public:
     static qint64 factor(Unit unit);
     //! Number of decimals left
     static int decimals(Unit unit);
+    //! Type of the unit
+    static CAmountType type(Unit unit);
+    //! Returns equivalent unit of a given amount type  
+    static Unit unitOfType(Unit unit, CAmountType type);
     //! Format as string
     static QString format(Unit unit, const CAmount& amount, bool plussign = false, SeparatorStyle separators = SeparatorStyle::STANDARD, bool justify = false);
     //! Format as string (with unit)

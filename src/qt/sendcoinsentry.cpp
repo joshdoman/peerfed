@@ -153,6 +153,7 @@ SendCoinsRecipient SendCoinsEntry::getValue()
 {
     recipient.address = ui->payTo->text();
     recipient.label = ui->addAsLabel->text();
+    recipient.amountType = ui->payAmount->type();
     recipient.amount = ui->payAmount->value();
     recipient.message = ui->messageTextLabel->text();
     recipient.fSubtractFeeFromAmount = (ui->checkboxSubtractFeeFromAmount->checkState() == Qt::Checked);
@@ -185,6 +186,7 @@ void SendCoinsEntry::setValue(const SendCoinsRecipient &value)
         ui->payTo->setText(recipient.address); // this may set a label from addressbook
         if (!recipient.label.isEmpty()) // if a label had been set from the addressbook, don't overwrite with an empty label
             ui->addAsLabel->setText(recipient.label);
+        ui->payAmount->setType(recipient.amountType);
         ui->payAmount->setValue(recipient.amount);
     }
 }

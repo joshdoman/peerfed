@@ -99,10 +99,10 @@ public:
     const QString& getOverriddenByCommandLine() { return strOverriddenByCommandLine; }
 
     BitcoinUnit getDisplayCashUnit() const {
-        return (BitcoinUnit)((static_cast<int>(m_display_bitcoin_unit) / 2) * 2);
+        return BitcoinUnits::unitOfType(m_display_bitcoin_unit, CASH);
     }
     BitcoinUnit getDisplayBondUnit() const {
-        return (BitcoinUnit)((static_cast<int>(m_display_bitcoin_unit) / 2) * 2 + 1);
+        return BitcoinUnits::unitOfType(m_display_bitcoin_unit, BOND);
     }
 
     /* Explicit setters */

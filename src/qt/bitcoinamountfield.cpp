@@ -292,6 +292,20 @@ QWidget *BitcoinAmountField::setupTabChain(QWidget *prev)
     return unit;
 }
 
+CAmountType BitcoinAmountField::type() const
+{
+    QVariant q_current_unit = unit->currentData(BitcoinUnits::UnitRole);
+    return BitcoinUnits::type(q_current_unit.value<BitcoinUnit>());
+}
+
+void BitcoinAmountField::setType(const CAmountType& amountType)
+{
+    QVariant qv_current_unit = unit->currentData(BitcoinUnits::UnitRole);
+    BitcoinUnit current_unit = qv_current_unit.value<BitcoinUnit>();
+    BitcoinUnit new_unit = BitcoinUnits::unitOfType(current_unit, amountType);
+    amount->setDisplayUnit(new_unit);
+}
+
 CAmount BitcoinAmountField::value(bool *valid_out) const
 {
     return amount->value(valid_out);

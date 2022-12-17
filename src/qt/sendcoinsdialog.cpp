@@ -785,11 +785,11 @@ void SendCoinsDialog::useAvailableBalance(SendCoinsEntry* entry)
     m_coin_control->fAllowWatchOnly = model->wallet().privateKeysDisabled() && !model->wallet().hasExternalSigner();
 
     // Calculate available amount to send.
-    // TODO: Implement balance type
-    CAmount amount = model->getAvailableBalance(m_coin_control.get());
+    CAmountType amountType = entry->getValue().amountType;
+    CAmount amount = model->getAvailableBalance(m_coin_control.get(), amountType);
     for (int i = 0; i < ui->entries->count(); ++i) {
         SendCoinsEntry* e = qobject_cast<SendCoinsEntry*>(ui->entries->itemAt(i)->widget());
-        if (e && !e->isHidden() && e != entry) {
+        if (e && !e->isHidden() && e != entry && amountType == e->getValue().amountType) {
             amount -= e->getValue().amount;
         }
     }
