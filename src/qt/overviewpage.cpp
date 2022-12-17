@@ -94,10 +94,11 @@ public:
             foreground = option.palette.color(QPalette::Text);
         }
         painter->setPen(foreground);
+        BitcoinUnit unit = (amountType == CASH) ? cashUnit : bondUnit;
         QString amountText = BitcoinUnits::formatWithUnit(unit, amount, true, BitcoinUnits::SeparatorStyle::ALWAYS);
         if(!confirmed)
         {
-            amountText = QString("[") + amountText + QString::number(amountType) + QString("]");
+            amountText = QString("[") + amountText + QString("]");
         }
 
         QRect amount_bounding_rect;
@@ -125,7 +126,8 @@ public:
         return {DECORATION_SIZE + 8 + minimum_text_width, DECORATION_SIZE};
     }
 
-    BitcoinUnit unit{BitcoinUnit::BTC};
+    BitcoinUnit cashUnit{BitcoinUnit::CASH};
+    BitcoinUnit bondUnit{BitcoinUnit::BOND};
 
 Q_SIGNALS:
     //! An intermediate signal for emitting from the `paint() const` member function.
@@ -200,47 +202,48 @@ void OverviewPage::setBalance(const interfaces::WalletBalances& balances)
 {
     interfaces::WalletBalancesForAmountType cash = balances.cash;
     interfaces::WalletBalancesForAmountType bond = balances.bond;
-    BitcoinUnit unit = walletModel->getOptionsModel()->getDisplayUnit();
+    BitcoinUnit cashUnit = walletModel->getOptionsModel()->getDisplayCashUnit();
+    BitcoinUnit bondUnit = walletModel->getOptionsModel()->getDisplayBondUnit();
     if (walletModel->wallet().isLegacy()) {
         if (walletModel->wallet().privateKeysDisabled()) {
-            ui->labelBalance0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelUnconfirmed0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.unconfirmed_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelImmature0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelTotal0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.watch_only_balance + cash.unconfirmed_watch_only_balance + cash.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelBalance0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelUnconfirmed0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.unconfirmed_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelImmature0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelTotal0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.watch_only_balance + cash.unconfirmed_watch_only_balance + cash.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
 
-            ui->labelBalance1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelUnconfirmed1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.unconfirmed_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelImmature1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelTotal1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.watch_only_balance + bond.unconfirmed_watch_only_balance + bond.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelBalance1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelUnconfirmed1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.unconfirmed_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelImmature1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelTotal1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.watch_only_balance + bond.unconfirmed_watch_only_balance + bond.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
         } else {
-            ui->labelBalance0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelUnconfirmed0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.unconfirmed_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelImmature0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelTotal0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.balance + cash.unconfirmed_balance + cash.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelWatchAvailable0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelWatchPending0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.unconfirmed_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelWatchImmature0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelWatchTotal0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.watch_only_balance + cash.unconfirmed_watch_only_balance + cash.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelBalance0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelUnconfirmed0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.unconfirmed_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelImmature0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelTotal0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.balance + cash.unconfirmed_balance + cash.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelWatchAvailable0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelWatchPending0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.unconfirmed_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelWatchImmature0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelWatchTotal0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.watch_only_balance + cash.unconfirmed_watch_only_balance + cash.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
 
-            ui->labelBalance1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelUnconfirmed1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.unconfirmed_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelImmature1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelTotal1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.balance + bond.unconfirmed_balance + bond.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelWatchAvailable1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelWatchPending1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.unconfirmed_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelWatchImmature1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-            ui->labelWatchTotal1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.watch_only_balance + bond.unconfirmed_watch_only_balance + bond.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelBalance1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelUnconfirmed1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.unconfirmed_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelImmature1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelTotal1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.balance + bond.unconfirmed_balance + bond.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelWatchAvailable1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelWatchPending1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.unconfirmed_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelWatchImmature1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+            ui->labelWatchTotal1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.watch_only_balance + bond.unconfirmed_watch_only_balance + bond.immature_watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
         }
     } else {
-        ui->labelBalance0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-        ui->labelUnconfirmed0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.unconfirmed_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-        ui->labelImmature0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-        ui->labelTotal0->setText(BitcoinUnits::formatWithPrivacy(unit, 0, cash.balance + cash.unconfirmed_balance + cash.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+        ui->labelBalance0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+        ui->labelUnconfirmed0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.unconfirmed_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+        ui->labelImmature0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+        ui->labelTotal0->setText(BitcoinUnits::formatWithPrivacy(cashUnit, cash.balance + cash.unconfirmed_balance + cash.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
 
-        ui->labelBalance1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-        ui->labelUnconfirmed1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.unconfirmed_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-        ui->labelImmature1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
-        ui->labelTotal1->setText(BitcoinUnits::formatWithPrivacy(unit, 1, bond.balance + bond.unconfirmed_balance + bond.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+        ui->labelBalance1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+        ui->labelUnconfirmed1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.unconfirmed_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+        ui->labelImmature1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
+        ui->labelTotal1->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.balance + bond.unconfirmed_balance + bond.immature_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
     }
     // only show immature (newly mined) balance if it's non-zero, so as not to complicate things
     // for the non-mining users
@@ -324,7 +327,7 @@ void OverviewPage::setWalletModel(WalletModel *model)
         });
     }
 
-    // update the display unit, to not use the default ("BTC")
+    // update the display unit, to not use the default ("CASH")
     updateDisplayUnit();
 }
 
@@ -349,7 +352,9 @@ void OverviewPage::updateDisplayUnit()
         }
 
         // Update txdelegate->unit with the current unit
-        txdelegate->unit = walletModel->getOptionsModel()->getDisplayUnit();
+        BitcoinUnit displayUnit = walletModel->getOptionsModel()->getDisplayUnit();
+        txdelegate->cashUnit = walletModel->getOptionsModel()->getDisplayCashUnit();
+        txdelegate->bondUnit = walletModel->getOptionsModel()->getDisplayBondUnit();
 
         ui->listTransactions->update();
     }

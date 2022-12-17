@@ -176,7 +176,8 @@ bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out)
         {
             if(!i->second.isEmpty())
             {
-                if (!BitcoinUnits::parse(BitcoinUnit::BTC, i->second, &rv.amount)) {
+                // TODO: Implement amount type
+                if (!BitcoinUnits::parse(BitcoinUnit::CASH, i->second, &rv.amount)) {
                     return false;
                 }
             }
@@ -208,7 +209,8 @@ QString formatBitcoinURI(const SendCoinsRecipient &info)
 
     if (info.amount)
     {
-        ret += QString("?amount=%1").arg(BitcoinUnits::format(BitcoinUnit::BTC, info.amount, false, BitcoinUnits::SeparatorStyle::NEVER));
+        // TODO: Implement amount type
+        ret += QString("?amount=%1").arg(BitcoinUnits::format(BitcoinUnit::BOND, info.amount, false, BitcoinUnits::SeparatorStyle::NEVER));
         paramCount++;
     }
 

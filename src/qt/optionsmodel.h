@@ -98,6 +98,13 @@ public:
     bool getEnablePSBTControls() const { return m_enable_psbt_controls; }
     const QString& getOverriddenByCommandLine() { return strOverriddenByCommandLine; }
 
+    BitcoinUnit getDisplayCashUnit() const {
+        return (BitcoinUnit)((static_cast<int>(m_display_bitcoin_unit) / 2) * 2);
+    }
+    BitcoinUnit getDisplayBondUnit() const {
+        return (BitcoinUnit)((static_cast<int>(m_display_bitcoin_unit) / 2) * 2 + 1);
+    }
+
     /* Explicit setters */
     void SetPruneTargetGB(int prune_target_gb);
 

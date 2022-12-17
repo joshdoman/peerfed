@@ -40,10 +40,14 @@ public:
       @note Source: https://en.bitcoin.it/wiki/Units . Please add only sensible ones
      */
     enum class Unit {
-        BTC,
-        mBTC,
-        uBTC,
-        SAT
+        CASH,
+        BOND,
+        mCASH,
+        mBOND,
+        uCASH,
+        uBOND,
+        sCASH,
+        sBOND
     };
     Q_ENUM(Unit)
 
@@ -77,7 +81,7 @@ public:
     //! Format as HTML string (with unit)
     static QString formatHtmlWithUnit(Unit unit, const CAmount& amount, bool plussign = false, SeparatorStyle separators = SeparatorStyle::STANDARD);
     //! Format as string (with unit) of fixed length to preserve privacy, if it is set.
-    static QString formatWithPrivacy(Unit unit, bool amountType, const CAmount& amount, SeparatorStyle separators, bool privacy);
+    static QString formatWithPrivacy(Unit unit, const CAmount& amount, SeparatorStyle separators, bool privacy);
     //! Parse string to coin amount
     static bool parse(Unit unit, const QString& value, CAmount* val_out);
     //! Gets title for amount column including current display unit if optionsModel reference available */
