@@ -156,7 +156,7 @@ public:
 class CTxOut
 {
 public:
-    bool coinType;
+    CAmountType coinType;
     CAmount nValue;
     CScript scriptPubKey;
 
@@ -167,7 +167,7 @@ public:
 
     CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn);
 
-    CTxOut(bool coinTypeIn, const CAmount& nValueIn, CScript scriptPubKeyIn);
+    CTxOut(CAmountType coinTypeIn, const CAmount& nValueIn, CScript scriptPubKeyIn);
 
     SERIALIZE_METHODS(CTxOut, obj) { READWRITE(obj.coinType, obj.nValue, obj.scriptPubKey); }
 

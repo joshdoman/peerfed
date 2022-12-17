@@ -215,8 +215,7 @@ RPCHelpMan getbalance()
     for (int coinType = 0; coinType <= 1; coinType++) {
         const auto bal = GetBalance(*pwallet, coinType, min_depth, avoid_reuse);
         const auto amount = ValueFromAmount(bal.m_mine_trusted + (include_watchonly ? bal.m_watchonly_trusted : 0));
-        const auto coinTypeStr = coinType ? "bond" : "cash";
-        ret.pushKV(coinTypeStr, amount);
+        ret.pushKV(StringFromAmountType(coinType), amount);
     }
     return ret;
 },
@@ -448,38 +447,6 @@ RPCHelpMan getbalances()
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
-                // {RPCResult::Type::OBJ, "cash", "cash balances",
-                //     {
-                //     {RPCResult::Type::OBJ, "mine", "balances from outputs that the wallet can sign",
-                //     {
-                //         {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
-                //         {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
-                //         {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
-                //         {RPCResult::Type::STR_AMOUNT, "used", /*optional=*/true, "(only present if avoid_reuse is set) balance from coins sent to addresses that were previously spent from (potentially privacy violating)"},
-                //     }},
-                //     {RPCResult::Type::OBJ, "watchonly", /*optional=*/true, "watchonly balances (not present if wallet does not watch anything)",
-                //     {
-                //         {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
-                //         {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
-                //         {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
-                //     }},
-                //     }
-                // },
-                // {RPCResult::Type::OBJ, "bond", "bond balances",
-                //     {RPCResult::Type::OBJ, "mine", "balances from outputs that the wallet can sign",
-                //     {
-                //         {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
-                //         {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
-                //         {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
-                //         {RPCResult::Type::STR_AMOUNT, "used", /*optional=*/true, "(only present if avoid_reuse is set) balance from coins sent to addresses that were previously spent from (potentially privacy violating)"},
-                //     }},
-                //     {RPCResult::Type::OBJ, "watchonly", /*optional=*/true, "watchonly balances (not present if wallet does not watch anything)",
-                //     {
-                //         {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
-                //         {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
-                //         {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
-                //     }},
-                // },
                 {RPCResult::Type::OBJ, "mine", "balances from outputs that the wallet can sign",
                 {
                 {RPCResult::Type::OBJ, "cash", "cash balances",
@@ -605,6 +572,7 @@ RPCHelpMan listunspent()
                             {RPCResult::Type::STR, "label", /*optional=*/true, "The associated label, or \"\" for the default label"},
                             {RPCResult::Type::STR, "scriptPubKey", "the script key"},
                             {RPCResult::Type::STR_AMOUNT, "amount", "the transaction output amount in " + CURRENCY_UNIT},
+                            {RPCResult::Type::STR, "amountType", "the transaction output type ('cash' or 'bond')"},
                             {RPCResult::Type::NUM, "confirmations", "The number of confirmations"},
                             {RPCResult::Type::NUM, "ancestorcount", /*optional=*/true, "The number of in-mempool ancestor transactions, including this one (if transaction is in the mempool)"},
                             {RPCResult::Type::NUM, "ancestorsize", /*optional=*/true, "The virtual transaction size of in-mempool ancestors, including this one (if transaction is in the mempool)"},
@@ -777,6 +745,7 @@ RPCHelpMan listunspent()
 
         entry.pushKV("scriptPubKey", HexStr(scriptPubKey));
         entry.pushKV("amount", ValueFromAmount(out.txout.nValue));
+        entry.pushKV("amountType", StringFromAmountType(out.txout.coinType));
         entry.pushKV("confirmations", out.depth);
         if (!out.depth) {
             size_t ancestor_count, descendant_count, ancestor_size;

@@ -57,7 +57,7 @@ CTxOut::CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn)
     scriptPubKey = scriptPubKeyIn;
 }
 
-CTxOut::CTxOut(bool coinTypeIn, const CAmount& nValueIn, CScript scriptPubKeyIn)
+CTxOut::CTxOut(CAmountType coinTypeIn, const CAmount& nValueIn, CScript scriptPubKeyIn)
 {
     coinType = coinTypeIn;
     nValue = nValueIn;

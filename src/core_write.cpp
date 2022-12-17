@@ -36,6 +36,11 @@ UniValue ValueFromAmount(const CAmount amount)
             strprintf("%s%d.%08d", amount < 0 ? "-" : "", quotient, remainder));
 }
 
+std::string StringFromAmountType(const CAmountType amountType)
+{
+    return amountType ? "bond" : "cash";
+}
+
 std::string FormatScript(const CScript& script)
 {
     std::string ret;
