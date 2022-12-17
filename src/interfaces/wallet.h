@@ -45,7 +45,7 @@ namespace interfaces {
 
 class Handler;
 struct WalletAddress;
-struct WalletBalancesForCoinType;
+struct WalletBalancesForAmountType;
 struct WalletBalances;
 struct WalletTx;
 struct WalletTxOut;
@@ -226,7 +226,7 @@ public:
     virtual wallet::isminetype txoutIsMine(const CTxOut& txout) = 0;
 
     //! Return coin type of transaction input.
-    virtual bool getDebitCoinType(const CTxIn& txin) = 0;
+    virtual bool getDebitAmountType(const CTxIn& txin) = 0;
 
     //! Return debit amount if transaction input belongs to wallet.
     virtual CAmount getDebit(const CTxIn& txin, wallet::isminefilter filter) = 0;
@@ -366,7 +366,7 @@ struct WalletAddress
 };
 
 //! Collection of wallet balances for a given coin type.
-struct WalletBalancesForCoinType
+struct WalletBalancesForAmountType
 {
     CAmount balance = 0;
     CAmount unconfirmed_balance = 0;
@@ -376,7 +376,7 @@ struct WalletBalancesForCoinType
     CAmount unconfirmed_watch_only_balance = 0;
     CAmount immature_watch_only_balance = 0;
 
-    bool balanceChanged(const WalletBalancesForCoinType& prev) const
+    bool balanceChanged(const WalletBalancesForAmountType& prev) const
     {
         return balance != prev.balance || unconfirmed_balance != prev.unconfirmed_balance ||
                immature_balance != prev.immature_balance || watch_only_balance != prev.watch_only_balance ||
@@ -388,8 +388,8 @@ struct WalletBalancesForCoinType
 //! Collection of wallet balances for each coin type.
 struct WalletBalances
 {
-    WalletBalancesForCoinType cash;
-    WalletBalancesForCoinType bond;
+    WalletBalancesForAmountType cash;
+    WalletBalancesForAmountType bond;
 
     bool balanceChanged(const WalletBalances& prev) const
     {

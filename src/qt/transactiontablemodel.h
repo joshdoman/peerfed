@@ -61,7 +61,7 @@ public:
         /** Net amount of transaction */
         AmountRole,
         /** Coin type of transaction */
-        CoinTypeRole,
+        amountTypeRole,
         /** Transaction hash */
         TxHashRole,
         /** Transaction data, hex-encoded */

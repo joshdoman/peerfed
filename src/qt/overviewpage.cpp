@@ -59,7 +59,7 @@ public:
         QDateTime date = index.data(TransactionTableModel::DateRole).toDateTime();
         QString address = index.data(Qt::DisplayRole).toString();
         qint64 amount = index.data(TransactionTableModel::AmountRole).toLongLong();
-        bool coinType = index.data(TransactionTableModel::CoinTypeRole).toBool();
+        bool amountType = index.data(TransactionTableModel::amountTypeRole).toBool();
         bool confirmed = index.data(TransactionTableModel::ConfirmedRole).toBool();
         QVariant value = index.data(Qt::ForegroundRole);
         QColor foreground = option.palette.color(QPalette::Text);
@@ -97,7 +97,7 @@ public:
         QString amountText = BitcoinUnits::formatWithUnit(unit, amount, true, BitcoinUnits::SeparatorStyle::ALWAYS);
         if(!confirmed)
         {
-            amountText = QString("[") + amountText + QString::number(coinType) + QString("]");
+            amountText = QString("[") + amountText + QString::number(amountType) + QString("]");
         }
 
         QRect amount_bounding_rect;
@@ -198,8 +198,8 @@ OverviewPage::~OverviewPage()
 
 void OverviewPage::setBalance(const interfaces::WalletBalances& balances)
 {
-    interfaces::WalletBalancesForCoinType cash = balances.cash;
-    interfaces::WalletBalancesForCoinType bond = balances.bond;
+    interfaces::WalletBalancesForAmountType cash = balances.cash;
+    interfaces::WalletBalancesForAmountType bond = balances.bond;
     BitcoinUnit unit = walletModel->getOptionsModel()->getDisplayUnit();
     if (walletModel->wallet().isLegacy()) {
         if (walletModel->wallet().privateKeysDisabled()) {

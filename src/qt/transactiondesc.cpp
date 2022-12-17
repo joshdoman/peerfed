@@ -191,7 +191,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
         CAmount nUnmatured0 = 0;
         CAmount nUnmatured1 = 0;
         for (const CTxOut& txout : wtx.tx->vout) {
-            if (txout.coinType == 0)
+            if (txout.amountType == 0)
                 nUnmatured0 += wallet.getCredit(txout, ISMINE_ALL);
             else
                 nUnmatured1 += wallet.getCredit(txout, ISMINE_ALL);

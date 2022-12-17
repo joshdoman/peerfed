@@ -1387,7 +1387,7 @@ void CWallet::BlockUntilSyncedToCurrentChain() const {
     chain().waitForNotificationsIfTipChanged(last_block_hash);
 }
 
-bool CWallet::GetDebitCoinType(const CTxIn &txin) const
+bool CWallet::GetDebitAmountType(const CTxIn &txin) const
 {
     {
         LOCK(cs_wallet);
@@ -1397,7 +1397,7 @@ bool CWallet::GetDebitCoinType(const CTxIn &txin) const
             const CWalletTx& prev = (*mi).second;
             if (txin.prevout.n < prev.tx->vout.size()) {
                 const CTxOut& prevtxout = prev.tx->vout[txin.prevout.n];
-                return prevtxout.coinType;
+                return prevtxout.amountType;
             }
         }
     }
@@ -1470,15 +1470,15 @@ isminetype CWallet::IsMine(const COutPoint& outpoint) const
 
 bool CWallet::IsFromMe(const CTransaction& tx) const
 {
-    return ((GetDebit(tx, CWalletTx::CASH, ISMINE_ALL) + GetDebit(tx, CWalletTx::BOND, ISMINE_ALL)) > 0);
+    return ((GetDebit(tx, CASH, ISMINE_ALL) + GetDebit(tx, BOND, ISMINE_ALL)) > 0);
 }
 
-CAmount CWallet::GetDebit(const CTransaction& tx, CWalletTx::CoinType coinType, const isminefilter& filter) const
+CAmount CWallet::GetDebit(const CTransaction& tx, CAmountType amountType, const isminefilter& filter) const
 {
     CAmount nDebit = 0;
     for (const CTxIn& txin : tx.vin)
     {
-        if (GetDebitCoinType(txin) == coinType)
+        if (GetDebitAmountType(txin) == amountType)
             nDebit += GetDebit(txin, filter);
         if (!MoneyRange(nDebit))
             throw std::runtime_error(std::string(__func__) + ": value out of range");

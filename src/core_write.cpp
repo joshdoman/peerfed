@@ -38,7 +38,7 @@ UniValue ValueFromAmount(const CAmount amount)
 
 std::string StringFromAmountType(const CAmountType amountType)
 {
-    return amountType ? "bond" : "cash";
+    return amountType == CASH ? "cash" : "bond";
 }
 
 std::string FormatScript(const CScript& script)

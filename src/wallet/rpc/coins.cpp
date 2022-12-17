@@ -212,10 +212,10 @@ RPCHelpMan getbalance()
 
     UniValue ret(UniValue::VOBJ);
 
-    for (int coinType = 0; coinType <= 1; coinType++) {
-        const auto bal = GetBalance(*pwallet, coinType, min_depth, avoid_reuse);
+    for (int amountType = 0; amountType <= 1; amountType++) {
+        const auto bal = GetBalance(*pwallet, amountType, min_depth, avoid_reuse);
         const auto amount = ValueFromAmount(bal.m_mine_trusted + (include_watchonly ? bal.m_watchonly_trusted : 0));
-        ret.pushKV(StringFromAmountType(coinType), amount);
+        ret.pushKV(StringFromAmountType(amountType), amount);
     }
     return ret;
 },
@@ -502,9 +502,9 @@ RPCHelpMan getbalances()
     UniValue watchonly{UniValue::VOBJ};
     UniValue ret{UniValue::VOBJ};
 
-    for (int coinType = 0; coinType <= 1; coinType++) {
-        const auto bal = GetBalance(wallet, coinType); // TODO: Implement coin type
-        const auto coinTypeStr = coinType ? "bond" : "cash";
+    for (int amountType = 0; amountType <= 1; amountType++) {
+        const auto bal = GetBalance(wallet, amountType); // TODO: Implement coin type
+        const auto amountTypeStr = amountType ? "bond" : "cash";
         {
             UniValue balances_mine{UniValue::VOBJ};
             balances_mine.pushKV("trusted", ValueFromAmount(bal.m_mine_trusted));
@@ -513,10 +513,10 @@ RPCHelpMan getbalances()
             if (wallet.IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE)) {
                 // If the AVOID_REUSE flag is set, bal has been set to just the un-reused address balance. Get
                 // the total balance, and then subtract bal to get the reused address balance.
-                const auto full_bal = GetBalance(wallet, coinType, 0, false);
+                const auto full_bal = GetBalance(wallet, amountType, 0, false);
                 balances_mine.pushKV("used", ValueFromAmount(full_bal.m_mine_trusted + full_bal.m_mine_untrusted_pending - bal.m_mine_trusted - bal.m_mine_untrusted_pending));
             }
-            mine.pushKV(coinTypeStr, balances_mine);
+            mine.pushKV(amountTypeStr, balances_mine);
         }
         auto spk_man = wallet.GetLegacyScriptPubKeyMan();
         if (spk_man && spk_man->HaveWatchOnly()) {
@@ -524,7 +524,7 @@ RPCHelpMan getbalances()
             balances_watchonly.pushKV("trusted", ValueFromAmount(bal.m_watchonly_trusted));
             balances_watchonly.pushKV("untrusted_pending", ValueFromAmount(bal.m_watchonly_untrusted_pending));
             balances_watchonly.pushKV("immature", ValueFromAmount(bal.m_watchonly_immature));
-            watchonly.pushKV(coinTypeStr, balances_watchonly);
+            watchonly.pushKV(amountTypeStr, balances_watchonly);
         }
     }
     ret.pushKV("mine", mine);
@@ -745,7 +745,7 @@ RPCHelpMan listunspent()
 
         entry.pushKV("scriptPubKey", HexStr(scriptPubKey));
         entry.pushKV("amount", ValueFromAmount(out.txout.nValue));
-        entry.pushKV("amountType", StringFromAmountType(out.txout.coinType));
+        entry.pushKV("amountType", StringFromAmountType(out.txout.amountType));
         entry.pushKV("confirmations", out.depth);
         if (!out.depth) {
             size_t ancestor_count, descendant_count, ancestor_size;

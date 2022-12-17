@@ -57,16 +57,16 @@ CTxOut::CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn)
     scriptPubKey = scriptPubKeyIn;
 }
 
-CTxOut::CTxOut(CAmountType coinTypeIn, const CAmount& nValueIn, CScript scriptPubKeyIn)
+CTxOut::CTxOut(CAmountType amountTypeIn, const CAmount& nValueIn, CScript scriptPubKeyIn)
 {
-    coinType = coinTypeIn;
+    amountType = amountTypeIn;
     nValue = nValueIn;
     scriptPubKey = scriptPubKeyIn;
 }
 
 std::string CTxOut::ToString() const
 {
-    return strprintf("CTxOut(coinType=%d, nValue=%d.%08d, scriptPubKey=%s)", coinType, nValue / COIN, nValue % COIN, HexStr(scriptPubKey).substr(0, 30));
+    return strprintf("CTxOut(amountType=%d, nValue=%d.%08d, scriptPubKey=%s)", amountType, nValue / COIN, nValue % COIN, HexStr(scriptPubKey).substr(0, 30));
 }
 
 CMutableTransaction::CMutableTransaction() : nVersion(CTransaction::CURRENT_VERSION), nLockTime(0) {}

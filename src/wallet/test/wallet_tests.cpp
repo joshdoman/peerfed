@@ -113,7 +113,7 @@ BOOST_FIXTURE_TEST_CASE(scan_for_wallet_transactions, TestChain100Setup)
         BOOST_CHECK(result.last_failed_block.IsNull());
         BOOST_CHECK(result.last_scanned_block.IsNull());
         BOOST_CHECK(!result.last_scanned_height);
-        BOOST_CHECK_EQUAL(GetBalance(wallet, 0).m_mine_immature, 0); // TODO: Implement coinType
+        BOOST_CHECK_EQUAL(GetBalance(wallet, 0).m_mine_immature, 0); // TODO: Implement amountType
     }
 
     // Verify ScanForWalletTransactions picks up transactions in both the old
@@ -143,7 +143,7 @@ BOOST_FIXTURE_TEST_CASE(scan_for_wallet_transactions, TestChain100Setup)
         BOOST_CHECK(result.last_failed_block.IsNull());
         BOOST_CHECK_EQUAL(result.last_scanned_block, newTip->GetBlockHash());
         BOOST_CHECK_EQUAL(*result.last_scanned_height, newTip->nHeight);
-        BOOST_CHECK_EQUAL(GetBalance(wallet, 0).m_mine_immature, 100 * COIN); // TODO: Implement coinType
+        BOOST_CHECK_EQUAL(GetBalance(wallet, 0).m_mine_immature, 100 * COIN); // TODO: Implement amountType
 
         {
             CBlockLocator locator;
@@ -179,7 +179,7 @@ BOOST_FIXTURE_TEST_CASE(scan_for_wallet_transactions, TestChain100Setup)
         BOOST_CHECK_EQUAL(result.last_failed_block, oldTip->GetBlockHash());
         BOOST_CHECK_EQUAL(result.last_scanned_block, newTip->GetBlockHash());
         BOOST_CHECK_EQUAL(*result.last_scanned_height, newTip->nHeight);
-        BOOST_CHECK_EQUAL(GetBalance(wallet, 0).m_mine_immature, 50 * COIN); // TODO: Implement coinType
+        BOOST_CHECK_EQUAL(GetBalance(wallet, 0).m_mine_immature, 50 * COIN); // TODO: Implement amountType
     }
 
     // Prune the remaining block file.
@@ -207,7 +207,7 @@ BOOST_FIXTURE_TEST_CASE(scan_for_wallet_transactions, TestChain100Setup)
         BOOST_CHECK_EQUAL(result.last_failed_block, newTip->GetBlockHash());
         BOOST_CHECK(result.last_scanned_block.IsNull());
         BOOST_CHECK(!result.last_scanned_height);
-        BOOST_CHECK_EQUAL(GetBalance(wallet, 0).m_mine_immature, 0); // TODO: Implement coinType
+        BOOST_CHECK_EQUAL(GetBalance(wallet, 0).m_mine_immature, 0); // TODO: Implement amountType
     }
 }
 
@@ -367,13 +367,13 @@ BOOST_FIXTURE_TEST_CASE(coin_mark_dirty_immature_credit, TestChain100Setup)
 
     // Call GetImmatureCredit() once before adding the key to the wallet to
     // cache the current immature credit amount, which is 0.
-    BOOST_CHECK_EQUAL(CachedTxGetImmatureCredit(wallet, wtx, CWalletTx::CASH, ISMINE_SPENDABLE), 0); // TODO: Implement coinType
+    BOOST_CHECK_EQUAL(CachedTxGetImmatureCredit(wallet, wtx, CASH, ISMINE_SPENDABLE), 0); // TODO: Implement amountType
 
     // Invalidate the cached value, add the key, and make sure a new immature
     // credit amount is calculated.
     wtx.MarkDirty();
     AddKey(wallet, coinbaseKey);
-    BOOST_CHECK_EQUAL(CachedTxGetImmatureCredit(wallet, wtx, CWalletTx::CASH, ISMINE_SPENDABLE), 50*COIN); // TODO: Implement coinType
+    BOOST_CHECK_EQUAL(CachedTxGetImmatureCredit(wallet, wtx, CASH, ISMINE_SPENDABLE), 50*COIN); // TODO: Implement amountType
 }
 
 static int64_t AddTx(ChainstateManager& chainman, CWallet& wallet, uint32_t lockTime, int64_t mockTime, int64_t blockTime)
@@ -937,7 +937,7 @@ BOOST_FIXTURE_TEST_CASE(wallet_sync_tx_invalid_state_test, TestingSetup)
         // Cache and verify available balance for the wtx
         LOCK(wallet.cs_wallet);
         const CWalletTx* wtx_to_spend = wallet.GetWalletTx(tx_id_to_spend);
-        BOOST_CHECK_EQUAL(CachedTxGetAvailableCredit(wallet, *wtx_to_spend, CWalletTx::CASH), 1 * COIN); // TODO: Implement coinType
+        BOOST_CHECK_EQUAL(CachedTxGetAvailableCredit(wallet, *wtx_to_spend, CASH), 1 * COIN); // TODO: Implement amountType
     }
 
     // Now the good case:
@@ -953,11 +953,11 @@ BOOST_FIXTURE_TEST_CASE(wallet_sync_tx_invalid_state_test, TestingSetup)
         // Verify balance update for the new tx and the old one
         LOCK(wallet.cs_wallet);
         const CWalletTx* new_wtx = wallet.GetWalletTx(good_tx_id);
-        BOOST_CHECK_EQUAL(CachedTxGetAvailableCredit(wallet, *new_wtx, CWalletTx::CASH), 1 * COIN); // TODO: Implement coinType
+        BOOST_CHECK_EQUAL(CachedTxGetAvailableCredit(wallet, *new_wtx, CASH), 1 * COIN); // TODO: Implement amountType
 
         // Now the old wtx
         const CWalletTx* wtx_to_spend = wallet.GetWalletTx(tx_id_to_spend);
-        BOOST_CHECK_EQUAL(CachedTxGetAvailableCredit(wallet, *wtx_to_spend, CWalletTx::CASH), 0 * COIN); // TODO: Implement coinType
+        BOOST_CHECK_EQUAL(CachedTxGetAvailableCredit(wallet, *wtx_to_spend, CASH), 0 * COIN); // TODO: Implement amountType
     }
 
     // Now the bad case:

@@ -16,8 +16,8 @@ isminetype InputIsMine(const CWallet& wallet, const CTxIn& txin) EXCLUSIVE_LOCKS
 /** Returns whether all of the inputs match the filter */
 bool AllInputsMine(const CWallet& wallet, const CTransaction& tx, const isminefilter& filter);
 
-CAmount OutputGetCredit(const CWallet& wallet, const CTxOut& txout, CWalletTx::CoinType coinType, const isminefilter& filter);
-CAmount TxGetCredit(const CWallet& wallet, const CTransaction& tx, CWalletTx::CoinType coinType, const isminefilter& filter);
+CAmount OutputGetCredit(const CWallet& wallet, const CTxOut& txout, CAmountType amountType, const isminefilter& filter);
+CAmount TxGetCredit(const CWallet& wallet, const CTransaction& tx, CAmountType amountType, const isminefilter& filter);
 
 bool ScriptIsChange(const CWallet& wallet, const CScript& script) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
 bool OutputIsChange(const CWallet& wallet, const CTxOut& txout) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
@@ -29,9 +29,9 @@ CAmount CachedTxGetCredit(const CWallet& wallet, const CWalletTx& wtx, const ism
 //! filter decides which addresses will count towards the debit
 CAmount CachedTxGetDebit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter);
 CAmount CachedTxGetChange(const CWallet& wallet, const CWalletTx& wtx);
-CAmount CachedTxGetImmatureCredit(const CWallet& wallet, const CWalletTx& wtx, CWalletTx::CoinType coinType, const isminefilter& filter)
+CAmount CachedTxGetImmatureCredit(const CWallet& wallet, const CWalletTx& wtx, CAmountType amountType, const isminefilter& filter)
     EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
-CAmount CachedTxGetAvailableCredit(const CWallet& wallet, const CWalletTx& wtx, CWalletTx::CoinType coinType, const isminefilter& filter = ISMINE_SPENDABLE)
+CAmount CachedTxGetAvailableCredit(const CWallet& wallet, const CWalletTx& wtx, CAmountType amountType, const isminefilter& filter = ISMINE_SPENDABLE)
     EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
 struct COutputEntry
 {
@@ -56,7 +56,7 @@ struct Balance {
     CAmount m_watchonly_untrusted_pending{0};
     CAmount m_watchonly_immature{0};
 };
-Balance GetBalance(const CWallet& wallet, bool coinType, int min_depth = 0, bool avoid_reuse = true);
+Balance GetBalance(const CWallet& wallet, bool amountType, int min_depth = 0, bool avoid_reuse = true);
 
 std::map<CTxDestination, CAmount> GetAddressBalances(const CWallet& wallet);
 std::set<std::set<CTxDestination>> GetAddressGroupings(const CWallet& wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);

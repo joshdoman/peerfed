@@ -140,7 +140,7 @@ QString BitcoinUnits::formatHtmlWithUnit(Unit unit, const CAmount& amount, bool 
     return QString("<span style='white-space: nowrap;'>%1</span>").arg(str);
 }
 
-QString BitcoinUnits::formatWithPrivacy(Unit unit, bool coinType, const CAmount& amount, SeparatorStyle separators, bool privacy)
+QString BitcoinUnits::formatWithPrivacy(Unit unit, bool amountType, const CAmount& amount, SeparatorStyle separators, bool privacy)
 {
     assert(amount >= 0);
     QString value;
@@ -149,7 +149,7 @@ QString BitcoinUnits::formatWithPrivacy(Unit unit, bool coinType, const CAmount&
     } else {
         value = format(unit, amount, false, separators, true);
     }
-    return value + QString(" ") + shortName(unit) + QString::number(coinType);
+    return value + QString(" ") + shortName(unit) + QString::number(amountType);
 }
 
 bool BitcoinUnits::parse(Unit unit, const QString& value, CAmount* val_out)

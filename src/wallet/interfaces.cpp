@@ -40,7 +40,7 @@ using interfaces::MakeHandler;
 using interfaces::Wallet;
 using interfaces::WalletAddress;
 using interfaces::WalletBalances;
-using interfaces::WalletBalancesForCoinType;
+using interfaces::WalletBalancesForAmountType;
 using interfaces::WalletLoader;
 using interfaces::WalletOrderForm;
 using interfaces::WalletTx;
@@ -378,9 +378,9 @@ public:
     WalletBalances getBalances() override
     {
         WalletBalances result;
-        for(int coinType = 0; coinType <= 1; coinType++) {
-            const auto bal = GetBalance(*m_wallet, coinType);
-            WalletBalancesForCoinType balance;
+        for(int amountType = 0; amountType <= 1; amountType++) {
+            const auto bal = GetBalance(*m_wallet, amountType);
+            WalletBalancesForAmountType balance;
             balance.balance = bal.m_mine_trusted;
             balance.unconfirmed_balance = bal.m_mine_untrusted_pending;
             balance.immature_balance = bal.m_mine_immature;
@@ -390,7 +390,7 @@ public:
                 balance.unconfirmed_watch_only_balance = bal.m_watchonly_untrusted_pending;
                 balance.immature_watch_only_balance = bal.m_watchonly_immature;
             }
-            if (coinType == 0) result.cash = balance;
+            if (amountType == 0) result.cash = balance;
             else result.bond = balance;
         }
         return result;
@@ -420,10 +420,10 @@ public:
         LOCK(m_wallet->cs_wallet);
         return m_wallet->IsMine(txout);
     }
-    bool getDebitCoinType(const CTxIn& txin) override
+    bool getDebitAmountType(const CTxIn& txin) override
     {
         LOCK(m_wallet->cs_wallet);
-        return m_wallet->GetDebitCoinType(txin);
+        return m_wallet->GetDebitAmountType(txin);
     }
     CAmount getDebit(const CTxIn& txin, isminefilter filter) override
     {
@@ -433,8 +433,7 @@ public:
     CAmount getCredit(const CTxOut& txout, isminefilter filter) override
     {
         LOCK(m_wallet->cs_wallet);
-        CWalletTx::CoinType coinTypeEnum = static_cast<CWalletTx::CoinType>(txout.coinType);
-        return OutputGetCredit(*m_wallet, txout, coinTypeEnum, filter);
+        return OutputGetCredit(*m_wallet, txout, txout.amountType, filter);
     }
     CoinsList listCoins() override
     {
