@@ -619,11 +619,8 @@ CAmount WalletModel::getAvailableBalance(const CCoinControl* control)
     return control && control->HasSelected() ? wallet().getAvailableBalance(*control) : getCachedBalance().cash.balance;
 }
 
-CAmount WalletModel::getAvailableBalance(const CCoinControl* control, CAmountType amountType)
+CAmount WalletModel::getAvailableBalance(const CCoinControl* control, CAmountType type)
 {
     // TODO: Implement amount type
-    if (control && control->HasSelected())
-        return wallet().getAvailableBalance(*control);
-    else
-        return amountType == CASH ? getCachedBalance().cash.balance : getCachedBalance().bond.balance;
+    return control && control->HasSelected() ? wallet().getAvailableBalance(*control) : getCachedBalance().forType(type).balance;
 }

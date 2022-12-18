@@ -395,6 +395,10 @@ struct WalletBalances
     {
         return cash.balanceChanged(prev.cash) || bond.balanceChanged(prev.bond);
     }
+
+    WalletBalancesForAmountType forType(CAmountType type) {
+        return (type == CASH) ? cash : bond;
+    }
 };
 
 // Wallet transaction information.
