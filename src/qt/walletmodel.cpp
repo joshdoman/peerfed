@@ -205,7 +205,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
 
     // If no coin was manually selected, use the cached balance
     // Future: can merge this call with 'createTransaction'.
-    CAmount nBalance = getAvailableBalance(&coinControl);
+    CAmount nBalance = getAvailableBalance(CASH, &coinControl); // TODO: Implement BOND
 
     if(total > nBalance)
     {
@@ -614,13 +614,7 @@ uint256 WalletModel::getLastBlockProcessed() const
     return m_client_model ? m_client_model->getBestBlockHash() : uint256{};
 }
 
-CAmount WalletModel::getAvailableBalance(const CCoinControl* control)
+CAmount WalletModel::getAvailableBalance(CAmountType type, const CCoinControl* control)
 {
-    return control && control->HasSelected() ? wallet().getAvailableBalance(*control) : getCachedBalance().cash.balance;
-}
-
-CAmount WalletModel::getAvailableBalance(const CCoinControl* control, CAmountType type)
-{
-    // TODO: Implement amount type
-    return control && control->HasSelected() ? wallet().getAvailableBalance(*control) : getCachedBalance().forType(type).balance;
+    return control && control->HasSelected() ? wallet().getAvailableBalance(type, *control) : getCachedBalance().forType(type).balance;
 }

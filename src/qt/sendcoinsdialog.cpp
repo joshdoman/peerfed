@@ -786,7 +786,7 @@ void SendCoinsDialog::useAvailableBalance(SendCoinsEntry* entry)
 
     // Calculate available amount to send.
     CAmountType amountType = entry->getValue().amountType;
-    CAmount amount = model->getAvailableBalance(m_coin_control.get(), amountType);
+    CAmount amount = model->getAvailableBalance(amountType, m_coin_control.get());
     for (int i = 0; i < ui->entries->count(); ++i) {
         SendCoinsEntry* e = qobject_cast<SendCoinsEntry*>(ui->entries->itemAt(i)->widget());
         if (e && !e->isHidden() && e != entry && amountType == e->getValue().amountType) {

@@ -286,10 +286,10 @@ CoinsResult AvailableCoins(const CWallet& wallet,
             result.Add(GetOutputType(type, is_from_p2sh), coin);
 
             // Cache total amount as we go
-            result.total_amount += output.nValue;
+            result.total_amount[output.amountType] += output.nValue;
             // Checks the sum amount of all UTXO's.
             if (nMinimumSumAmount != MAX_MONEY) {
-                if (result.total_amount >= nMinimumSumAmount) {
+                if (result.total_amount[output.amountType] >= nMinimumSumAmount) {
                     return result;
                 }
             }
@@ -309,7 +309,7 @@ CoinsResult AvailableCoinsListUnspent(const CWallet& wallet, const CCoinControl*
     return AvailableCoins(wallet, coinControl, /*feerate=*/ std::nullopt, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount, /*only_spendable=*/false);
 }
 
-CAmount GetAvailableBalance(const CWallet& wallet, const CCoinControl* coinControl)
+CAmount GetAvailableBalance(const CWallet& wallet, CAmountType amountType, const CCoinControl* coinControl)
 {
     LOCK(wallet.cs_wallet);
     return AvailableCoins(wallet, coinControl,
@@ -318,7 +318,7 @@ CAmount GetAvailableBalance(const CWallet& wallet, const CCoinControl* coinContr
             /*nMaximumAmount=*/ MAX_MONEY,
             /*nMinimumSumAmount=*/ MAX_MONEY,
             /*nMaximumCount=*/ 0
-    ).total_amount;
+    ).total_amount[amountType];
 }
 
 const CTxOut& FindNonChangeParentOutput(const CWallet& wallet, const CTransaction& tx, int output)

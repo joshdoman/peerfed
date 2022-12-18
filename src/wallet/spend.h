@@ -52,11 +52,12 @@ struct CoinsResult {
     void Add(OutputType type, const COutput& out);
 
     /** Sum of all available coins */
-    CAmount total_amount{0};
+    mutable CAmount total_amount[2]{0};
 };
 
 /**
  * Populate the CoinsResult struct with vectors of available COutputs, organized by OutputType.
+ * (Filtered by CAmountType)
  */
 CoinsResult AvailableCoins(const CWallet& wallet,
                            const CCoinControl* coinControl = nullptr,
@@ -70,10 +71,16 @@ CoinsResult AvailableCoins(const CWallet& wallet,
 /**
  * Wrapper function for AvailableCoins which skips the `feerate` parameter. Use this function
  * to list all available coins (e.g. listunspent RPC) while not intending to fund a transaction.
+ * (Filtered by CAmountType)
  */
-CoinsResult AvailableCoinsListUnspent(const CWallet& wallet, const CCoinControl* coinControl = nullptr, const CAmount& nMinimumAmount = 1, const CAmount& nMaximumAmount = MAX_MONEY, const CAmount& nMinimumSumAmount = MAX_MONEY, const uint64_t nMaximumCount = 0) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
+CoinsResult AvailableCoinsListUnspent(const CWallet& wallet,
+                                      const CCoinControl* coinControl = nullptr,
+                                      const CAmount& nMinimumAmount = 1,
+                                      const CAmount& nMaximumAmount = MAX_MONEY,
+                                      const CAmount& nMinimumSumAmount = MAX_MONEY,
+                                      const uint64_t nMaximumCount = 0) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
 
-CAmount GetAvailableBalance(const CWallet& wallet, const CCoinControl* coinControl = nullptr);
+CAmount GetAvailableBalance(const CWallet& wallet, CAmountType amountType, const CCoinControl* coinControl = nullptr);
 
 /**
  * Find non-change parent output.
