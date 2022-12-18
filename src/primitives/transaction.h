@@ -173,6 +173,7 @@ public:
 
     void SetNull()
     {
+        amountType = 0;
         nValue = -1;
         scriptPubKey.clear();
     }
