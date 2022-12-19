@@ -224,6 +224,7 @@ public:
 struct CRecipient
 {
     CScript scriptPubKey;
+    CAmountType amountType;
     CAmount nAmount;
     bool fSubtractFeeFromAmount;
 };
