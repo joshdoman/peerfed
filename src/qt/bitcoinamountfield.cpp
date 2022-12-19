@@ -302,8 +302,7 @@ void BitcoinAmountField::setType(const CAmountType& amountType)
 {
     QVariant qv_current_unit = unit->currentData(BitcoinUnits::UnitRole);
     BitcoinUnit current_unit = qv_current_unit.value<BitcoinUnit>();
-    BitcoinUnit new_unit = BitcoinUnits::unitOfType(current_unit, amountType);
-    amount->setDisplayUnit(new_unit);
+    amount->setDisplayUnit(BitcoinUnits::unitOfType(current_unit, amountType));
 }
 
 CAmount BitcoinAmountField::value(bool *valid_out) const

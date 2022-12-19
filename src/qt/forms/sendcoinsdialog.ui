@@ -807,6 +807,77 @@
          </layout>
         </item>
         <item>
+         <layout class="QHBoxLayout" name="horizontalLayoutSmartFeeType">
+          <item>
+           <widget class="QLabel" name="labelFeeHeadline2">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="rightMargin">
+             <number>8</number>
+            </property>
+            <property name="font">
+             <font>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">font-weight:bold;</string>
+            </property>
+            <property name="text">
+             <string>Transaction Fee Source:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="radioSmartFeeSourceCash">
+            <property name="text">
+             <string>Cash</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+            <attribute name="feeSourceButtonGroup">
+             <string notr="true">feeSourceButtonGroup</string>
+            </attribute>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="radioSmartFeeSourceBond">
+            <property name="text">
+             <string>Bond</string>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
+            <property name="leftMargin">
+             <number>16</number>
+            </property>
+            <attribute name="feeSourceButtonGroup">
+             <string notr="true">feeSourceButtonGroup</string>
+            </attribute>
+           </widget>
+          </item>
+          <item>
+           <spacer name="radioSmartFeeHorizontalSpacer3">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>1</width>
+              <height>1</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
          <widget class="QFrame" name="frameFeeSelection">
           <layout class="QVBoxLayout" name="verticalLayoutFee12">
            <property name="spacing">
