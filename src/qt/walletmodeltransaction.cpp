@@ -10,10 +10,16 @@
 
 #include <policy/policy.h>
 
-WalletModelTransaction::WalletModelTransaction(const QList<SendCoinsRecipient> &_recipients) :
+WalletModelTransaction::WalletModelTransaction(const CAmountType _amountType, const QList<SendCoinsRecipient> &_recipients) :
+    amountType(_amountType),
     recipients(_recipients),
     fee(0)
 {
+}
+
+CAmountType WalletModelTransaction::getAmountType() const
+{
+    return amountType;
 }
 
 QList<SendCoinsRecipient> WalletModelTransaction::getRecipients() const

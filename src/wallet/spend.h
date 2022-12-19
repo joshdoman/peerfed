@@ -50,6 +50,7 @@ struct CoinsResult {
     void Erase(const std::set<COutPoint>& coins_to_remove);
     void Shuffle(FastRandomContext& rng_fast);
     void Add(OutputType type, const COutput& out);
+    void Filter(CAmountType amountType);
 
     /** Sum of all available coins */
     mutable CAmount total_amount[2]{0};

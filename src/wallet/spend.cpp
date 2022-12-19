@@ -124,6 +124,16 @@ void CoinsResult::Add(OutputType type, const COutput& out)
     coins[type].emplace_back(out);
 }
 
+void CoinsResult::Filter(CAmountType amountType)
+{
+    for (auto& [type, vec] : coins) {
+        auto remove_it = std::remove_if(vec.begin(), vec.end(), [&](const COutput& coin) {
+            return coin.txout.amountType != amountType;
+        });
+        vec.erase(remove_it, vec.end());
+    }
+}
+
 static OutputType GetOutputType(TxoutType type, bool is_from_p2sh)
 {
     switch (type) {
@@ -786,11 +796,15 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
     // Set the long term feerate estimate to the wallet's consolidate feerate
     coin_selection_params.m_long_term_feerate = wallet.m_consolidate_feerate;
 
+    CAmountType amount_type;
     CAmount recipients_sum = 0;
     const OutputType change_type = wallet.TransactionChangeType(coin_control.m_change_type ? *coin_control.m_change_type : wallet.m_default_change_type, vecSend);
     ReserveDestination reservedest(&wallet, change_type);
     unsigned int outputs_to_subtract_fee_from = 0; // The number of outputs which we are subtracting the fee from
     for (const auto& recipient : vecSend) {
+        if (recipients_sum > 0 && recipient.amountType != amount_type)
+            return util::Error{strprintf(_("Recipients receiving different types of outputs is not allowed."))};
+        amount_type = recipient.amountType;
         recipients_sum += recipient.nAmount;
 
         if (recipient.fSubtractFeeFromAmount) {
@@ -882,7 +896,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
     }
     for (const auto& recipient : vecSend)
     {
-        CTxOut txout(recipient.nAmount, recipient.scriptPubKey);
+        CTxOut txout(recipient.amountType, recipient.nAmount, recipient.scriptPubKey);
 
         // Include the fee cost for outputs.
         if (!coin_selection_params.m_subtract_fee_outputs) {
@@ -907,6 +921,8 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
                                               MAX_MONEY,    /*nMaximumAmount*/
                                               MAX_MONEY,    /*nMinimumSumAmount*/
                                               0);           /*nMaximumCount*/
+    // Filter for selected amount type
+    available_coins.Filter(amount_type);
 
     // Choose coins to use
     std::optional<SelectionResult> result = SelectCoins(wallet, available_coins, /*nTargetValue=*/selection_target, coin_control, coin_selection_params);
@@ -917,7 +933,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
 
     const CAmount change_amount = result->GetChange(coin_selection_params.min_viable_change, coin_selection_params.m_change_fee);
     if (change_amount > 0) {
-        CTxOut newTxOut(change_amount, scriptChange);
+        CTxOut newTxOut(amount_type, change_amount, scriptChange);
         if (nChangePosInOut == -1) {
             // Insert change txn at random position:
             nChangePosInOut = rng_fast.randrange(txNew.vout.size() + 1);

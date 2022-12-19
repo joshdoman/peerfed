@@ -137,6 +137,11 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *_platformStyle, QWidget *p
     ui->customFee->setValue(settings.value("nTransactionFee").toLongLong());
     minimizeFeeSection(settings.value("fFeeSectionMinimized").toBool());
 
+    ui->sendTypeSelector->addItem("Cash         ");
+    ui->sendTypeSelector->addItem("Bond         ");
+
+    connect(ui->sendTypeSelector, qOverload<int>(&QComboBox::currentIndexChanged), this, &SendCoinsDialog::updateSmartFeeLabel);
+
     GUIUtil::ExceptionSafeConnect(ui->sendButton, &QPushButton::clicked, this, &SendCoinsDialog::sendButtonClicked);
 }
 
@@ -286,7 +291,8 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
     }
 
     // prepare transaction for getting txFee earlier
-    m_current_transaction = std::make_unique<WalletModelTransaction>(recipients);
+    CAmountType amount_type = (ui->sendTypeSelector->currentIndex() == CASH ? CASH : BOND);
+    m_current_transaction = std::make_unique<WalletModelTransaction>(amount_type, recipients);
     WalletModel::SendCoinsReturn prepareStatus;
 
     updateCoinControlState();

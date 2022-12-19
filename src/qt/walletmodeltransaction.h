@@ -22,7 +22,9 @@ class Node;
 class WalletModelTransaction
 {
 public:
-    explicit WalletModelTransaction(const QList<SendCoinsRecipient> &recipients);
+    explicit WalletModelTransaction(const CAmountType amountType, const QList<SendCoinsRecipient> &recipients);
+
+    CAmountType getAmountType() const;
 
     QList<SendCoinsRecipient> getRecipients() const;
 
@@ -39,6 +41,7 @@ public:
     void reassignAmounts(int nChangePosRet); // needed for the subtract-fee-from-amount feature
 
 private:
+    CAmountType amountType;
     QList<SendCoinsRecipient> recipients;
     CTransactionRef wtx;
     CAmount fee;

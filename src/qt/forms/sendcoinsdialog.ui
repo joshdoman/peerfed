@@ -1203,6 +1203,9 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
       </widget>
      </item>
      <item>
+      <widget class="QComboBox" name="sendTypeSelector"/>
+     </item>
+     <item>
       <widget class="QPushButton" name="clearButton">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
