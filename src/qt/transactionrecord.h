@@ -88,7 +88,7 @@ public:
 
     TransactionRecord(uint256 _hash, qint64 _time,
                 Type _type, const std::string &_address,
-                const CAmount& _debit, const CAmount& _credit, bool _amountType):
+                const CAmount& _debit, const CAmount& _credit, CAmountType _amountType):
             hash(_hash), time(_time), type(_type), address(_address), debit(_debit), credit(_credit),
             amountType(_amountType), idx(0)
     {
@@ -107,7 +107,7 @@ public:
     std::string address;
     CAmount debit;
     CAmount credit;
-    bool amountType;
+    CAmountType amountType;
     /**@}*/
 
     /** Subtransaction index, for sort key */

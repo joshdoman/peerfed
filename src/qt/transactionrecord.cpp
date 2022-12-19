@@ -53,7 +53,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 TransactionRecord sub(hash, nTime);
                 sub.idx = i; // vout index
                 sub.credit = txout.nValue;
-                sub.amountType = txout.amountType; // TODO: Implement (type 0 = 'cash', 1 = 'bond')
+                sub.amountType = txout.amountType;
                 sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
                 if (wtx.txout_address_is_mine[i])
                 {
@@ -104,7 +104,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             }
 
             CAmount nChange = wtx.change;
-            bool amountType = 1; // TODO: Implement
+            CAmountType amountType = wtx.tx->vout[0].amountType; // All inputs and outputs are of the same type and guaranteed to have at least one output
             parts.append(TransactionRecord(hash, nTime, TransactionRecord::SendToSelf, address, -(nDebit - nChange), nCredit - nChange, amountType));
             parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
         }
@@ -150,7 +150,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     nTxFee = 0;
                 }
                 sub.debit = -nValue;
-                sub.amountType = 1; // TODO: Implement
+                sub.amountType = txout.amountType;
 
                 parts.append(sub);
             }
