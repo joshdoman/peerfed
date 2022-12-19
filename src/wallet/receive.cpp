@@ -106,7 +106,6 @@ static CAmount GetCachableAmount(const CWallet& wallet, const CWalletTx& wtx, CA
     return amount.m_value[filter];
 }
 
-// TODO: Add amountType parameter
 CAmount CachedTxGetCredit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter)
 {
     AssertLockHeld(wallet.cs_wallet);
@@ -119,12 +118,13 @@ CAmount CachedTxGetCredit(const CWallet& wallet, const CWalletTx& wtx, const ism
     const isminefilter get_amount_filter{filter & ISMINE_ALL};
     if (get_amount_filter) {
         // GetBalance can assume transactions in mapWallet won't change
+        // Add both cash and bond amounts since all outputs must be of the same type
         credit += GetCachableAmount(wallet, wtx, CASH, CWalletTx::CREDIT, get_amount_filter);
+        credit += GetCachableAmount(wallet, wtx, BOND, CWalletTx::CREDIT, get_amount_filter);
     }
     return credit;
 }
 
-// TODO: Add amountType parameter
 CAmount CachedTxGetDebit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter)
 {
     if (wtx.tx->vin.empty())
@@ -133,7 +133,9 @@ CAmount CachedTxGetDebit(const CWallet& wallet, const CWalletTx& wtx, const ismi
     CAmount debit = 0;
     const isminefilter get_amount_filter{filter & ISMINE_ALL};
     if (get_amount_filter) {
+        // Add both cash and bond amounts since all inputs must be of the same type
         debit += GetCachableAmount(wallet, wtx, CASH, CWalletTx::DEBIT, get_amount_filter);
+        debit += GetCachableAmount(wallet, wtx, BOND, CWalletTx::DEBIT, get_amount_filter);
     }
     return debit;
 }
