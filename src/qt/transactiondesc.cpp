@@ -103,13 +103,15 @@ bool GetPaymentRequestMerchant(const std::string& pr, QString& merchant)
     return false;
 }
 
-QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wallet, TransactionRecord* rec, BitcoinUnit unit)
+QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wallet, TransactionRecord* rec, BitcoinUnit& unit)
 {
     int numBlocks;
     interfaces::WalletTxStatus status;
     interfaces::WalletOrderForm orderForm;
     bool inMempool;
     interfaces::WalletTx wtx = wallet.getWalletTxDetails(rec->hash, status, orderForm, inMempool, numBlocks);
+
+    unit = BitcoinUnits::unitOfType(unit, rec->amountType);
 
     QString strHTML;
 
@@ -188,23 +190,14 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
         //
         // Coinbase
         //
-        CAmount nUnmatured0 = 0;
-        CAmount nUnmatured1 = 0;
+        CAmount nUnmatured = 0;
         for (const CTxOut& txout : wtx.tx->vout) {
-            if (txout.amountType == 0)
-                nUnmatured0 += wallet.getCredit(txout, ISMINE_ALL);
-            else
-                nUnmatured1 += wallet.getCredit(txout, ISMINE_ALL);
+            if (txout.amountType == rec->amountType)
+                nUnmatured += wallet.getCredit(txout, ISMINE_ALL);
         }
         strHTML += "<b>" + tr("Credit") + ":</b> ";
-        if (status.is_in_main_chain) {
-            if (nUnmatured0 > 0)
-                strHTML += BitcoinUnits::formatHtmlWithUnit(unit, nUnmatured0) + "0";
-                if (nUnmatured1 > 0) strHTML += ", ";
-            if (nUnmatured1 > 0)
-                strHTML += BitcoinUnits::formatHtmlWithUnit(unit, nUnmatured1) + "1";
-            strHTML += " (" + tr("matures in %n more block(s)", "", status.blocks_to_maturity) + ")";
-        }
+        if (status.is_in_main_chain)
+            strHTML += BitcoinUnits::formatHtmlWithUnit(unit, nUnmatured) + " (" + tr("matures in %n more block(s)", "", status.blocks_to_maturity) + ")";
         else
             strHTML += "(" + tr("not accepted") + ")";
         strHTML += "<br>";
