@@ -113,7 +113,6 @@ private Q_SLOTS:
     void updateFeeSectionControls();
     void updateNumberOfBlocks(int count, const QDateTime& blockDate, double nVerificationProgress, SyncType synctype, SynchronizationState sync_state);
     void updateSmartFeeLabel();
-    void updateFeeSource();
 
 Q_SIGNALS:
     // Fired when a message should be reported to the user

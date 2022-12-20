@@ -180,8 +180,6 @@ void SendCoinsDialog::setModel(WalletModel *_model)
         coinControlUpdateLabels();
 
         // fee section
-        connect(ui->radioSmartFeeSourceCash, &QPushButton::toggled, this, &SendCoinsDialog::updateFeeSource);
-
         for (const int n : confTargets) {
             ui->confTargetSelector->addItem(tr("%1 (%2 blocks)").arg(GUIUtil::formatNiceTimeOffset(n*Params().GetConsensus().nPowTargetSpacing)).arg(n));
         }
@@ -842,10 +840,6 @@ void SendCoinsDialog::updateCoinControlState()
 {
     if (ui->radioCustomFee->isChecked()) {
         m_coin_control->m_feerate = CFeeRate(ui->customFee->value());
-
-        // update fee source radio button
-        ui->radioSmartFeeSourceCash->setChecked(ui->customFee->type() == CASH);
-        ui->radioSmartFeeSourceBond->setChecked(ui->customFee->type() == BOND);
     } else {
         m_coin_control->m_feerate.reset();
     }
@@ -863,16 +857,6 @@ void SendCoinsDialog::updateNumberOfBlocks(int count, const QDateTime& blockDate
     }
 }
 
-void SendCoinsDialog::updateFeeSource()
-{
-    if (ui->radioCustomFee->isChecked()) {
-        // Open fee section so user can see they need to change custom unit to switch source
-        minimizeFeeSection(false);
-        ui->customFee->setType(ui->radioSmartFeeSourceCash->isChecked() ? CASH : BOND);
-    }
-    updateSmartFeeLabel();
-}
-
 void SendCoinsDialog::updateSmartFeeLabel()
 {
     if(!model || !model->getOptionsModel())
@@ -883,8 +867,7 @@ void SendCoinsDialog::updateSmartFeeLabel()
     FeeReason reason;
     CFeeRate feeRate = CFeeRate(model->wallet().getMinimumFee(1000, *m_coin_control, &returned_target, &reason));
 
-    CAmountType feeSourceType = (ui->radioSmartFeeSourceCash->isChecked() ? CASH : BOND);
-    BitcoinUnit unit = (feeSourceType == CASH) ? model->getOptionsModel()->getDisplayCashUnit() : model->getOptionsModel()->getDisplayBondUnit();
+    BitcoinUnit unit = (ui->sendTypeSelector->currentIndex() == CASH) ? model->getOptionsModel()->getDisplayCashUnit() : model->getOptionsModel()->getDisplayBondUnit();
     ui->labelSmartFee->setText(BitcoinUnits::formatWithUnit(unit, feeRate.GetFeePerK()) + "/kvB");
 
     if (reason == FeeReason::FALLBACK) {
