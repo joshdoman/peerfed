@@ -153,13 +153,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vin.resize(1);
     coinbaseTx.vin[0].prevout.SetNull();
     coinbaseTx.vout.resize(2); // 2 outputs to miner, 1 for bonds, 1 for cash
-    coinbaseTx.vout[0].amountType = 0;
-    coinbaseTx.vout[1].amountType = 1;
-    coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-    coinbaseTx.vout[1].scriptPubKey = scriptPubKeyIn;
+    coinbaseTx.vout[CASH].amountType = CASH;
+    coinbaseTx.vout[BOND].amountType = BOND;
+    coinbaseTx.vout[CASH].scriptPubKey = scriptPubKeyIn;
+    coinbaseTx.vout[BOND].scriptPubKey = scriptPubKeyIn;
     // TODO: Set values correctly and properly implement fees
-    coinbaseTx.vout[0].nValue = 0.5 * (nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus()));
-    coinbaseTx.vout[1].nValue = 0.5 * (nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus()));
+    coinbaseTx.vout[CASH].nValue = 0.5 * (nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus()));
+    coinbaseTx.vout[BOND].nValue = 0.5 * (nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus()));
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = m_chainstate.m_chainman.GenerateCoinbaseCommitment(*pblock, pindexPrev);
