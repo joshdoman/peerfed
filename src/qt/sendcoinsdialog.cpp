@@ -298,10 +298,10 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
     updateCoinControlState();
 
     prepareStatus = model->prepareTransaction(*m_current_transaction, *m_coin_control);
+    BitcoinUnit unit = amount_type == CASH ? model->getOptionsModel()->getDisplayCashUnit() : model->getOptionsModel()->getDisplayBondUnit();
 
     // process prepareStatus and on error generate message shown to user
-    processSendCoinsReturn(prepareStatus,
-        BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), m_current_transaction->getTransactionFee()));
+    processSendCoinsReturn(prepareStatus, BitcoinUnits::formatWithUnit(unit, m_current_transaction->getTransactionFee()));
 
     if(prepareStatus.status != WalletModel::OK) {
         fNewRecipientAllowed = true;
@@ -313,7 +313,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
     for (const SendCoinsRecipient &rcp : m_current_transaction->getRecipients())
     {
         // generate amount string with wallet name in case of multiwallet
-        QString amount = BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), rcp.amount);
+        QString amount = BitcoinUnits::formatWithUnit(unit, rcp.amount);
         if (model->isMultiwallet()) {
             amount.append(tr(" from wallet '%1'").arg(GUIUtil::HtmlEscape(model->getWalletName())));
         }
@@ -369,7 +369,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
 
         // append transaction fee value
         question_string.append("<span style='color:#aa0000; font-weight:bold;'>");
-        question_string.append(BitcoinUnits::formatHtmlWithUnit(model->getOptionsModel()->getDisplayUnit(), txFee));
+        question_string.append(BitcoinUnits::formatHtmlWithUnit(unit, txFee));
         question_string.append("</span><br />");
 
         // append RBF message according to transaction's signalling
@@ -387,11 +387,11 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
     CAmount totalAmount = m_current_transaction->getTotalTransactionAmount() + txFee;
     QStringList alternativeUnits;
     for (const BitcoinUnit u : BitcoinUnits::availableUnits()) {
-        if(u != model->getOptionsModel()->getDisplayUnit())
+        if(u != unit && BitcoinUnits::type(u) == BitcoinUnits::type(unit))
             alternativeUnits.append(BitcoinUnits::formatHtmlWithUnit(u, totalAmount));
     }
     question_string.append(QString("<b>%1</b>: <b>%2</b>").arg(tr("Total Amount"))
-        .arg(BitcoinUnits::formatHtmlWithUnit(model->getOptionsModel()->getDisplayUnit(), totalAmount)));
+        .arg(BitcoinUnits::formatHtmlWithUnit(unit, totalAmount)));
     question_string.append(QString("<br /><span style='font-size:10pt; font-weight:normal;'>(=%1)</span>")
         .arg(alternativeUnits.join(" " + tr("or") + " ")));
 
