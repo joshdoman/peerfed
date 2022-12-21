@@ -576,9 +576,8 @@ void SendCoinsDialog::onSendAmountTypeChanged()
             entry->setAmountType(getSendAmountType());
         }
     }
-    // Update smart fee label
+    // Update smart fee label and custom fee amount type
     updateSmartFeeLabel();
-    // TODO: Update custom fee amount type
     ui->customFee->setType(getSendAmountType());
 }
 
