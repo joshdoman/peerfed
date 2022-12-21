@@ -140,7 +140,7 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *_platformStyle, QWidget *p
     ui->sendTypeSelector->addItem("Cash         ");
     ui->sendTypeSelector->addItem("Bond         ");
 
-    connect(ui->sendTypeSelector, qOverload<int>(&QComboBox::currentIndexChanged), this, &SendCoinsDialog::updateSmartFeeLabel);
+    connect(ui->sendTypeSelector, qOverload<int>(&QComboBox::currentIndexChanged), this, &SendCoinsDialog::onSendAmountTypeChanged);
 
     GUIUtil::ExceptionSafeConnect(ui->sendButton, &QPushButton::clicked, this, &SendCoinsDialog::sendButtonClicked);
 }
@@ -289,7 +289,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
     }
 
     // prepare transaction for getting txFee earlier
-    CAmountType amount_type = (ui->sendTypeSelector->currentIndex() == CASH ? CASH : BOND);
+    CAmountType amount_type = getSendAmountType();
     m_current_transaction = std::make_unique<WalletModelTransaction>(amount_type, recipients);
     WalletModel::SendCoinsReturn prepareStatus;
 
@@ -560,6 +560,28 @@ void SendCoinsDialog::sendButtonClicked([[maybe_unused]] bool checked)
     m_current_transaction.reset();
 }
 
+CAmountType SendCoinsDialog::getSendAmountType()
+{
+    return (ui->sendTypeSelector->currentIndex() == CASH) ? CASH : BOND;
+}
+
+void SendCoinsDialog::onSendAmountTypeChanged()
+{
+    // Update all entries with new amount type
+    for(int i = 0; i < ui->entries->count(); ++i)
+    {
+        SendCoinsEntry *entry = qobject_cast<SendCoinsEntry*>(ui->entries->itemAt(i)->widget());
+        if(entry)
+        {
+            entry->setAmountType(getSendAmountType());
+        }
+    }
+    // Update smart fee label
+    updateSmartFeeLabel();
+    // TODO: Update custom fee amount type
+    ui->customFee->setType(getSendAmountType());
+}
+
 void SendCoinsDialog::clear()
 {
     m_current_transaction.reset();
@@ -794,7 +816,7 @@ void SendCoinsDialog::useAvailableBalance(SendCoinsEntry* entry)
     m_coin_control->fAllowWatchOnly = model->wallet().privateKeysDisabled() && !model->wallet().hasExternalSigner();
 
     // Calculate available amount to send.
-    CAmountType amountType = entry->getValue().amountType;
+    CAmountType amountType = getSendAmountType();
     CAmount amount = model->getAvailableBalance(amountType, m_coin_control.get());
     for (int i = 0; i < ui->entries->count(); ++i) {
         SendCoinsEntry* e = qobject_cast<SendCoinsEntry*>(ui->entries->itemAt(i)->widget());
@@ -831,7 +853,7 @@ void SendCoinsDialog::updateFeeMinimizedLabel()
     if (ui->radioSmartFee->isChecked())
         ui->labelFeeMinimized->setText(ui->labelSmartFee->text());
     else {
-        BitcoinUnit unit = (ui->customFee->type() == CASH) ? model->getOptionsModel()->getDisplayCashUnit() : model->getOptionsModel()->getDisplayBondUnit();
+        BitcoinUnit unit = (getSendAmountType() == CASH) ? model->getOptionsModel()->getDisplayCashUnit() : model->getOptionsModel()->getDisplayBondUnit();
         ui->labelFeeMinimized->setText(BitcoinUnits::formatWithUnit(unit, ui->customFee->value()) + "/kvB");
     }
 }
@@ -867,7 +889,7 @@ void SendCoinsDialog::updateSmartFeeLabel()
     FeeReason reason;
     CFeeRate feeRate = CFeeRate(model->wallet().getMinimumFee(1000, *m_coin_control, &returned_target, &reason));
 
-    BitcoinUnit unit = (ui->sendTypeSelector->currentIndex() == CASH) ? model->getOptionsModel()->getDisplayCashUnit() : model->getOptionsModel()->getDisplayBondUnit();
+    BitcoinUnit unit = (getSendAmountType() == CASH) ? model->getOptionsModel()->getDisplayCashUnit() : model->getOptionsModel()->getDisplayBondUnit();
     ui->labelSmartFee->setText(BitcoinUnits::formatWithUnit(unit, feeRate.GetFeePerK()) + "/kvB");
 
     if (reason == FeeReason::FALLBACK) {

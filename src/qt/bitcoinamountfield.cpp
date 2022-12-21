@@ -300,9 +300,7 @@ CAmountType BitcoinAmountField::type() const
 
 void BitcoinAmountField::setType(const CAmountType& amountType)
 {
-    QVariant qv_current_unit = unit->currentData(BitcoinUnits::UnitRole);
-    BitcoinUnit current_unit = qv_current_unit.value<BitcoinUnit>();
-    amount->setDisplayUnit(BitcoinUnits::unitOfType(current_unit, amountType));
+    unit->setModelColumn(amountType);
 }
 
 CAmount BitcoinAmountField::value(bool *valid_out) const
@@ -348,7 +346,12 @@ void BitcoinAmountField::unitChanged(int idx)
 
 void BitcoinAmountField::setDisplayUnit(BitcoinUnit new_unit)
 {
-    unit->setValue(QVariant::fromValue(new_unit));
+    // Get the current type
+    QVariant current_unit = unit->currentData(BitcoinUnits::UnitRole);
+    CAmountType current_type = BitcoinUnits::type(current_unit.value<BitcoinUnit>());
+    // Get the new unit with the current type
+    BitcoinUnit new_unit_same_type = BitcoinUnits::unitOfType(new_unit, current_type);
+    unit->setValue(QVariant::fromValue(new_unit_same_type));
 }
 
 void BitcoinAmountField::setSingleStep(const CAmount& step)

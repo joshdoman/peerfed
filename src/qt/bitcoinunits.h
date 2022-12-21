@@ -41,12 +41,12 @@ public:
      */
     enum class Unit {
         CASH,
-        BOND,
         mCASH,
-        mBOND,
         uCASH,
-        uBOND,
         sCASH,
+        BOND,
+        mBOND,
+        uBOND,
         sBOND
     };
     Q_ENUM(Unit)
@@ -76,7 +76,7 @@ public:
     static int decimals(Unit unit);
     //! Type of the unit
     static CAmountType type(Unit unit);
-    //! Returns equivalent unit of a given amount type  
+    //! Returns equivalent unit of a given amount type
     static Unit unitOfType(Unit unit, CAmountType type);
     //! Format as string
     static QString format(Unit unit, const CAmount& amount, bool plussign = false, SeparatorStyle separators = SeparatorStyle::STANDARD, bool justify = false);
@@ -100,6 +100,7 @@ public:
         UnitRole = Qt::UserRole
     };
     int rowCount(const QModelIndex &parent) const override;
+    int columnCount(const QModelIndex &parent) const override;
     QVariant data(const QModelIndex &index, int role) const override;
     ///@}
 

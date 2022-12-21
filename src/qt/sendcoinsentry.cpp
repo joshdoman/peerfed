@@ -202,6 +202,11 @@ void SendCoinsEntry::setAmount(const CAmount &amount)
     ui->payAmount->setValue(amount);
 }
 
+void SendCoinsEntry::setAmountType(const CAmountType &amountType)
+{
+    ui->payAmount->setType(amountType);
+}
+
 bool SendCoinsEntry::isClear()
 {
     return ui->payTo->text().isEmpty();

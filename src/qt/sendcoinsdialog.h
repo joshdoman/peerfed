@@ -93,6 +93,8 @@ private:
 
 private Q_SLOTS:
     void sendButtonClicked(bool checked);
+    CAmountType getSendAmountType();
+    void onSendAmountTypeChanged();
     void on_buttonChooseFee_clicked();
     void on_buttonMinimizeFee_clicked();
     void removeEntry(SendCoinsEntry* entry);
