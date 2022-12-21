@@ -60,7 +60,8 @@ static void WalletTxToJSON(const CWallet& wallet, const CWalletTx& wtx, UniValue
 
 struct tallyitem
 {
-    CAmount nAmount{0};
+    CAmount nAmountCash{0};
+    CAmount nAmountBond{0};
     int nConf{std::numeric_limits<int>::max()};
     std::vector<uint256> txids;
     bool fIsWatchonly{false};
@@ -122,7 +123,10 @@ static UniValue ListReceived(const CWallet& wallet, const UniValue& params, cons
                 continue;
 
             tallyitem& item = mapTally[address];
-            item.nAmount += txout.nValue;
+            if (txout.amountType == CASH)
+                item.nAmountCash += txout.nValue;
+            else
+                item.nAmountBond += txout.nValue;
             item.nConf = std::min(item.nConf, nDepth);
             item.txids.push_back(wtx.GetHash());
             if (mine & ISMINE_WATCH_ONLY)
@@ -141,25 +145,29 @@ static UniValue ListReceived(const CWallet& wallet, const UniValue& params, cons
         if (it == mapTally.end() && !fIncludeEmpty)
             return;
 
-        CAmount nAmount = 0;
+        CAmount nAmountCash = 0;
+        CAmount nAmountBond = 0;
         int nConf = std::numeric_limits<int>::max();
         bool fIsWatchonly = false;
         if (it != mapTally.end()) {
-            nAmount = (*it).second.nAmount;
+            nAmountCash = (*it).second.nAmountCash;
+            nAmountBond = (*it).second.nAmountBond;
             nConf = (*it).second.nConf;
             fIsWatchonly = (*it).second.fIsWatchonly;
         }
 
         if (by_label) {
             tallyitem& _item = label_tally[label];
-            _item.nAmount += nAmount;
+            _item.nAmountCash += nAmountCash;
+            _item.nAmountBond += nAmountBond;
             _item.nConf = std::min(_item.nConf, nConf);
             _item.fIsWatchonly = fIsWatchonly;
         } else {
             UniValue obj(UniValue::VOBJ);
             if (fIsWatchonly) obj.pushKV("involvesWatchonly", true);
             obj.pushKV("address",       EncodeDestination(address));
-            obj.pushKV("amount",        ValueFromAmount(nAmount));
+            obj.pushKV("cashAmount",        ValueFromAmount(nAmountCash));
+            obj.pushKV("bondAmount",        ValueFromAmount(nAmountBond));
             obj.pushKV("confirmations", (nConf == std::numeric_limits<int>::max() ? 0 : nConf));
             obj.pushKV("label", label);
             UniValue transactions(UniValue::VARR);
@@ -183,12 +191,14 @@ static UniValue ListReceived(const CWallet& wallet, const UniValue& params, cons
 
     if (by_label) {
         for (const auto& entry : label_tally) {
-            CAmount nAmount = entry.second.nAmount;
+            CAmount nAmountCash = entry.second.nAmountCash;
+            CAmount nAmountBond = entry.second.nAmountBond;
             int nConf = entry.second.nConf;
             UniValue obj(UniValue::VOBJ);
             if (entry.second.fIsWatchonly)
                 obj.pushKV("involvesWatchonly", true);
-            obj.pushKV("amount",        ValueFromAmount(nAmount));
+            obj.pushKV("cashAmount",        ValueFromAmount(nAmountCash));
+            obj.pushKV("bondAmount",        ValueFromAmount(nAmountBond));
             obj.pushKV("confirmations", (nConf == std::numeric_limits<int>::max() ? 0 : nConf));
             obj.pushKV("label",         entry.first);
             ret.push_back(obj);
@@ -216,7 +226,8 @@ RPCHelpMan listreceivedbyaddress()
                         {
                             {RPCResult::Type::BOOL, "involvesWatchonly", /*optional=*/true, "Only returns true if imported addresses were involved in transaction"},
                             {RPCResult::Type::STR, "address", "The receiving address"},
-                            {RPCResult::Type::STR_AMOUNT, "amount", "The total amount in " + CURRENCY_UNIT + " received by the address"},
+                            {RPCResult::Type::STR_AMOUNT, "amount", "The total cash amount in " + CURRENCY_UNIT + " received by the address"},
+                            {RPCResult::Type::STR_AMOUNT, "amount", "The total bond amount in " + CURRENCY_UNIT + " received by the address"},
                             {RPCResult::Type::NUM, "confirmations", "The number of confirmations of the most recent transaction included"},
                             {RPCResult::Type::STR, "label", "The label of the receiving address. The default label is \"\""},
                             {RPCResult::Type::ARR, "txids", "",
@@ -267,7 +278,8 @@ RPCHelpMan listreceivedbylabel()
                         {RPCResult::Type::OBJ, "", "",
                         {
                             {RPCResult::Type::BOOL, "involvesWatchonly", /*optional=*/true, "Only returns true if imported addresses were involved in transaction"},
-                            {RPCResult::Type::STR_AMOUNT, "amount", "The total amount received by addresses with this label"},
+                            {RPCResult::Type::STR_AMOUNT, "cashAmount", "The total cash amount received by addresses with this label"},
+                            {RPCResult::Type::STR_AMOUNT, "bondAmount", "The total bond amount received by addresses with this label"},
                             {RPCResult::Type::NUM, "confirmations", "The number of confirmations of the most recent transaction included"},
                             {RPCResult::Type::STR, "label", "The label of the receiving address. The default label is \"\""},
                         }},
