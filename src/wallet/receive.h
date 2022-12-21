@@ -36,6 +36,7 @@ CAmount CachedTxGetAvailableCredit(const CWallet& wallet, const CWalletTx& wtx, 
 struct COutputEntry
 {
     CTxDestination destination;
+    CAmountType amountType;
     CAmount amount;
     int vout;
 };

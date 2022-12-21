@@ -337,6 +337,8 @@ public:
 
     // Return sum of txouts.
     CAmount GetValueOut() const;
+    // Return amount type of txouts.
+    CAmountType GetAmountTypeOut() const;
 
     /**
      * Get the total transaction size in bytes, including witness data.

@@ -504,7 +504,6 @@ RPCHelpMan getbalances()
 
     for (int amountType = 0; amountType <= 1; amountType++) {
         const auto bal = GetBalance(wallet, amountType); // TODO: Implement coin type
-        const auto amountTypeStr = amountType ? "bond" : "cash";
         {
             UniValue balances_mine{UniValue::VOBJ};
             balances_mine.pushKV("trusted", ValueFromAmount(bal.m_mine_trusted));
@@ -516,7 +515,7 @@ RPCHelpMan getbalances()
                 const auto full_bal = GetBalance(wallet, amountType, 0, false);
                 balances_mine.pushKV("used", ValueFromAmount(full_bal.m_mine_trusted + full_bal.m_mine_untrusted_pending - bal.m_mine_trusted - bal.m_mine_untrusted_pending));
             }
-            mine.pushKV(amountTypeStr, balances_mine);
+            mine.pushKV(StringFromAmountType(amountType), balances_mine);
         }
         auto spk_man = wallet.GetLegacyScriptPubKeyMan();
         if (spk_man && spk_man->HaveWatchOnly()) {
@@ -524,7 +523,7 @@ RPCHelpMan getbalances()
             balances_watchonly.pushKV("trusted", ValueFromAmount(bal.m_watchonly_trusted));
             balances_watchonly.pushKV("untrusted_pending", ValueFromAmount(bal.m_watchonly_untrusted_pending));
             balances_watchonly.pushKV("immature", ValueFromAmount(bal.m_watchonly_immature));
-            watchonly.pushKV(amountTypeStr, balances_watchonly);
+            watchonly.pushKV(StringFromAmountType(amountType), balances_watchonly);
         }
     }
     ret.pushKV("mine", mine);

@@ -105,6 +105,19 @@ CAmount CTransaction::GetValueOut() const
     return nValueOut;
 }
 
+CAmountType CTransaction::GetAmountTypeOut() const
+{
+    CAmountType amountType = 0;
+    bool first = true;
+    for (const auto& tx_out : vout) {
+        if (!first && tx_out.amountType != amountType)
+            throw std::runtime_error(std::string(__func__) + ": outputs of different types");
+        amountType = tx_out.amountType;
+        first = false;
+    }
+    return amountType;
+}
+
 unsigned int CTransaction::GetTotalSize() const
 {
     return ::GetSerializeSize(*this, PROTOCOL_VERSION);

@@ -351,6 +351,7 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
             }
             MaybePushAddress(entry, s.destination);
             entry.pushKV("category", "send");
+            entry.pushKV("amountType", StringFromAmountType(s.amountType));
             entry.pushKV("amount", ValueFromAmount(-s.amount));
             const auto* address_book_entry = wallet.FindAddressBookEntry(s.destination);
             if (address_book_entry) {
@@ -396,6 +397,7 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
             {
                 entry.pushKV("category", "receive");
             }
+            entry.pushKV("amountType", StringFromAmountType(r.amountType));
             entry.pushKV("amount", ValueFromAmount(r.amount));
             if (address_book_entry) {
                 entry.pushKV("label", label);
@@ -466,6 +468,7 @@ RPCHelpMan listtransactions()
                                 "\"generate\"              Coinbase transactions received with more than 100 confirmations.\n"
                                 "\"immature\"              Coinbase transactions received with 100 or fewer confirmations.\n"
                                 "\"orphan\"                Orphaned coinbase transactions received."},
+                            {RPCResult::Type::STR, "amountType", "the transaction amount type ('cash' or 'bond')"},
                             {RPCResult::Type::STR_AMOUNT, "amount", "The amount in " + CURRENCY_UNIT + ". This is negative for the 'send' category, and is positive\n"
                                 "for all other categories"},
                             {RPCResult::Type::STR, "label", /*optional=*/true, "A comment for the address/transaction, if any"},
@@ -580,6 +583,7 @@ RPCHelpMan listsinceblock()
                                     "\"generate\"              Coinbase transactions received with more than 100 confirmations.\n"
                                     "\"immature\"              Coinbase transactions received with 100 or fewer confirmations.\n"
                                     "\"orphan\"                Orphaned coinbase transactions received."},
+                                {RPCResult::Type::STR, "amountType", "the transaction amount type ('cash' or 'bond')"},
                                 {RPCResult::Type::STR_AMOUNT, "amount", "The amount in " + CURRENCY_UNIT + ". This is negative for the 'send' category, and is positive\n"
                                     "for all other categories"},
                                 {RPCResult::Type::NUM, "vout", "the vout value"},
@@ -706,6 +710,7 @@ RPCHelpMan gettransaction()
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", Cat(Cat<std::vector<RPCResult>>(
                     {
+                        {RPCResult::Type::STR, "amountType", "the transaction amount type ('cash' or 'bond')"},
                         {RPCResult::Type::STR_AMOUNT, "amount", "The amount in " + CURRENCY_UNIT},
                         {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
                                      "'send' category of transactions."},
@@ -724,6 +729,7 @@ RPCHelpMan gettransaction()
                                     "\"generate\"              Coinbase transactions received with more than 100 confirmations.\n"
                                     "\"immature\"              Coinbase transactions received with 100 or fewer confirmations.\n"
                                     "\"orphan\"                Orphaned coinbase transactions received."},
+                                {RPCResult::Type::STR, "amountType", "the transaction amount type ('cash' or 'bond')"},
                                 {RPCResult::Type::STR_AMOUNT, "amount", "The amount in " + CURRENCY_UNIT},
                                 {RPCResult::Type::STR, "label", /*optional=*/true, "A comment for the address/transaction, if any"},
                                 {RPCResult::Type::NUM, "vout", "the vout value"},
@@ -777,11 +783,13 @@ RPCHelpMan gettransaction()
     }
     const CWalletTx& wtx = it->second;
 
+    CAmountType amountType = wtx.tx->GetAmountTypeOut();
     CAmount nCredit = CachedTxGetCredit(*pwallet, wtx, filter);
     CAmount nDebit = CachedTxGetDebit(*pwallet, wtx, filter);
     CAmount nNet = nCredit - nDebit;
     CAmount nFee = (CachedTxIsFromMe(*pwallet, wtx, filter) ? wtx.tx->GetValueOut() - nDebit : 0);
 
+    entry.pushKV("amountType", StringFromAmountType(amountType));
     entry.pushKV("amount", ValueFromAmount(nNet - nFee));
     if (CachedTxIsFromMe(*pwallet, wtx, filter))
         entry.pushKV("fee", ValueFromAmount(nFee));
