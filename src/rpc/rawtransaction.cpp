@@ -1498,7 +1498,7 @@ static RPCHelpMan converttopsbt()
                 },
                 RPCExamples{
                             "\nCreate a transaction\n"
-                            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"[{\\\"data\\\":\\\"00010203\\\"}]\"") +
+                            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"[{\\\"data\\\":\\\"00010203\\\"}]\" \"cash\"") +
                             "\nConvert the transaction to a PSBT\n"
                             + HelpExampleCli("converttopsbt", "\"rawtransaction\"")
                 },
