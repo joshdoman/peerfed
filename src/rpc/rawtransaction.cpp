@@ -110,6 +110,7 @@ static std::vector<RPCResult> DecodeTxDoc(const std::string& txid_field_doc)
         {
             {RPCResult::Type::OBJ, "", "",
             {
+                {RPCResult::Type::STR, "amountType", "The type of output amount ('cash' or 'bond')"},
                 {RPCResult::Type::STR_AMOUNT, "value", "The value in " + CURRENCY_UNIT},
                 {RPCResult::Type::NUM, "n", "index"},
                 {RPCResult::Type::OBJ, "scriptPubKey", "",

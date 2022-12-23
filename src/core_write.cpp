@@ -226,6 +226,7 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
                 UniValue p(UniValue::VOBJ);
                 p.pushKV("generated", bool(prev_coin.fCoinBase));
                 p.pushKV("height", uint64_t(prev_coin.nHeight));
+                p.pushKV("amountType", ValueFromAmountType(prev_txout.amountType));
                 p.pushKV("value", ValueFromAmount(prev_txout.nValue));
                 p.pushKV("scriptPubKey", o_script_pub_key);
                 in.pushKV("prevout", p);
@@ -242,6 +243,7 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
 
         UniValue out(UniValue::VOBJ);
 
+        out.pushKV("amountType", ValueFromAmountType(txout.amountType));
         out.pushKV("value", ValueFromAmount(txout.nValue));
         out.pushKV("n", (int64_t)i);
 
