@@ -559,6 +559,19 @@ static CAmount AmountFromValue(const UniValue& value)
     return amount;
 }
 
+static CAmountType AmountTypeFromValue(const UniValue& value)
+{
+    if (!value.isBool() && !value.isStr())
+        throw std::runtime_error("Amount is not a boolean or string");
+    if (value.getValStr().compare("cash") == 0)
+        return CASH;
+    if (value.getValStr().compare("bond") == 0)
+        return BOND;
+    if (value.isBool())
+        return value.getBool() == CASH ? CASH : BOND;
+    throw std::runtime_error("Invalid amount type input");
+}
+
 static void MutateTxSign(CMutableTransaction& tx, const std::string& flagStr)
 {
     int nHashType = SIGHASH_ALL;

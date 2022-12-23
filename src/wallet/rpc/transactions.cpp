@@ -351,7 +351,7 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
             }
             MaybePushAddress(entry, s.destination);
             entry.pushKV("category", "send");
-            entry.pushKV("amountType", StringFromAmountType(s.amountType));
+            entry.pushKV("amountType", ValueFromAmountType(s.amountType));
             entry.pushKV("amount", ValueFromAmount(-s.amount));
             const auto* address_book_entry = wallet.FindAddressBookEntry(s.destination);
             if (address_book_entry) {
@@ -397,7 +397,7 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
             {
                 entry.pushKV("category", "receive");
             }
-            entry.pushKV("amountType", StringFromAmountType(r.amountType));
+            entry.pushKV("amountType", ValueFromAmountType(r.amountType));
             entry.pushKV("amount", ValueFromAmount(r.amount));
             if (address_book_entry) {
                 entry.pushKV("label", label);
@@ -789,7 +789,7 @@ RPCHelpMan gettransaction()
     CAmount nNet = nCredit - nDebit;
     CAmount nFee = (CachedTxIsFromMe(*pwallet, wtx, filter) ? wtx.tx->GetValueOut() - nDebit : 0);
 
-    entry.pushKV("amountType", StringFromAmountType(amountType));
+    entry.pushKV("amountType", ValueFromAmountType(amountType));
     entry.pushKV("amount", ValueFromAmount(nNet - nFee));
     if (CachedTxIsFromMe(*pwallet, wtx, filter))
         entry.pushKV("fee", ValueFromAmount(nFee));

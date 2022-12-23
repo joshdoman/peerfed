@@ -36,7 +36,7 @@ UniValue ValueFromAmount(const CAmount amount)
             strprintf("%s%d.%08d", amount < 0 ? "-" : "", quotient, remainder));
 }
 
-std::string StringFromAmountType(const CAmountType amountType)
+std::string ValueFromAmountType(const CAmountType amountType)
 {
     return amountType == CASH ? "cash" : "bond";
 }

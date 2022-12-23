@@ -100,6 +100,14 @@ std::vector<unsigned char> ParseHexO(const UniValue& o, std::string strKey);
  */
 CAmount AmountFromValue(const UniValue& value, int decimals = 8);
 
+/**
+ * Validate and return a CAmountType from a UniValue boolean or string.
+ *
+ * @param[in] value     UniValue boolean or string to parse.
+ * @returns a CAmountType if the various checks pass.
+ */
+CAmountType AmountTypeFromValue(const UniValue& value);
+
 using RPCArgList = std::vector<std::pair<std::string, UniValue>>;
 std::string HelpExampleCli(const std::string& methodname, const std::string& args);
 std::string HelpExampleCliNamed(const std::string& methodname, const RPCArgList& args);

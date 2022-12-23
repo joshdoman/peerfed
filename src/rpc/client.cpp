@@ -36,13 +36,13 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "generateblock", 1, "transactions" },
     { "getnetworkhashps", 0, "nblocks" },
     { "getnetworkhashps", 1, "height" },
-    { "sendtoaddress", 1, "amount" },
-    { "sendtoaddress", 4, "subtractfeefromamount" },
-    { "sendtoaddress", 5 , "replaceable" },
-    { "sendtoaddress", 6 , "conf_target" },
-    { "sendtoaddress", 8, "avoid_reuse" },
-    { "sendtoaddress", 9, "fee_rate"},
-    { "sendtoaddress", 10, "verbose"},
+    { "sendtoaddress", 2, "amount" },
+    { "sendtoaddress", 5, "subtractfeefromamount" },
+    { "sendtoaddress", 6 , "replaceable" },
+    { "sendtoaddress", 7 , "conf_target" },
+    { "sendtoaddress", 9, "avoid_reuse" },
+    { "sendtoaddress", 10, "fee_rate"},
+    { "sendtoaddress", 11, "verbose"},
     { "settxfee", 0, "amount" },
     { "sethdseed", 0, "newkeypool" },
     { "getreceivedbyaddress", 1, "minconf" },
@@ -255,7 +255,6 @@ UniValue ParseNonRFCJSONValue(const std::string& strVal)
 UniValue RPCConvertValues(const std::string &strMethod, const std::vector<std::string> &strParams)
 {
     UniValue params(UniValue::VARR);
-
     for (unsigned int idx = 0; idx < strParams.size(); idx++) {
         const std::string& strVal = strParams[idx];
 
@@ -274,7 +273,6 @@ UniValue RPCConvertValues(const std::string &strMethod, const std::vector<std::s
 UniValue RPCConvertNamedValues(const std::string &strMethod, const std::vector<std::string> &strParams)
 {
     UniValue params(UniValue::VOBJ);
-
     for (const std::string &s: strParams) {
         size_t pos = s.find('=');
         if (pos == std::string::npos) {

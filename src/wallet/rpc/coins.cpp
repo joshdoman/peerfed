@@ -215,7 +215,7 @@ RPCHelpMan getbalance()
     for (int amountType = 0; amountType <= 1; amountType++) {
         const auto bal = GetBalance(*pwallet, amountType, min_depth, avoid_reuse);
         const auto amount = ValueFromAmount(bal.m_mine_trusted + (include_watchonly ? bal.m_watchonly_trusted : 0));
-        ret.pushKV(StringFromAmountType(amountType), amount);
+        ret.pushKV(ValueFromAmountType(amountType), amount);
     }
     return ret;
 },
@@ -515,7 +515,7 @@ RPCHelpMan getbalances()
                 const auto full_bal = GetBalance(wallet, amountType, 0, false);
                 balances_mine.pushKV("used", ValueFromAmount(full_bal.m_mine_trusted + full_bal.m_mine_untrusted_pending - bal.m_mine_trusted - bal.m_mine_untrusted_pending));
             }
-            mine.pushKV(StringFromAmountType(amountType), balances_mine);
+            mine.pushKV(ValueFromAmountType(amountType), balances_mine);
         }
         auto spk_man = wallet.GetLegacyScriptPubKeyMan();
         if (spk_man && spk_man->HaveWatchOnly()) {
@@ -523,7 +523,7 @@ RPCHelpMan getbalances()
             balances_watchonly.pushKV("trusted", ValueFromAmount(bal.m_watchonly_trusted));
             balances_watchonly.pushKV("untrusted_pending", ValueFromAmount(bal.m_watchonly_untrusted_pending));
             balances_watchonly.pushKV("immature", ValueFromAmount(bal.m_watchonly_immature));
-            watchonly.pushKV(StringFromAmountType(amountType), balances_watchonly);
+            watchonly.pushKV(ValueFromAmountType(amountType), balances_watchonly);
         }
     }
     ret.pushKV("mine", mine);
@@ -744,7 +744,7 @@ RPCHelpMan listunspent()
 
         entry.pushKV("scriptPubKey", HexStr(scriptPubKey));
         entry.pushKV("amount", ValueFromAmount(out.txout.nValue));
-        entry.pushKV("amountType", StringFromAmountType(out.txout.amountType));
+        entry.pushKV("amountType", ValueFromAmountType(out.txout.amountType));
         entry.pushKV("confirmations", out.depth);
         if (!out.depth) {
             size_t ancestor_count, descendant_count, ancestor_size;

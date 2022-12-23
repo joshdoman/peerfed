@@ -26,7 +26,7 @@ BOOST_FIXTURE_TEST_CASE(SubtractFee, TestChain100Setup)
     // leftover input amount which would have been change to the recipient
     // instead of the miner.
     auto check_tx = [&wallet](CAmount leftover_input_amount) {
-        CRecipient recipient{GetScriptForRawPubKey({}), 50 * COIN - leftover_input_amount, true /* subtract fee */};
+        CRecipient recipient{GetScriptForRawPubKey({}), CASH, 50 * COIN - leftover_input_amount, true /* subtract fee */}; // Implement BOND
         constexpr int RANDOM_CHANGE_POSITION = -1;
         CCoinControl coin_control;
         coin_control.m_feerate.emplace(10000);
@@ -121,7 +121,8 @@ BOOST_FIXTURE_TEST_CASE(wallet_duplicated_preset_inputs_test, TestChain100Setup)
     auto wallet = CreateSyncedWallet(*m_node.chain, WITH_LOCK(Assert(m_node.chainman)->GetMutex(), return m_node.chainman->ActiveChain()), m_args, coinbaseKey);
 
     LOCK(wallet->cs_wallet);
-    auto available_coins = AvailableCoins(*wallet, CASH); // Implement BOND
+    auto available_coins = AvailableCoins(*wallet);
+    available_coins.Filter(CASH);
     std::vector<COutput> coins = available_coins.All();
     // Preselect the first 3 UTXO (150 BTC total)
     std::set<COutPoint> preset_inputs = {coins[0].outpoint, coins[1].outpoint, coins[2].outpoint};
@@ -129,7 +130,7 @@ BOOST_FIXTURE_TEST_CASE(wallet_duplicated_preset_inputs_test, TestChain100Setup)
     // Try to create a tx that spends more than what preset inputs + wallet selected inputs are covering for.
     // The wallet can cover up to 200 BTC, and the tx target is 299 BTC.
     std::vector<CRecipient> recipients = {{GetScriptForDestination(*Assert(wallet->GetNewDestination(OutputType::BECH32, "dummy"))),
-                                           /*nAmount=*/299 * COIN, /*fSubtractFeeFromAmount=*/true}};
+                                           /*amountType=*/CASH, /*nAmount=*/299 * COIN, /*fSubtractFeeFromAmount=*/true}};
     CCoinControl coin_control;
     coin_control.m_allow_other_inputs = true;
     for (const auto& outpoint : preset_inputs) {

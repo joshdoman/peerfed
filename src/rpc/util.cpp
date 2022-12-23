@@ -97,6 +97,19 @@ CAmount AmountFromValue(const UniValue& value, int decimals)
     return amount;
 }
 
+CAmountType AmountTypeFromValue(const UniValue& value)
+{
+    if (!value.isBool() && !value.isStr())
+        throw JSONRPCError(RPC_TYPE_ERROR, "Amount type is not a boolean or string");
+    if (value.getValStr().compare("cash") == 0)
+        return CASH;
+    if (value.getValStr().compare("bond") == 0)
+        return BOND;
+    if (value.isBool())
+        return (value.getBool() == CASH) ? CASH : BOND;
+    throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount type input");
+}
+
 uint256 ParseHashV(const UniValue& v, std::string strName)
 {
     const std::string& strHex(v.get_str());
