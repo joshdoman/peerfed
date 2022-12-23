@@ -217,7 +217,7 @@ RPCHelpMan sendtoaddress()
         HELP_REQUIRING_PASSPHRASE,
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin address to send to."},
-                    {"amountType", RPCArg::Type::STR, RPCArg::Optional::NO, "The amount type to send ('cash' or 'bond')."},
+                    {"amount_type", RPCArg::Type::STR, RPCArg::Optional::NO, "The amount type to send ('cash' or 'bond')."},
                     {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The amount in " + CURRENCY_UNIT + " to send. eg 0.1"},
                     {"comment", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "A comment used to store what the transaction is for.\n"
                                          "This is not part of the transaction, just kept in your wallet."},
@@ -322,7 +322,7 @@ RPCHelpMan sendmany()
                 "\nSend multiple times. Amounts are double-precision floating point numbers." +
         HELP_REQUIRING_PASSPHRASE,
                 {
-                    {"amountType", RPCArg::Type::STR, RPCArg::Optional::NO, "The amount type to send ('cash' or 'bond')."},
+                    {"amount_type", RPCArg::Type::STR, RPCArg::Optional::NO, "The amount type to send ('cash' or 'bond')."},
                     {"amounts", RPCArg::Type::OBJ_USER_KEYS, RPCArg::Optional::NO, "The addresses and amounts",
                         {
                             {"address", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The bitcoin address is the key, the numeric amount (can be string) in " + CURRENCY_UNIT + " is the value"},
