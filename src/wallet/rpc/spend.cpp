@@ -1218,11 +1218,11 @@ RPCHelpMan send()
             InterpretFeeEstimationInstructions(/*conf_target=*/request.params[1], /*estimate_mode=*/request.params[2], /*fee_rate=*/request.params[3], options);
             PreventOutdatedOptions(options);
 
-
+            UniValue output_type_in = ValueFromAmountType(CASH); // TODO: Implement
             CAmount fee;
             int change_position;
             bool rbf{options.exists("replaceable") ? options["replaceable"].get_bool() : pwallet->m_signal_rbf};
-            CMutableTransaction rawTx = ConstructTransaction(options["inputs"], request.params[0], options["locktime"], rbf);
+            CMutableTransaction rawTx = ConstructTransaction(options["inputs"], request.params[0], output_type_in, options["locktime"], rbf);
             CCoinControl coin_control;
             // Automatically select coins, unless at least one is manually selected. Can
             // be overridden by options.add_inputs.
@@ -1370,7 +1370,8 @@ RPCHelpMan sendall()
                 throw JSONRPCError(RPC_WALLET_ERROR, "Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.");
             }
 
-            CMutableTransaction rawTx{ConstructTransaction(options["inputs"], recipient_key_value_pairs, options["locktime"], rbf)};
+            UniValue output_type_in = ValueFromAmountType(CASH); // TODO: Implement
+            CMutableTransaction rawTx{ConstructTransaction(options["inputs"], recipient_key_value_pairs, output_type_in, options["locktime"], rbf)};
             LOCK(pwallet->cs_wallet);
 
             CAmount total_input_value(0);
@@ -1651,6 +1652,7 @@ RPCHelpMan walletcreatefundedpsbt()
 
     UniValue options{request.params[3].isNull() ? UniValue::VOBJ : request.params[3]};
 
+    UniValue output_type_in = ValueFromAmountType(CASH); // TODO: Implement
     CAmount fee;
     int change_position;
     bool rbf{wallet.m_signal_rbf};
@@ -1659,7 +1661,7 @@ RPCHelpMan walletcreatefundedpsbt()
         RPCTypeCheckArgument(replaceable_arg, UniValue::VBOOL);
         rbf = replaceable_arg.isTrue();
     }
-    CMutableTransaction rawTx = ConstructTransaction(request.params[0], request.params[1], request.params[2], rbf);
+    CMutableTransaction rawTx = ConstructTransaction(request.params[0], request.params[1], output_type_in, request.params[2], rbf);
     CCoinControl coin_control;
     // Automatically select coins, unless at least one is manually selected. Can
     // be overridden by options.add_inputs.
