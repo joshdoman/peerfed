@@ -50,6 +50,10 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
     }
     else
     {
+        // Check for different output amount types
+        if (nValueOut[CASH] > 0 && nValueOut[BOND] > 0)
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-different-types");
+
         for (const auto& txin : tx.vin)
             if (txin.prevout.IsNull())
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-prevout-null");

@@ -338,8 +338,6 @@ public:
 
     // Return sum of txouts.
     CAmount GetValueOut() const;
-    // Return array of sum of txouts, mapping to CASH and BOND amount types
-    std::array<CAmount,2> GetValuesOut() const;
     // Return amount type of txouts.
     CAmountType GetAmountTypeOut() const;
 

@@ -173,7 +173,8 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                          strprintf("%s: inputs missing/spent", __func__));
     }
 
-    CAmount nValueIn[2] = {0};
+    CAmount nValueIn = 0;
+    CAmountType nValueInType = 0;
     for (unsigned int i = 0; i < tx.vin.size(); ++i) {
         const COutPoint &prevout = tx.vin[i].prevout;
         const Coin& coin = inputs.AccessCoin(prevout);
@@ -186,24 +187,27 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
 
         // Check for negative or overflow input values
-        nValueIn[coin.out.amountType] += coin.out.nValue;
-        if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn[coin.out.amountType])) {
+        nValueIn += coin.out.nValue;
+        if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn)) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputvalues-outofrange");
         }
+
+        // Check for different input types
+        if (i > 0 && nValueInType != coin.out.amountType) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputvalues-different-types");
+        }
+        nValueInType = coin.out.amountType;
     }
 
-    std::array<CAmount,2> value_out = tx.GetValuesOut();
-    if (nValueIn[CASH] < value_out[CASH]) {
+    CAmount value_out = tx.GetValueOut();
+    CAmountType value_out_type = tx.GetAmountTypeOut();
+    if (nValueInType == value_out_type && nValueIn < value_out) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-in-belowout",
-            strprintf("cash value in (%s) < cash value out (%s)", FormatMoney(nValueIn[CASH]), FormatMoney(value_out[CASH])));
-    }
-    if (nValueIn[BOND] < value_out[BOND]) {
-        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-in-belowout",
-            strprintf("bond value in (%s) < bond value out (%s)", FormatMoney(nValueIn[BOND]), FormatMoney(value_out[BOND])));
+            strprintf("value in (%s) < value out (%s)", FormatMoney(nValueIn), FormatMoney(value_out)));
     }
 
     // Tally transaction fees
-    const CAmount txfee_aux = nValueIn[CASH] - value_out[CASH] + (nValueIn[BOND] - value_out[BOND]); // TODO: Implement split fees
+    const CAmount txfee_aux = nValueIn - value_out;
     if (!MoneyRange(txfee_aux)) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-fee-outofrange");
     }
