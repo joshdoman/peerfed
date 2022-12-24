@@ -603,6 +603,7 @@ static RPCHelpMan signrawtransactionwithkey()
                                     {"redeemScript", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "(required for P2SH) redeem script"},
                                     {"witnessScript", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "(required for P2WSH or P2SH-P2WSH) witness script"},
                                     {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "(required for Segwit inputs) the amount spent"},
+                                    {"amountType", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "(required for Segwit inputs) the amount type spent ('cash' or 'bond')"},
                                 },
                                 },
                         },

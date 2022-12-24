@@ -202,6 +202,9 @@ void ParsePrevouts(const UniValue& prevTxsUnival, FillableSigningProvider* keyst
                 if (prevOut.exists("amount")) {
                     newcoin.out.nValue = AmountFromValue(find_value(prevOut, "amount"));
                 }
+                if (prevOut.exists("amountType")) {
+                    newcoin.out.amountType = AmountTypeFromValue(find_value(prevOut, "amountType"));
+                }
                 newcoin.nHeight = 1;
                 coins[out] = std::move(newcoin);
             }
