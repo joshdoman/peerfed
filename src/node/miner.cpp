@@ -100,7 +100,8 @@ void BlockAssembler::resetBlock()
 
     // These counters do not include coinbase tx
     nBlockTx = 0;
-    nFees = 0;
+    nFees[CASH] = 0;
+    nFees[BOND] = 0;
 }
 
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
@@ -158,12 +159,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vout[CASH].scriptPubKey = scriptPubKeyIn;
     coinbaseTx.vout[BOND].scriptPubKey = scriptPubKeyIn;
     // TODO: Set values correctly and properly implement fees
-    coinbaseTx.vout[CASH].nValue = 0.5 * (nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus()));
-    coinbaseTx.vout[BOND].nValue = 0.5 * (nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus()));
+    coinbaseTx.vout[CASH].nValue = nFees[CASH] + 0.5 * GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    coinbaseTx.vout[BOND].nValue = nFees[BOND] + 0.5 * GetBlockSubsidy(nHeight, chainparams.GetConsensus());
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = m_chainstate.m_chainman.GenerateCoinbaseCommitment(*pblock, pindexPrev);
-    pblocktemplate->vTxFees[0] = -nFees;
+    pblocktemplate->vTxFees[0] = -(nFees[CASH] + nFees[BOND]); // TODO: Implement vTxFees
 
     LogPrintf("CreateNewBlock(): block weight: %u txs: %u fees: %ld sigops %d\n", GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
 
@@ -229,7 +230,7 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
     nBlockWeight += iter->GetTxWeight();
     ++nBlockTx;
     nBlockSigOpsCost += iter->GetSigOpCost();
-    nFees += iter->GetFee();
+    nFees[iter->GetFeeType()] += iter->GetFee();
     inBlock.insert(iter);
 
     bool fPrintPriority = gArgs.GetBoolArg("-printpriority", DEFAULT_PRINTPRIORITY);

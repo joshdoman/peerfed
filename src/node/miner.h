@@ -139,7 +139,7 @@ private:
     uint64_t nBlockWeight;
     uint64_t nBlockTx;
     uint64_t nBlockSigOpsCost;
-    CAmount nFees;
+    CAmount nFees[2] = {0};
     CTxMemPool::setEntries inBlock;
 
     // Chain context for the block

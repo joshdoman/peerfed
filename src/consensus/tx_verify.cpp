@@ -206,12 +206,17 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             strprintf("value in (%s) < value out (%s)", FormatMoney(nValueIn), FormatMoney(value_out)));
     }
 
-    // Tally transaction fees
-    const CAmount txfee_aux = nValueIn - value_out;
-    if (!MoneyRange(txfee_aux)) {
-        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-fee-outofrange");
-    }
+    if (nValueInType == value_out_type) {
+        // Tally transaction fees if input and output types are the same
+        const CAmount txfee_aux = nValueIn - value_out;
+        if (!MoneyRange(txfee_aux)) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-fee-outofrange");
+        }
 
-    txfee = txfee_aux;
+        txfee = txfee_aux;
+    } else {
+        // TODO: Implement conversion fees
+        txfee = 0;
+    }
     return true;
 }
