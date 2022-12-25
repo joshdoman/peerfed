@@ -105,6 +105,19 @@ CAmount CTransaction::GetValueOut() const
     return nValueOut;
 }
 
+CAmounts CTransaction::GetValuesOut() const
+{
+    CAmounts nValueOut = {0};
+    for (const auto& tx_out : vout) {
+        if (!MoneyRange(tx_out.nValue) || !MoneyRange(nValueOut[tx_out.amountType] + tx_out.nValue))
+            throw std::runtime_error(std::string(__func__) + ": value out of range");
+        nValueOut[tx_out.amountType] += tx_out.nValue;
+    }
+    assert(MoneyRange(nValueOut[CASH]));
+    assert(MoneyRange(nValueOut[BOND]));
+    return nValueOut;
+}
+
 CAmountType CTransaction::GetAmountTypeOut() const
 {
     CAmountType amountType = 0;

@@ -7,6 +7,7 @@
 #define BITCOIN_CONSENSUS_AMOUNT_H
 
 #include <cstdint>
+#include <array>
 
 /** Coin type (0 for 'cash', 1 for 'bond') */
 typedef bool CAmountType;
@@ -15,6 +16,7 @@ static constexpr CAmountType BOND = 1;
 
 /** Amount in satoshis (Can be negative) */
 typedef int64_t CAmount;
+typedef std::array<CAmount, 2> CAmounts;
 
 /** The amount of satoshis in one BTC. */
 static constexpr CAmount COIN = 100000000;

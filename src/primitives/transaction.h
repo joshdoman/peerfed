@@ -338,6 +338,8 @@ public:
 
     // Return sum of txouts.
     CAmount GetValueOut() const;
+    // Return sum of txouts by amount types
+    CAmounts GetValuesOut() const;
     // Return amount type of txouts.
     CAmountType GetAmountTypeOut() const;
 

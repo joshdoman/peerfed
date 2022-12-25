@@ -710,10 +710,11 @@ RPCHelpMan gettransaction()
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", Cat(Cat<std::vector<RPCResult>>(
                     {
-                        {RPCResult::Type::STR, "amountType", "the transaction amount type ('cash' or 'bond')"},
-                        {RPCResult::Type::STR_AMOUNT, "amount", "The amount in " + CURRENCY_UNIT},
+                        {RPCResult::Type::STR_AMOUNT, ValueFromAmountType(CASH), "The amount of cash in " + CURRENCY_UNIT},
+                        {RPCResult::Type::STR_AMOUNT, ValueFromAmountType(BOND), "The amount of bonds in " + CURRENCY_UNIT},
                         {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
                                      "'send' category of transactions."},
+                        {RPCResult::Type::STR, "feeType", "the transaction fee type ('" + ValueFromAmountType(CASH) + "' or '" + ValueFromAmountType(BOND) + "')"},
                     },
                     TransactionDescriptionString()),
                     {
@@ -783,16 +784,24 @@ RPCHelpMan gettransaction()
     }
     const CWalletTx& wtx = it->second;
 
-    CAmountType amountType = wtx.tx->GetAmountTypeOut();
-    CAmount nCredit = CachedTxGetCredit(*pwallet, wtx, filter);
-    CAmount nDebit = CachedTxGetDebit(*pwallet, wtx, filter);
-    CAmount nNet = nCredit - nDebit;
-    CAmount nFee = (CachedTxIsFromMe(*pwallet, wtx, filter) ? wtx.tx->GetValueOut() - nDebit : 0);
+    if (wtx.tx->IsCoinBase()) {
+        CAmounts amounts = wtx.tx->GetValuesOut();
+        entry.pushKV(ValueFromAmountType(CASH), ValueFromAmount(amounts[CASH]));
+        entry.pushKV(ValueFromAmountType(BOND), ValueFromAmount(amounts[BOND]));
+    } else {
+        CAmountType amountType = wtx.tx->GetAmountTypeOut();
+        CAmount nCredit = CachedTxGetCredit(*pwallet, wtx, filter);
+        CAmount nDebit = CachedTxGetDebit(*pwallet, wtx, filter);
+        CAmount nNet = nCredit - nDebit;
+        CAmount nFee = (CachedTxIsFromMe(*pwallet, wtx, filter) ? wtx.tx->GetValueOut() - nDebit : 0);
 
-    entry.pushKV("amountType", ValueFromAmountType(amountType));
-    entry.pushKV("amount", ValueFromAmount(nNet - nFee));
-    if (CachedTxIsFromMe(*pwallet, wtx, filter))
-        entry.pushKV("fee", ValueFromAmount(nFee));
+        entry.pushKV(ValueFromAmountType(amountType), ValueFromAmount(nNet - nFee));
+        entry.pushKV(ValueFromAmountType(!amountType), ValueFromAmount(0));
+        if (CachedTxIsFromMe(*pwallet, wtx, filter)) {
+            entry.pushKV("fee", ValueFromAmount(nFee));
+            entry.pushKV("feeType", ValueFromAmountType(amountType));
+        }
+    }
 
     WalletTxToJSON(*pwallet, wtx, entry);
 

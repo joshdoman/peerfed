@@ -2247,10 +2247,15 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
-    // TODO: Implement proper coinbase value checking
-    CAmount blockReward = nFees[CASH] + nFees[BOND] + GetBlockSubsidy(pindex->nHeight, m_params.GetConsensus());
-    if (block.vtx[0]->GetValueOut() > blockReward) {
-        LogPrintf("ERROR: ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)\n", block.vtx[0]->GetValueOut(), blockReward);
+    CAmounts coinbaseAmounts = block.vtx[0]->GetValuesOut();
+    CAmounts blockRewards = {0};
+    blockRewards[CASH] = nFees[CASH] + 0.5 * GetBlockSubsidy(pindex->nHeight, m_params.GetConsensus());
+    blockRewards[BOND] = nFees[BOND] + 0.5 * GetBlockSubsidy(pindex->nHeight, m_params.GetConsensus());
+    if (coinbaseAmounts[CASH] > blockRewards[CASH]) {
+        LogPrintf("ERROR: ConnectBlock(): coinbase pays too much cash (actual=%d vs limit=%d)\n", coinbaseAmounts[CASH], blockRewards[CASH]);
+        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
+    } else if (coinbaseAmounts[BOND] > blockRewards[BOND]) {
+        LogPrintf("ERROR: ConnectBlock(): coinbase pays too many bonds (actual=%d vs limit=%d)\n", coinbaseAmounts[BOND], blockRewards[BOND]);
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
     }
 
