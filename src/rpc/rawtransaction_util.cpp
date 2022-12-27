@@ -13,6 +13,7 @@
 #include <primitives/transaction.h>
 #include <rpc/request.h>
 #include <rpc/util.h>
+#include <script/standard.h>
 #include <script/sign.h>
 #include <script/signingprovider.h>
 #include <tinyformat.h>
@@ -21,7 +22,9 @@
 #include <util/strencodings.h>
 #include <util/translation.h>
 
-CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& output_type_in, const UniValue& locktime, std::optional<bool> rbf)
+#include <logging.h>
+
+CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, std::optional<bool> rbf)
 {
     if (outputs_in.isNull()) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, output argument must be non-null");
@@ -33,9 +36,6 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
     } else {
         inputs = inputs_in.get_array();
     }
-
-    const bool outputs_is_obj = outputs_in.isObject();
-    UniValue outputs = outputs_is_obj ? outputs_in.get_obj() : outputs_in.get_array();
 
     CMutableTransaction rawTx;
 
@@ -85,52 +85,98 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
         rawTx.vin.push_back(in);
     }
 
-    if (!outputs_is_obj) {
-        // Translate array of key-value pairs into dict
-        UniValue outputs_dict = UniValue(UniValue::VOBJ);
-        for (size_t i = 0; i < outputs.size(); ++i) {
-            const UniValue& output = outputs[i];
-            if (!output.isObject()) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, key-value pair not an object as expected");
-            }
-            if (output.size() != 1) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, key-value pair must contain exactly one key");
-            }
-            outputs_dict.pushKVs(output);
-        }
-        outputs = std::move(outputs_dict);
+    UniValue outputs;
+    if (outputs_in.isObject()) {
+        UniValue arr{UniValue::VARR};
+        arr.push_back(outputs_in);
+        outputs = arr;
+    } else {
+        outputs = outputs_in.get_array();
     }
 
     // Duplicate checking
-    std::set<CTxDestination> destinations;
+    std::set<CTxDestination> cashDestinations;
+    std::set<CTxDestination> bondDestinations;
     bool has_data{false};
+    bool has_conversion_fee{false};
 
-    CAmountType amountType = AmountTypeFromValue(output_type_in);
-    for (const std::string& name_ : outputs.getKeys()) {
-        if (name_ == "data") {
+    for (size_t i = 0; i < outputs.size(); ++i) {
+        const UniValue& output = outputs[i];
+        if (!output.isObject()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, key-value pair not an object as expected");
+        }
+
+        if (!output["data"].isNull()) {
+            if (output.size() != 1) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, key-value pair must contain exactly one key");
+            }
             if (has_data) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, duplicate key: data");
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, duplicate object: data");
             }
             has_data = true;
-            std::vector<unsigned char> data = ParseHexV(outputs[name_].getValStr(), "Data");
+            std::vector<unsigned char> data = ParseHexV(outputs["data"].getValStr(), "Data");
 
-            CTxOut out(amountType, 0, CScript() << OP_RETURN << data);
+            CTxOut out(0, 0, CScript() << OP_RETURN << data);
+            rawTx.vout.push_back(out);
+        } else if (!output["conversionFee"].isNull()) {
+            if (output.size() != 4) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, key-value pair must contain exactly three keys");
+            } else if (output["feeType"].isNull()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Missing parameter: feeType"));
+            } else if (output["slippageType"].isNull()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Missing parameter: slippageType"));
+            } else if (output["slippageAddress"].isNull()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Missing parameter: slippageAddress"));
+            }
+            if (has_conversion_fee) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, duplicate object: conversionFee");
+            }
+            has_conversion_fee = true;
+
+            CAmount nAmount = AmountFromValue(output["conversionFee"]);
+            CAmountType feeAmountType = AmountTypeFromValue(output["feeType"]);
+
+            CTxDestination slippageDestination = DecodeDestination(output["slippageAddress"].get_str());
+            if (!IsValidDestination(slippageDestination)) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Bitcoin address: ") + output["slippageAddress"].get_str());
+            }
+
+            CTxConversionInfo conversionInfo = {
+                AmountTypeFromValue(output["slippageType"]), // slippageType
+                slippageDestination, // slippageDestination
+            };
+            CScript script = GetScriptForConversionInfo(conversionInfo);
+
+            CTxOut out(feeAmountType, nAmount, script);
             rawTx.vout.push_back(out);
         } else {
-            CTxDestination destination = DecodeDestination(name_);
-            if (!IsValidDestination(destination)) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Bitcoin address: ") + name_);
+            if (output.size() != 2) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, key-value pair must contain exactly two keys");
+            } else if (output["amountType"].isNull()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Missing parameter: amountType"));
             }
 
-            if (!destinations.insert(destination).second) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ") + name_);
+            for (const std::string& name_ : output.getKeys()) {
+                if (name_ != "amountType") {
+                    CTxDestination destination = DecodeDestination(name_);
+                    if (!IsValidDestination(destination)) {
+                        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Bitcoin address: ") + name_);
+                    }
+
+                    CAmountType amountType = AmountTypeFromValue(output["amountType"]);
+                    if (amountType == CASH && !cashDestinations.insert(destination).second) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ") + name_);
+                    } else if (!bondDestinations.insert(destination).second) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ") + name_);
+                    }
+
+                    CScript scriptPubKey = GetScriptForDestination(destination);
+                    CAmount nAmount = AmountFromValue(output[name_]);
+
+                    CTxOut out(amountType, nAmount, scriptPubKey);
+                    rawTx.vout.push_back(out);
+                }
             }
-
-            CScript scriptPubKey = GetScriptForDestination(destination);
-            CAmount nAmount = AmountFromValue(outputs[name_]);
-
-            CTxOut out(amountType, nAmount, scriptPubKey);
-            rawTx.vout.push_back(out);
         }
     }
 

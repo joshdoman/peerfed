@@ -159,6 +159,11 @@ constexpr bool IsPushdataOp(opcodetype opcode)
     return opcode > OP_FALSE && opcode <= OP_PUSHDATA4;
 }
 
+struct CTxConversionInfo {
+    CAmountType slippageType;
+    CTxDestination slippageDestination;
+};
+
 /**
  * Parse a scriptPubKey and identify script type for standard scripts. If
  * successful, returns script type and parsed pubkeys or hashes, depending on
@@ -179,6 +184,12 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
 bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet);
 
 /**
+ * Parse a conversion scriptPubKey for the conversion info. Assigns result to
+ * the conversionInfoRet parameter and returns true if successful.
+ */
+bool ExtractConversionInfo(const CScript& scriptPubKey, CTxConversionInfo& conversionInfoRet);
+
+/**
  * Generate a Bitcoin scriptPubKey for the given CTxDestination. Returns a P2PKH
  * script for a CKeyID destination, a P2SH script for a CScriptID, and an empty
  * script for CNoDestination.
@@ -187,6 +198,9 @@ CScript GetScriptForDestination(const CTxDestination& dest);
 
 /** Generate a P2PK script for the given pubkey. */
 CScript GetScriptForRawPubKey(const CPubKey& pubkey);
+
+/** Generate a scriptPubKey for the given CTxConversionInfo. */
+CScript GetScriptForConversionInfo(const CTxConversionInfo& info);
 
 /** Determine if script is a "multi_a" script. Returns (threshold, keyspans) if so, and nullopt otherwise.
  *  The keyspans refer to bytes in the passed script. */

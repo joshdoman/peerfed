@@ -290,6 +290,16 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
     assert(false);
 }
 
+bool ExtractConversionInfo(const CScript& script, CTxConversionInfo& conversionInfoRet)
+{
+    if (script.size() == 23 && script[0] == OP_RETURN) {
+        conversionInfoRet.slippageType = script[1];
+        conversionInfoRet.slippageDestination = PKHash(uint160(valtype(script.begin() + 3, script.end())));
+        return true;
+    }
+    return false;
+}
+
 namespace {
 class CScriptVisitor
 {
@@ -331,6 +341,47 @@ public:
 };
 } // namespace
 
+namespace {
+class CByteHashVisitor
+{
+public:
+    std::vector<unsigned char> operator()(const CNoDestination& dest) const
+    {
+        return std::vector<unsigned char>();
+    }
+
+    std::vector<unsigned char> operator()(const PKHash& keyID) const
+    {
+        return ToByteVector(keyID);
+    }
+
+    std::vector<unsigned char> operator()(const ScriptHash& scriptID) const
+    {
+        return ToByteVector(scriptID);
+    }
+
+    std::vector<unsigned char> operator()(const WitnessV0KeyHash& id) const
+    {
+        return ToByteVector(id);
+    }
+
+    std::vector<unsigned char> operator()(const WitnessV0ScriptHash& id) const
+    {
+        return ToByteVector(id);
+    }
+
+    std::vector<unsigned char> operator()(const WitnessV1Taproot& tap) const
+    {
+        return ToByteVector(tap);
+    }
+
+    std::vector<unsigned char> operator()(const WitnessUnknown& id) const
+    {
+        return std::vector<unsigned char>();
+    }
+};
+} // namespace
+
 CScript GetScriptForDestination(const CTxDestination& dest)
 {
     return std::visit(CScriptVisitor(), dest);
@@ -339,6 +390,11 @@ CScript GetScriptForDestination(const CTxDestination& dest)
 CScript GetScriptForRawPubKey(const CPubKey& pubKey)
 {
     return CScript() << std::vector<unsigned char>(pubKey.begin(), pubKey.end()) << OP_CHECKSIG;
+}
+
+CScript GetScriptForConversionInfo(const CTxConversionInfo& info)
+{
+    return CScript() << OP_RETURN << info.slippageType << std::visit(CByteHashVisitor(), info.slippageDestination);
 }
 
 CScript GetScriptForMultisig(int nRequired, const std::vector<CPubKey>& keys)

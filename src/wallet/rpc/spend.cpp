@@ -1125,6 +1125,7 @@ RPCHelpMan send()
                     {"", RPCArg::Type::OBJ_USER_KEYS, RPCArg::Optional::OMITTED, "",
                         {
                             {"address", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "A key-value pair. The key (string) is the bitcoin address, the value (float or string) is the amount in " + CURRENCY_UNIT + ""},
+                            {"amountType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of amount output ('cash' or 'bond')."},
                         },
                         },
                     {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
@@ -1191,15 +1192,15 @@ RPCHelpMan send()
         },
         RPCExamples{""
         "\nSend 0.1 BTC with a confirmation target of 6 blocks in economical fee estimate mode\n"
-        + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.1}' 6 economical\n") +
+        + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.1, \"amountType\": \"cash\"}' 6 economical\n") +
         "Send 0.2 BTC with a fee rate of 1.1 " + CURRENCY_ATOM + "/vB using positional arguments\n"
-        + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.2}' null \"unset\" 1.1\n") +
+        + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.2, \"amountType\": \"cash\"}' null \"unset\" 1.1\n") +
         "Send 0.2 BTC with a fee rate of 1 " + CURRENCY_ATOM + "/vB using the options argument\n"
-        + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.2}' null \"unset\" null '{\"fee_rate\": 1}'\n") +
+        + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.2, \"amountType\": \"cash\"}' null \"unset\" null '{\"fee_rate\": 1}'\n") +
         "Send 0.3 BTC with a fee rate of 25 " + CURRENCY_ATOM + "/vB using named arguments\n"
-        + HelpExampleCli("-named send", "outputs='{\"" + EXAMPLE_ADDRESS[0] + "\": 0.3}' fee_rate=25\n") +
+        + HelpExampleCli("-named send", "outputs='{\"" + EXAMPLE_ADDRESS[0] + "\": 0.3, \"amountType\": \"cash\"}' fee_rate=25\n") +
         "Create a transaction that should confirm the next block, with a specific input, and return result without adding to wallet or broadcasting to the network\n"
-        + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.1}' 1 economical '{\"add_to_wallet\": false, \"inputs\": [{\"txid\":\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\", \"vout\":1}]}'")
+        + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.1, \"amountType\": \"cash\"}' 1 economical '{\"add_to_wallet\": false, \"inputs\": [{\"txid\":\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\", \"vout\":1}]}'")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
@@ -1219,11 +1220,10 @@ RPCHelpMan send()
             InterpretFeeEstimationInstructions(/*conf_target=*/request.params[1], /*estimate_mode=*/request.params[2], /*fee_rate=*/request.params[3], options);
             PreventOutdatedOptions(options);
 
-            UniValue output_type_in = ValueFromAmountType(CASH); // TODO: Implement
             CAmount fee;
             int change_position;
             bool rbf{options.exists("replaceable") ? options["replaceable"].get_bool() : pwallet->m_signal_rbf};
-            CMutableTransaction rawTx = ConstructTransaction(options["inputs"], request.params[0], output_type_in, options["locktime"], rbf);
+            CMutableTransaction rawTx = ConstructTransaction(options["inputs"], request.params[0], options["locktime"], rbf);
             CCoinControl coin_control;
             // Automatically select coins, unless at least one is manually selected. Can
             // be overridden by options.add_inputs.
@@ -1371,8 +1371,7 @@ RPCHelpMan sendall()
                 throw JSONRPCError(RPC_WALLET_ERROR, "Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.");
             }
 
-            UniValue output_type_in = ValueFromAmountType(CASH); // TODO: Implement
-            CMutableTransaction rawTx{ConstructTransaction(options["inputs"], recipient_key_value_pairs, output_type_in, options["locktime"], rbf)};
+            CMutableTransaction rawTx{ConstructTransaction(options["inputs"], recipient_key_value_pairs, options["locktime"], rbf)}; // TODO: Implement amount type
             LOCK(pwallet->cs_wallet);
 
             CAmount total_input_value(0);
@@ -1583,11 +1582,13 @@ RPCHelpMan walletcreatefundedpsbt()
                             {"", RPCArg::Type::OBJ_USER_KEYS, RPCArg::Optional::OMITTED, "",
                                 {
                                     {"address", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "A key-value pair. The key (string) is the bitcoin address, the value (float or string) is the amount in " + CURRENCY_UNIT + ""},
+                                    {"amountType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of amount output ('cash' or 'bond')."},
                                 },
                                 },
                             {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
                                 {
                                     {"data", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "A key-value pair. The key must be \"data\", the value is hex-encoded data"},
+                                    {"amountType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of amount output ('cash' or 'bond')."},
                                 },
                             },
                         },
@@ -1653,7 +1654,6 @@ RPCHelpMan walletcreatefundedpsbt()
 
     UniValue options{request.params[3].isNull() ? UniValue::VOBJ : request.params[3]};
 
-    UniValue output_type_in = ValueFromAmountType(CASH); // TODO: Implement
     CAmount fee;
     int change_position;
     bool rbf{wallet.m_signal_rbf};
@@ -1662,7 +1662,7 @@ RPCHelpMan walletcreatefundedpsbt()
         RPCTypeCheckArgument(replaceable_arg, UniValue::VBOOL);
         rbf = replaceable_arg.isTrue();
     }
-    CMutableTransaction rawTx = ConstructTransaction(request.params[0], request.params[1], output_type_in, request.params[2], rbf);
+    CMutableTransaction rawTx = ConstructTransaction(request.params[0], request.params[1], request.params[2], rbf);
     CCoinControl coin_control;
     // Automatically select coins, unless at least one is manually selected. Can
     // be overridden by options.add_inputs.
