@@ -22,8 +22,6 @@
 #include <util/strencodings.h>
 #include <util/translation.h>
 
-#include <logging.h>
-
 CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, std::optional<bool> rbf)
 {
     if (outputs_in.isNull()) {

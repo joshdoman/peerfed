@@ -7,6 +7,7 @@
 #include <consensus/amount.h>
 #include <primitives/transaction.h>
 #include <consensus/validation.h>
+#include <script/standard.h>
 
 bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
 {
@@ -50,9 +51,23 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
     }
     else
     {
-        // Check for different output amount types
-        if (nValueOut[CASH] > 0 && nValueOut[BOND] > 0)
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-different-types");
+        // Check for different output amount types with no conversion script
+        if (nValueOut[CASH] > 0 && nValueOut[BOND] > 0) {
+            // Check for output with a conversion script
+            bool has_conversion_script{false};
+            for (const auto& txout : tx.vout)
+            {
+                if (IsConversionScript(txout.scriptPubKey)) {
+                    if (has_conversion_script) {
+                        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-duplicate-conversion-script");
+                    }
+                    has_conversion_script = true;
+                }
+            }
+            if (!has_conversion_script) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-different-types-missing-conversion-script");
+            }
+        }
 
         for (const auto& txin : tx.vin)
             if (txin.prevout.IsNull())

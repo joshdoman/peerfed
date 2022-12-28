@@ -413,6 +413,11 @@ bool IsValidDestination(const CTxDestination& dest) {
     return dest.index() != 0;
 }
 
+bool IsConversionScript(const CScript& script) {
+    CTxConversionInfo conversionInfo;
+    return ExtractConversionInfo(script, conversionInfo);
+}
+
 /*static*/ TaprootBuilder::NodeInfo TaprootBuilder::Combine(NodeInfo&& a, NodeInfo&& b)
 {
     NodeInfo ret;

@@ -164,6 +164,9 @@ struct CTxConversionInfo {
     CTxDestination slippageDestination;
 };
 
+/** Check whether a CScript is a conversion script. */
+bool IsConversionScript(const CScript& script);
+
 /**
  * Parse a scriptPubKey and identify script type for standard scripts. If
  * successful, returns script type and parsed pubkeys or hashes, depending on

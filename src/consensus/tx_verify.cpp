@@ -11,6 +11,7 @@
 #include <consensus/validation.h>
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
+#include <script/standard.h>
 #include <util/check.h>
 #include <util/moneystr.h>
 
@@ -165,7 +166,7 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
     return nSigOps;
 }
 
-bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee)
+bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee, CAmountType& txfeeType)
 {
     // are the actual inputs available?
     if (!inputs.HaveInputs(tx)) {
@@ -199,24 +200,42 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         nValueInType = coin.out.amountType;
     }
 
-    CAmount value_out = tx.GetValueOut();
-    CAmountType value_out_type = tx.GetAmountTypeOut();
-    if (nValueInType == value_out_type && nValueIn < value_out) {
-        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-in-belowout",
-            strprintf("value in (%s) < value out (%s)", FormatMoney(nValueIn), FormatMoney(value_out)));
+    // Check for conversion output
+    bool hasConversionOutput{false};
+    CAmountType conversionFeeType = 0;
+    CAmount conversionFee = 0;
+    for (const auto& txout : tx.vout)
+    {
+        CTxConversionInfo conversionInfo;
+        if (ExtractConversionInfo(txout.scriptPubKey, conversionInfo)) {
+            hasConversionOutput = true;
+            conversionFeeType = txout.amountType;
+            conversionFee = txout.nValue;
+            break; // tx_check.cpp checks that there are no duplicate conversion outputs
+        }
     }
 
-    if (nValueInType == value_out_type) {
+    if (hasConversionOutput) {
+        txfee = conversionFee;
+        txfeeType = conversionFeeType;
+    } else {
+        CAmounts values_out = tx.GetValuesOut();
+        if (nValueIn < values_out[nValueInType]) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-in-belowout",
+                strprintf("value in (%s) < value out (%s)", FormatMoney(nValueIn), FormatMoney(values_out[nValueInType])));
+        } else if (values_out[!nValueInType] > 0) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-in-belowout",
+                strprintf("value in (%s) < value out (%s)", FormatMoney(0), FormatMoney(values_out[!nValueInType])));
+        }
+
         // Tally transaction fees if input and output types are the same
-        const CAmount txfee_aux = nValueIn - value_out;
+        const CAmount txfee_aux = nValueIn - values_out[nValueInType];
         if (!MoneyRange(txfee_aux)) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-fee-outofrange");
         }
 
         txfee = txfee_aux;
-    } else {
-        // TODO: Implement conversion fees
-        txfee = 0;
+        txfeeType = nValueInType;
     }
     return true;
 }

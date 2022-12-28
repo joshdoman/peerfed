@@ -11,10 +11,10 @@
 #include <univalue.h>
 
 
-static void AddTx(const CTransactionRef& tx, const CAmount& fee, CTxMemPool& pool) EXCLUSIVE_LOCKS_REQUIRED(cs_main, pool.cs)
+static void AddTx(const CTransactionRef& tx, const CAmountType& feeType, const CAmount& fee, CTxMemPool& pool) EXCLUSIVE_LOCKS_REQUIRED(cs_main, pool.cs)
 {
     LockPoints lp;
-    pool.addUnchecked(CTxMemPoolEntry(tx, fee, /*time=*/0, /*entry_height=*/1, /*spends_coinbase=*/false, /*sigops_cost=*/4, lp));
+    pool.addUnchecked(CTxMemPoolEntry(tx, feeType, fee, /*time=*/0, /*entry_height=*/1, /*spends_coinbase=*/false, /*sigops_cost=*/4, lp));
 }
 
 static void RpcMempool(benchmark::Bench& bench)
@@ -31,8 +31,9 @@ static void RpcMempool(benchmark::Bench& bench)
         tx.vout.resize(1);
         tx.vout[0].scriptPubKey = CScript() << OP_1 << OP_EQUAL;
         tx.vout[0].nValue = i;
+        tx.vout[0].amountType = CASH;
         const CTransactionRef tx_r{MakeTransactionRef(tx)};
-        AddTx(tx_r, /*fee=*/i, pool);
+        AddTx(tx_r, /*feeType=*/, CASH, /*fee=*/i, pool);
     }
 
     bench.run([&] {
