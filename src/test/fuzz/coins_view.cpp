@@ -226,10 +226,11 @@ FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
                 TxValidationState state;
                 CAmount tx_fee_out;
                 CAmountType tx_fee_out_type;
+                std::optional<CTxConversionInfo> conversion_dest;
                 const CTransaction transaction{random_mutable_transaction};
                 if (ContainsSpentInput(transaction, coins_view_cache)) {
                     // Avoid:
-                    // consensus/tx_verify.cpp:171: bool Consensus::CheckTxInputs(const CTransaction &, TxValidationState &, const CCoinsViewCache &, int, CAmount &, CAmountType &): Assertion `!coin.IsSpent()' failed.
+                    // consensus/tx_verify.cpp:171: bool Consensus::CheckTxInputs(const CTransaction &, TxValidationState &, const CCoinsViewCache &, int, CAmountType &, CAmount &, std::optional<CTxConversionInfo> &): Assertion `!coin.IsSpent()' failed.
                     return;
                 }
                 TxValidationState dummy;
@@ -237,7 +238,7 @@ FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
                     // It is not allowed to call CheckTxInputs if CheckTransaction failed
                     return;
                 }
-                if (Consensus::CheckTxInputs(transaction, state, coins_view_cache, fuzzed_data_provider.ConsumeIntegralInRange<int>(0, std::numeric_limits<int>::max()), tx_fee_out, tx_fee_out_type)) {
+                if (Consensus::CheckTxInputs(transaction, state, coins_view_cache, fuzzed_data_provider.ConsumeIntegralInRange<int>(0, std::numeric_limits<int>::max()), tx_fee_out_type, tx_fee_out, conversion_dest)) {
                     assert(MoneyRange(tx_fee_out));
                 }
             },

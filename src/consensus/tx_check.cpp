@@ -76,3 +76,30 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
 
     return true;
 }
+
+bool CheckTransactionContainsOutputs(const CTransaction& tx, std::vector<CTxOut> outputs, std::string& missingOutput)
+{
+    // Create mapping of output string to # of occurrences of output in transaction
+    std::map<std::string, int> txOutputCount;
+    for (const auto& txout : tx.vout)
+    {
+        ++txOutputCount[txout.ToString()];
+    }
+
+    // Create mapping of output string to # of occurrences in outputs list
+    std::map<std::string, int> outputsCount;
+    for (const auto& output : outputs)
+    {
+        ++outputsCount[output.ToString()];
+    }
+
+    // Check that every output in the outputs list occurs at least as many times in the transaction
+    for (const auto& [outputStr, count] : outputsCount)
+    {
+        if (txOutputCount[outputStr] < count) {
+            missingOutput = outputStr;
+            return false;
+        }
+    }
+    return true;
+}

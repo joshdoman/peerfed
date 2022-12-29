@@ -166,7 +166,7 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
     return nSigOps;
 }
 
-bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee, CAmountType& txfeeType)
+bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmountType& txfeeType, CAmount& txfee, std::optional<CTxConversionInfo>& wrappedConversionDest)
 {
     // are the actual inputs available?
     if (!inputs.HaveInputs(tx)) {
@@ -206,11 +206,12 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     CAmount conversionFee = 0;
     for (const auto& txout : tx.vout)
     {
-        CTxConversionInfo conversionInfo;
-        if (ExtractConversionInfo(txout.scriptPubKey, conversionInfo)) {
+        CTxConversionInfo conversionDest;
+        if (ExtractConversionInfo(txout.scriptPubKey, conversionDest)) {
             hasConversionOutput = true;
             conversionFeeType = txout.amountType;
             conversionFee = txout.nValue;
+            wrappedConversionDest = std::optional<CTxConversionInfo>{conversionDest};
             break; // tx_check.cpp checks that there are no duplicate conversion outputs
         }
     }

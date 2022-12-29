@@ -591,6 +591,9 @@ private:
         /** Total virtual size of all transactions being replaced. */
         size_t m_conflicting_size{0};
 
+        /** Conversion destination if present in transaction. */
+        std::optional<CTxConversionInfo> m_conversion_dest;
+
         const CTransactionRef& m_ptx;
         /** Txid. */
         const uint256& m_hash;
@@ -805,7 +808,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     }
 
     // The mempool holds txs for the next block, so pass height+1 to CheckTxInputs
-    if (!Consensus::CheckTxInputs(tx, state, m_view, m_active_chainstate.m_chain.Height() + 1, ws.m_base_fees, ws.m_fee_type)) {
+    if (!Consensus::CheckTxInputs(tx, state, m_view, m_active_chainstate.m_chain.Height() + 1, ws.m_fee_type, ws.m_base_fees, ws.m_conversion_dest)) {
         return false; // state filled in by CheckTxInputs
     }
 
@@ -836,7 +839,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     }
 
     entry.reset(new CTxMemPoolEntry(ptx, ws.m_fee_type, ws.m_base_fees, nAcceptTime, m_active_chainstate.m_chain.Height(),
-            fSpendsCoinbase, nSigOpsCost, lp));
+            fSpendsCoinbase, nSigOpsCost, lp, ws.m_conversion_dest));
     ws.m_vsize = entry->GetTxSize();
 
     if (nSigOpsCost > MAX_STANDARD_TX_SIGOPS_COST)
@@ -2174,6 +2177,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
 
     std::vector<int> prevheights;
+    std::vector<CTxOut> conversionOutputs;
+    CAmounts totalConversionOutputAmounts = {0};
     CAmount nFees[2] = {0};
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
@@ -2188,8 +2193,9 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         {
             CAmount txfee = 0;
             CAmountType txfee_type = 0;
+            std::optional<CTxConversionInfo> conversion_dest;
             TxValidationState tx_state;
-            if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfee, txfee_type)) {
+            if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfee_type, txfee, conversion_dest)) {
                 // Any transaction validation failure in ConnectBlock is a block consensus failure
                 state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
                             tx_state.GetRejectReason(), tx_state.GetDebugMessage());
@@ -2199,6 +2205,14 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             if (!MoneyRange(nFees[txfee_type])) {
                 LogPrintf("ERROR: %s: accumulated fee in the block out of range.\n", __func__);
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-accumulated-fee-outofrange");
+            }
+
+            if (conversion_dest) {
+                CAmountType amountType = conversion_dest.value().slippageType;
+                CAmount nAmount = COIN; // TODO: Implement
+                CScript scriptPubKey = conversion_dest.value().scriptPubKey;
+                conversionOutputs.push_back(CTxOut(amountType, nAmount, scriptPubKey));
+                totalConversionOutputAmounts[amountType] += nAmount;
             }
 
             // Check that transaction is BIP68 final
@@ -2249,7 +2263,16 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
-    CAmounts coinbaseAmounts = block.vtx[0]->GetValuesOut();
+    const CTransaction &coinbaseTx = *(block.vtx[0]);
+    std::string missingOutput;
+    if (!CheckTransactionContainsOutputs(coinbaseTx, conversionOutputs, missingOutput)) {
+        LogPrintf("ERROR: ConnectBlock(): coinbase tx is missing conversion output %s\n", missingOutput);
+        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-missing-conversion-output");
+    }
+
+    CAmounts coinbaseAmounts = coinbaseTx.GetValuesOut();
+    coinbaseAmounts[CASH] -= totalConversionOutputAmounts[CASH];
+    coinbaseAmounts[BOND] -= totalConversionOutputAmounts[BOND];
     CAmounts blockRewards = {0};
     blockRewards[CASH] = nFees[CASH] + 0.5 * GetBlockSubsidy(pindex->nHeight, m_params.GetConsensus());
     blockRewards[BOND] = nFees[BOND] + 0.5 * GetBlockSubsidy(pindex->nHeight, m_params.GetConsensus());

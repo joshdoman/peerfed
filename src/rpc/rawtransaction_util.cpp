@@ -134,14 +134,14 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
             CAmount nAmount = AmountFromValue(output["conversionFee"]);
             CAmountType feeAmountType = AmountTypeFromValue(output["feeType"]);
 
-            CTxDestination slippageDestination = DecodeDestination(output["slippageAddress"].get_str());
-            if (!IsValidDestination(slippageDestination)) {
+            CTxDestination destination = DecodeDestination(output["slippageAddress"].get_str());
+            if (!IsValidDestination(destination)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Bitcoin address: ") + output["slippageAddress"].get_str());
             }
 
             CTxConversionInfo conversionInfo = {
                 AmountTypeFromValue(output["slippageType"]), // slippageType
-                slippageDestination, // slippageDestination
+                GetScriptForDestination(destination), // scriptPubKey
             };
             CScript script = GetScriptForConversionInfo(conversionInfo);
 

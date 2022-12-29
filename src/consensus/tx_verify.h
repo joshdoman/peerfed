@@ -6,6 +6,7 @@
 #define BITCOIN_CONSENSUS_TX_VERIFY_H
 
 #include <consensus/amount.h>
+#include <script/standard.h>
 
 #include <stdint.h>
 #include <vector>
@@ -25,7 +26,7 @@ namespace Consensus {
  * @param[out] txfeeType Set to the transaction fee amount type if successful.
  * Preconditions: tx.IsCoinBase() is false.
  */
-[[nodiscard]] bool CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee, CAmountType& txfeeType);
+[[nodiscard]] bool CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmountType& txfeeType, CAmount& txfee, std::optional<CTxConversionInfo>& conversionDest);
 } // namespace Consensus
 
 /** Auxiliary functions for transaction validation (ideally should not be exposed) */

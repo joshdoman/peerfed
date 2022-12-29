@@ -93,6 +93,7 @@ BlockAssembler::BlockAssembler(Chainstate& chainstate, const CTxMemPool* mempool
 void BlockAssembler::resetBlock()
 {
     inBlock.clear();
+    conversionOutputs.clear();
 
     // Reserve space for coinbase tx
     nBlockWeight = 4000;
@@ -151,16 +152,20 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
-    coinbaseTx.vin.resize(1);
-    coinbaseTx.vin[0].prevout.SetNull();
-    coinbaseTx.vout.resize(2); // 2 outputs to miner, 1 for bonds, 1 for cash
+    // Add miner outputs
+    coinbaseTx.vout.resize(2); // 2 outputs to miner (1 'cash', 1 'bond')
     coinbaseTx.vout[CASH].amountType = CASH;
     coinbaseTx.vout[BOND].amountType = BOND;
     coinbaseTx.vout[CASH].scriptPubKey = scriptPubKeyIn;
     coinbaseTx.vout[BOND].scriptPubKey = scriptPubKeyIn;
-    // TODO: Set values correctly and properly implement fees
+    // TODO: Set block subsidies correctly
     coinbaseTx.vout[CASH].nValue = nFees[CASH] + 0.5 * GetBlockSubsidy(nHeight, chainparams.GetConsensus());
     coinbaseTx.vout[BOND].nValue = nFees[BOND] + 0.5 * GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    // Add conversion outputs
+    coinbaseTx.vout.insert(coinbaseTx.vout.end(), conversionOutputs.begin(), conversionOutputs.end());
+    // Add input
+    coinbaseTx.vin.resize(1);
+    coinbaseTx.vin[0].prevout.SetNull();
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = m_chainstate.m_chainman.GenerateCoinbaseCommitment(*pblock, pindexPrev);
@@ -232,6 +237,14 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
     nBlockSigOpsCost += iter->GetSigOpCost();
     nFees[iter->GetFeeType()] += iter->GetFee();
     inBlock.insert(iter);
+
+    std::optional<CTxConversionInfo> conversionDest = iter->GetConversionDest();
+    if (conversionDest) {
+        CAmountType amountType = conversionDest.value().slippageType;
+        CAmount nAmount = COIN; // TODO: Implement
+        CScript scriptPubKey = conversionDest.value().scriptPubKey;
+        conversionOutputs.push_back(CTxOut(amountType, nAmount, scriptPubKey));
+    }
 
     bool fPrintPriority = gArgs.GetBoolArg("-printpriority", DEFAULT_PRINTPRIORITY);
     if (fPrintPriority) {

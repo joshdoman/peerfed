@@ -41,11 +41,11 @@ bool TestLockPointValidity(CChain& active_chain, const LockPoints& lp)
     return true;
 }
 
-CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& tx, CAmountType feeType, CAmount fee,
-                                 int64_t time, unsigned int entry_height,
-                                 bool spends_coinbase, int64_t sigops_cost, LockPoints lp)
+CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& tx, CAmountType fee_type, CAmount fee,
+                                 int64_t time, unsigned int entry_height, bool spends_coinbase,
+                                 int64_t sigops_cost, LockPoints lp, std::optional<CTxConversionInfo> conversion_dest)
     : tx{tx},
-      nFeeType{feeType},
+      nFeeType{fee_type},
       nFee{fee},
       nTxWeight(GetTransactionWeight(*tx)),
       nUsageSize{RecursiveDynamicUsage(tx)},
@@ -55,6 +55,7 @@ CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& tx, CAmountType feeType,
       sigOpCost{sigops_cost},
       m_modified_fee{nFee},
       lockPoints{lp},
+      conversionDest{conversion_dest},
       nSizeWithDescendants{GetTxSize()},
       nModFeesWithDescendants{nFee},
       nSizeWithAncestors{GetTxSize()},
@@ -787,8 +788,9 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
         TxValidationState dummy_state; // Not used. CheckTxInputs() should always pass
         CAmount txfee = 0;
         CAmountType txfeeType = 0;
+        std::optional<CTxConversionInfo> conversionDest;
         assert(!tx.IsCoinBase());
-        assert(Consensus::CheckTxInputs(tx, dummy_state, mempoolDuplicate, spendheight, txfee, txfeeType));
+        assert(Consensus::CheckTxInputs(tx, dummy_state, mempoolDuplicate, spendheight, txfeeType, txfee, conversionDest));
         for (const auto& input: tx.vin) mempoolDuplicate.SpendCoin(input.prevout);
         AddCoins(mempoolDuplicate, tx, std::numeric_limits<int>::max());
     }

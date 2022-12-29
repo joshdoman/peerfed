@@ -141,6 +141,7 @@ private:
     uint64_t nBlockSigOpsCost;
     CAmount nFees[2] = {0};
     CTxMemPool::setEntries inBlock;
+    std::vector<CTxOut> conversionOutputs;
 
     // Chain context for the block
     int nHeight;

@@ -107,6 +107,7 @@ private:
     const int64_t sigOpCost;        //!< Total sigop cost
     CAmount m_modified_fee;         //!< Used for determining the priority of the transaction for mining in a block
     LockPoints lockPoints;     //!< Track the height and time at which tx was final
+    const std::optional<CTxConversionInfo> conversionDest; //!< Cached to avoid expensive parent-transaction lookups
 
     // Information about descendants of this transaction that are in the
     // mempool; if we remove this transaction we must remove all of these
@@ -122,10 +123,10 @@ private:
     int64_t nSigOpCostWithAncestors;
 
 public:
-    CTxMemPoolEntry(const CTransactionRef& tx, CAmountType feeType, CAmount fee,
+    CTxMemPoolEntry(const CTransactionRef& tx, CAmountType fee_type, CAmount fee,
                     int64_t time, unsigned int entry_height,
-                    bool spends_coinbase,
-                    int64_t sigops_cost, LockPoints lp);
+                    bool spends_coinbase, int64_t sigops_cost,
+                    LockPoints lp, std::optional<CTxConversionInfo> conversion_dest = std::nullopt);
 
     const CTransaction& GetTx() const { return *this->tx; }
     CTransactionRef GetSharedTx() const { return this->tx; }
@@ -154,6 +155,8 @@ public:
     CAmount GetModFeesWithDescendants() const { return nModFeesWithDescendants; }
 
     bool GetSpendsCoinbase() const { return spendsCoinbase; }
+
+    const std::optional<CTxConversionInfo>& GetConversionDest() const { return conversionDest; }
 
     uint64_t GetCountWithAncestors() const { return nCountWithAncestors; }
     uint64_t GetSizeWithAncestors() const { return nSizeWithAncestors; }
