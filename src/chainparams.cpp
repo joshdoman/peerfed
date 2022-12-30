@@ -22,6 +22,7 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     txNew.vin.resize(1);
     txNew.vout.resize(1);
     txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
+    txNew.vout[0].amountType = 1;
     txNew.vout[0].nValue = genesisReward;
     txNew.vout[0].scriptPubKey = genesisOutputScript;
 
@@ -33,6 +34,8 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
     genesis.hashPrevBlock.SetNull();
     genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
+    genesis.cashSupply = 0;
+    genesis.bondSupply = genesisReward;
     return genesis;
 }
 
@@ -421,10 +424,10 @@ public:
 
         UpdateActivationParametersFromArgs(args);
 
-        genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
+        genesis = CreateGenesisBlock(1296688602, 5, 0x207fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x2c62a715dc80431b549e4a86a29850730b9fc40892a31fe7550ab970650e6a11"));
-        assert(genesis.hashMerkleRoot == uint256S("0xb0d5656e5a24eb6417e5e2587cd4dfdfa586eafae9f64376a1b9b5b993072976"));
+        assert(consensus.hashGenesisBlock == uint256S("0x37d25f9655aec01a6937b71d5c818d237d1cd1c82e5f3622fbcc3f1beaf40045"));
+        assert(genesis.hashMerkleRoot == uint256S("0x05f2dd47559dcc8a1c4ba95a022711ee0e9ccf3f763c3dc3446fbc91957d9f2c"));
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();
@@ -437,7 +440,7 @@ public:
 
         checkpointData = {
             {
-                {0, uint256S("2c62a715dc80431b549e4a86a29850730b9fc40892a31fe7550ab970650e6a11")},
+                {0, uint256S("37d25f9655aec01a6937b71d5c818d237d1cd1c82e5f3622fbcc3f1beaf40045")},
             }
         };
 
