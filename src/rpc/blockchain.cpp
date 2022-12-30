@@ -150,6 +150,8 @@ UniValue blockheaderToJSON(const CBlockIndex* tip, const CBlockIndex* blockindex
     result.pushKV("time", (int64_t)blockindex->nTime);
     result.pushKV("mediantime", (int64_t)blockindex->GetMedianTimePast());
     result.pushKV("nonce", (uint64_t)blockindex->nNonce);
+    result.pushKV("cashSupply", ValueFromAmount(blockindex->cashSupply));
+    result.pushKV("bondSupply", ValueFromAmount(blockindex->bondSupply));
     result.pushKV("bits", strprintf("%08x", blockindex->nBits));
     result.pushKV("difficulty", GetDifficulty(blockindex));
     result.pushKV("chainwork", blockindex->nChainWork.GetHex());
@@ -523,6 +525,8 @@ static RPCHelpMan getblockheader()
                             {RPCResult::Type::NUM_TIME, "time", "The block time expressed in " + UNIX_EPOCH_TIME},
                             {RPCResult::Type::NUM_TIME, "mediantime", "The median block time expressed in " + UNIX_EPOCH_TIME},
                             {RPCResult::Type::NUM, "nonce", "The nonce"},
+                            {RPCResult::Type::STR_AMOUNT, "cashSupply", "The supply of cash in " + CURRENCY_UNIT},
+                            {RPCResult::Type::STR_AMOUNT, "bondSupply", "The supply of bonds in " + CURRENCY_UNIT},
                             {RPCResult::Type::STR_HEX, "bits", "The bits"},
                             {RPCResult::Type::NUM, "difficulty", "The difficulty"},
                             {RPCResult::Type::STR_HEX, "chainwork", "Expected number of hashes required to produce the current chain"},
@@ -659,6 +663,8 @@ static RPCHelpMan getblock()
                     {RPCResult::Type::NUM_TIME, "time",       "The block time expressed in " + UNIX_EPOCH_TIME},
                     {RPCResult::Type::NUM_TIME, "mediantime", "The median block time expressed in " + UNIX_EPOCH_TIME},
                     {RPCResult::Type::NUM, "nonce", "The nonce"},
+                    {RPCResult::Type::STR_AMOUNT, "cashSupply", "The supply of cash in " + CURRENCY_UNIT},
+                    {RPCResult::Type::STR_AMOUNT, "bondSupply", "The supply of bonds in " + CURRENCY_UNIT},
                     {RPCResult::Type::STR_HEX, "bits", "The bits"},
                     {RPCResult::Type::NUM, "difficulty", "The difficulty"},
                     {RPCResult::Type::STR_HEX, "chainwork", "Expected number of hashes required to produce the chain up to this block (in hex)"},
