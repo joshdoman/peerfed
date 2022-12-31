@@ -669,6 +669,12 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 }
                 break;
 
+                case OP_CONVERT:
+                {
+                    return set_error(serror, SCRIPT_ERR_OP_CONVERT);
+                }
+                break;
+
 
                 //
                 // Stack ops

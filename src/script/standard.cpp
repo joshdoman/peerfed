@@ -206,7 +206,8 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
     // So long as script passes the IsUnspendable() test and all but the first
     // byte passes the IsPushOnly() test we don't care what exactly is in the
     // script.
-    if (scriptPubKey.size() >= 1 && scriptPubKey[0] == OP_RETURN && scriptPubKey.IsPushOnly(scriptPubKey.begin()+1)) {
+    if (scriptPubKey.size() >= 1 && (scriptPubKey[0] == OP_RETURN || scriptPubKey[0] == OP_CONVERT) && scriptPubKey.IsPushOnly(scriptPubKey.begin()+1)) {
+        // TODO: Add TxoutType for OP_CONVERT
         return TxoutType::NULL_DATA;
     }
 
@@ -292,12 +293,14 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
 
 bool ExtractConversionInfo(const CScript& script, CTxConversionInfo& conversionInfoRet)
 {
-    if (script[0] == OP_RETURN && script.size() > 3) { // TODO: Implement OP_CONVERT
+    if (script[0] == OP_CONVERT && script.size() > 3) {
         conversionInfoRet.slippageType = script[1];
         int scriptLength = script[2];
-        CScript scriptPubKey(script.begin() + 3, script.begin() + 3 + scriptLength);
-        conversionInfoRet.scriptPubKey = scriptPubKey;
-        return true;
+        if (script.size() == 3 + scriptLength) {
+            CScript scriptPubKey(script.begin() + 3, script.begin() + 3 + scriptLength);
+            conversionInfoRet.scriptPubKey = scriptPubKey;
+            return true;
+        }
     }
     return false;
 }
@@ -355,7 +358,7 @@ CScript GetScriptForRawPubKey(const CPubKey& pubKey)
 
 CScript GetScriptForConversionInfo(const CTxConversionInfo& info)
 {
-    return CScript() << OP_RETURN << info.slippageType << std::vector<unsigned char>(info.scriptPubKey.begin(), info.scriptPubKey.end());
+    return CScript() << OP_CONVERT << info.slippageType << std::vector<unsigned char>(info.scriptPubKey.begin(), info.scriptPubKey.end());
 }
 
 CScript GetScriptForMultisig(int nRequired, const std::vector<CPubKey>& keys)

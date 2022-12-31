@@ -205,6 +205,9 @@ enum opcodetype
     // Opcode added by BIP 342 (Tapscript)
     OP_CHECKSIGADD = 0xba,
 
+    // conversion
+    OP_CONVERT = 0xbb,
+
     OP_INVALIDOPCODE = 0xff,
 };
 
@@ -548,7 +551,7 @@ public:
      */
     bool IsUnspendable() const
     {
-        return (size() > 0 && *begin() == OP_RETURN) || (size() > MAX_SCRIPT_SIZE);
+        return (size() > 0 && (*begin() == OP_RETURN || *begin() == OP_CONVERT)) || (size() > MAX_SCRIPT_SIZE);
     }
 
     void clear()
