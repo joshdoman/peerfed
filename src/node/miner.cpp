@@ -246,10 +246,19 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
 
     std::optional<CTxConversionInfo> conversionDest = iter->GetConversionDest();
     if (conversionDest) {
-        CAmountType amountType = conversionDest.value().slippageType;
-        CAmount nAmount = COIN; // TODO: Implement
+        CBlock* const pblock = &pblocktemplate->block; // pointer for convenience
+        CAmounts totalSupply = {0};
+        totalSupply[CASH] = pblock->cashSupply;
+        totalSupply[BOND] = pblock->bondSupply;
         CScript scriptPubKey = conversionDest.value().scriptPubKey;
-        conversionOutputs.push_back(CTxOut(amountType, nAmount, scriptPubKey));
+        CAmountType amountType = conversionDest.value().slippageType;
+        CAmount nAmount;
+        if (Consensus::IsValidConversion(totalSupply, conversionDest.value().inputs, conversionDest.value().minOutputs, amountType, nAmount)) {
+            LogPrintf("Extra conversion amount: %d\n", nAmount);
+            conversionOutputs.push_back(CTxOut(amountType, nAmount, scriptPubKey));
+            pblock->cashSupply = totalSupply[CASH];
+            pblock->bondSupply = totalSupply[BOND];
+        }
     }
 
     bool fPrintPriority = gArgs.GetBoolArg("-printpriority", DEFAULT_PRINTPRIORITY);

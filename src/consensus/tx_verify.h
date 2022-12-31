@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <vector>
 
+class CBlock;
 class CBlockIndex;
 class CCoinsViewCache;
 class CTransaction;
@@ -32,10 +33,10 @@ namespace Consensus {
 /**
  * Check if conversion is valid according to the sum-of-squares invariant and can
  * be inlcuded in a block with a given cash and bond supply. Consensus critical.
- * @param[out] block Set cash and bond supply if successful.
+ * @param[out] totalSupply Set new cash and bond supply if successful.
  * @param[out] extraOutput Set to the necessary output amount so that the invariant is same-in, same-out.
  */
-[[nodiscard]] bool IsValidConversion(CBlockIndex& block, const CAmounts inputs, const CAmounts minOutputs, const CAmountType extraType, CAmount& extraOutput);
+[[nodiscard]] bool IsValidConversion(CAmounts& totalSupply, const CAmounts inputs, const CAmounts minOutputs, const CAmountType extraType, CAmount& extraOutput);
 } // namespace Consensus
 
 /** Auxiliary functions for transaction validation (ideally should not be exposed) */

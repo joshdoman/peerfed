@@ -142,6 +142,8 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
             CTxConversionInfo conversionInfo = {
                 AmountTypeFromValue(output["slippageType"]), // slippageType
                 GetScriptForDestination(destination), // scriptPubKey
+                {0}, // inputs
+                {0}, // minOutputs
             };
             CScript script = GetScriptForConversionInfo(conversionInfo);
 
@@ -163,9 +165,9 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
 
                     CAmountType amountType = AmountTypeFromValue(output["amountType"]);
                     if (amountType == CASH && !cashDestinations.insert(destination).second) {
-                        throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ") + name_);
-                    } else if (!bondDestinations.insert(destination).second) {
-                        throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ") + name_);
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated cash address: ") + name_);
+                    } else if (amountType == BOND && !bondDestinations.insert(destination).second) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated bond address: ") + name_);
                     }
 
                     CScript scriptPubKey = GetScriptForDestination(destination);

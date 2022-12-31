@@ -313,6 +313,14 @@ public:
         return pbegin[(pend - pbegin) / 2];
     }
 
+    CAmounts GetTotalSupply() const
+    {
+        CAmounts totalSupply = {0};
+        totalSupply[CASH] = cashSupply;
+        totalSupply[BOND] = bondSupply;
+        return totalSupply;
+    }
+
     std::string ToString() const;
 
     //! Check whether this block index entry is valid up to the passed validity level.

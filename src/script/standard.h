@@ -162,6 +162,8 @@ constexpr bool IsPushdataOp(opcodetype opcode)
 struct CTxConversionInfo {
     CAmountType slippageType;
     CScript scriptPubKey;
+    CAmounts inputs;
+    CAmounts minOutputs;
 };
 
 /** Check whether a CScript is a conversion script. */

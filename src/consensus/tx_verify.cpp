@@ -14,8 +14,9 @@
 #include <script/standard.h>
 #include <util/check.h>
 #include <util/moneystr.h>
+#include <boost/multiprecision/cpp_int.hpp>
 
-#include <cmath>
+using namespace boost::multiprecision;
 
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 {
@@ -210,11 +211,16 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     {
         CTxConversionInfo conversionDest;
         if (ExtractConversionInfo(txout.scriptPubKey, conversionDest)) {
-            hasConversionOutput = true;
+            CAmounts inputs = {0};
+            inputs[nValueInType] = nValueIn;
+            conversionDest.inputs = inputs;
+            conversionDest.minOutputs = tx.GetValuesOut();
+            wrappedConversionDest = std::optional<CTxConversionInfo>{conversionDest};
             conversionFeeType = txout.amountType;
             conversionFee = txout.nValue;
-            wrappedConversionDest = std::optional<CTxConversionInfo>{conversionDest};
-            break; // tx_check.cpp checks that there are no duplicate conversion outputs
+            hasConversionOutput = true;
+            // Safe to exit because tx_check.cpp checks that there are no duplicate conversion outputs
+            break;
         }
     }
 
@@ -239,19 +245,16 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
 
         txfee = txfee_aux;
         txfeeType = nValueInType;
+        wrappedConversionDest = std::optional<CTxConversionInfo>{};
     }
     return true;
 }
 
-bool Consensus::IsValidConversion(CBlockIndex& block, const CAmounts inputs, const CAmounts minOutputs, const CAmountType extraType, CAmount& extraOutput)
+bool Consensus::IsValidConversion(CAmounts& totalSupply, const CAmounts inputs, const CAmounts minOutputs, const CAmountType extraType, CAmount& extraOutput)
 {
-    CAmounts totalSupply = {0};
-    totalSupply[CASH] = block.cashSupply;
-    totalSupply[BOND] = block.bondSupply;
-
     // Calculate sum-of-squares invariants in and out and check that this is a valid conversion
-    int64_t invariant_sq_in = pow(totalSupply[CASH], 2) + pow(totalSupply[BOND], 2); // K^2
-    int64_t invariant_sq_min_out = pow(totalSupply[CASH] + minOutputs[CASH] - inputs[CASH], 2) + pow(totalSupply[BOND] + minOutputs[BOND] - inputs[BOND], 2);
+    int128_t invariant_sq_in = pow((int128_t)totalSupply[CASH], 2) + pow((int128_t)totalSupply[BOND], 2); // K^2
+    int128_t invariant_sq_min_out = pow((int128_t)(totalSupply[CASH] + minOutputs[CASH] - inputs[CASH]), 2) + pow((int128_t)(totalSupply[BOND] + minOutputs[BOND] - inputs[BOND]), 2);
     if (invariant_sq_min_out > invariant_sq_in) {
         // Invariant out cannot be greater than invariant in
         return false;
@@ -262,15 +265,15 @@ bool Consensus::IsValidConversion(CBlockIndex& block, const CAmounts inputs, con
     // (A + ΔA + ΔA')^2              = K^2 - (B + ΔB)^2
     //  A + ΔA + ΔA'                 = sqrt(K^2 - (B + ΔB)^2)
     //           ΔA'                 = sqrt(K^2 - (B + ΔB)^2) - (A + ΔA)
-    extraOutput = sqrt(invariant_sq_in - pow(totalSupply[!extraType] + minOutputs[!extraType] - inputs[!extraType], 2)) - (totalSupply[extraType] + minOutputs[extraType] - inputs[extraType]);
+    extraOutput = (sqrt(invariant_sq_in - pow((int128_t)(totalSupply[!extraType] + minOutputs[!extraType] - inputs[!extraType]), 2)) - (int128_t)(totalSupply[extraType] + minOutputs[extraType] - inputs[extraType])).convert_to<CAmount>();
 
     // Update cash and bond supply in block header
-    block.cashSupply += (minOutputs[CASH] - inputs[CASH]);
-    block.bondSupply += (minOutputs[BOND] - inputs[BOND]);
+    totalSupply[CASH] += (minOutputs[CASH] - inputs[CASH]);
+    totalSupply[BOND] += (minOutputs[BOND] - inputs[BOND]);
     if (extraType == CASH)
-        block.cashSupply += extraOutput;
+        totalSupply[CASH] += extraOutput;
     if (extraType == BOND)
-        block.bondSupply += extraOutput;
+        totalSupply[BOND] += extraOutput;
 
     return true;
 }

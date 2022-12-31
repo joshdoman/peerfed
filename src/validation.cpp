@@ -2176,9 +2176,16 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && g_parallel_script_checks ? &scriptcheckqueue : nullptr);
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
 
+    // Add rewards to total supply of previous block to obtain current total supply
+    CAmount cashReward = 0.5 * GetBlockSubsidy(pindex->nHeight, m_params.GetConsensus());
+    CAmount bondReward = 0.5 * GetBlockSubsidy(pindex->nHeight, m_params.GetConsensus());
+    CAmounts totalSupply = pindex->pprev->GetTotalSupply();
+    totalSupply[CASH] += cashReward;
+    totalSupply[BOND] += bondReward;
+
     std::vector<int> prevheights;
     std::vector<CTxOut> conversionOutputs;
-    CAmounts totalConversionOutputAmounts = {0};
+    CAmounts conversionOutputAmount = {0};
     CAmount nFees[2] = {0};
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
@@ -2208,11 +2215,17 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             }
 
             if (conversion_dest) {
+                CAmounts inputs = conversion_dest.value().inputs;
+                CAmounts minOutputs = conversion_dest.value().minOutputs;
                 CAmountType amountType = conversion_dest.value().slippageType;
-                CAmount nAmount = COIN; // TODO: Implement
-                CScript scriptPubKey = conversion_dest.value().scriptPubKey;
-                conversionOutputs.push_back(CTxOut(amountType, nAmount, scriptPubKey));
-                totalConversionOutputAmounts[amountType] += nAmount;
+                CAmount nAmount;
+                if (Consensus::IsValidConversion(totalSupply, inputs, minOutputs, amountType, nAmount)) {
+                    CScript scriptPubKey = conversion_dest.value().scriptPubKey;
+                    conversionOutputs.push_back(CTxOut(amountType, nAmount, scriptPubKey));
+                    conversionOutputAmount[amountType] += nAmount;
+                } else {
+                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-conversion-out-of-range");
+                }
             }
 
             // Check that transaction is BIP68 final
@@ -2263,6 +2276,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
+    // Verify that the coinbase transaction contains all prescribed conversion outputs
     const CTransaction &coinbaseTx = *(block.vtx[0]);
     std::string missingOutput;
     if (!CheckTransactionContainsOutputs(coinbaseTx, conversionOutputs, missingOutput)) {
@@ -2270,18 +2284,26 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-missing-conversion-output");
     }
 
+    // Remove conversion output amount from total coinbase amounts and check if remainder exceeds block rewards
     CAmounts coinbaseAmounts = coinbaseTx.GetValuesOut();
-    coinbaseAmounts[CASH] -= totalConversionOutputAmounts[CASH];
-    coinbaseAmounts[BOND] -= totalConversionOutputAmounts[BOND];
+    coinbaseAmounts[CASH] -= conversionOutputAmount[CASH];
+    coinbaseAmounts[BOND] -= conversionOutputAmount[BOND];
     CAmounts blockRewards = {0};
-    blockRewards[CASH] = nFees[CASH] + 0.5 * GetBlockSubsidy(pindex->nHeight, m_params.GetConsensus());
-    blockRewards[BOND] = nFees[BOND] + 0.5 * GetBlockSubsidy(pindex->nHeight, m_params.GetConsensus());
+    blockRewards[CASH] = nFees[CASH] + cashReward;
+    blockRewards[BOND] = nFees[BOND] + bondReward;
     if (coinbaseAmounts[CASH] > blockRewards[CASH]) {
         LogPrintf("ERROR: ConnectBlock(): coinbase pays too much cash (actual=%d vs limit=%d)\n", coinbaseAmounts[CASH], blockRewards[CASH]);
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
     } else if (coinbaseAmounts[BOND] > blockRewards[BOND]) {
         LogPrintf("ERROR: ConnectBlock(): coinbase pays too many bonds (actual=%d vs limit=%d)\n", coinbaseAmounts[BOND], blockRewards[BOND]);
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
+    }
+
+    // Check that total supply of proposed block equals the expected total supply after conversions
+    CAmounts actualTotalSupply = pindex->GetTotalSupply();
+    if (totalSupply != actualTotalSupply) {
+        LogPrintf("ERROR: ConnectBlock(): total supply differs from expected (actual=(%d cash, %d bond) vs expected=(%d cash, %d bond))\n", actualTotalSupply[CASH], actualTotalSupply[BOND], totalSupply[CASH], totalSupply[BOND]);
+        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-total-supply");
     }
 
     if (!control.Wait()) {
