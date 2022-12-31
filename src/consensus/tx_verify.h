@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include <vector>
 
-class CBlock;
 class CBlockIndex;
 class CCoinsViewCache;
 class CTransaction;
