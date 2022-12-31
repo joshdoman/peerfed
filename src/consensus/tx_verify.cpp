@@ -15,6 +15,8 @@
 #include <util/check.h>
 #include <util/moneystr.h>
 
+#include <cmath>
+
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 {
     if (tx.nLockTime == 0)
@@ -238,5 +240,37 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         txfee = txfee_aux;
         txfeeType = nValueInType;
     }
+    return true;
+}
+
+bool Consensus::IsValidConversion(CBlockIndex& block, const CAmounts inputs, const CAmounts minOutputs, const CAmountType extraType, CAmount& extraOutput)
+{
+    CAmounts totalSupply = {0};
+    totalSupply[CASH] = block.cashSupply;
+    totalSupply[BOND] = block.bondSupply;
+
+    // Calculate sum-of-squares invariants in and out and check that this is a valid conversion
+    int64_t invariant_sq_in = pow(totalSupply[CASH], 2) + pow(totalSupply[BOND], 2); // K^2
+    int64_t invariant_sq_min_out = pow(totalSupply[CASH] + minOutputs[CASH] - inputs[CASH], 2) + pow(totalSupply[BOND] + minOutputs[BOND] - inputs[BOND], 2);
+    if (invariant_sq_min_out > invariant_sq_in) {
+        // Invariant out cannot be greater than invariant in
+        return false;
+    }
+
+    // Calculate extra output amount:
+    // (A + ΔA + ΔA')^2 + (B + ΔB)^2 = K^2
+    // (A + ΔA + ΔA')^2              = K^2 - (B + ΔB)^2
+    //  A + ΔA + ΔA'                 = sqrt(K^2 - (B + ΔB)^2)
+    //           ΔA'                 = sqrt(K^2 - (B + ΔB)^2) - (A + ΔA)
+    extraOutput = sqrt(invariant_sq_in - pow(totalSupply[!extraType] + minOutputs[!extraType] - inputs[!extraType], 2)) - (totalSupply[extraType] + minOutputs[extraType] - inputs[extraType]);
+
+    // Update cash and bond supply in block header
+    block.cashSupply += (minOutputs[CASH] - inputs[CASH]);
+    block.bondSupply += (minOutputs[BOND] - inputs[BOND]);
+    if (extraType == CASH)
+        block.cashSupply += extraOutput;
+    if (extraType == BOND)
+        block.bondSupply += extraOutput;
+
     return true;
 }

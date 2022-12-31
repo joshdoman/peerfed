@@ -24,9 +24,18 @@ namespace Consensus {
  * This does not modify the UTXO set. This does not check scripts and sigs.
  * @param[out] txfee Set to the transaction fee if successful.
  * @param[out] txfeeType Set to the transaction fee amount type if successful.
+ * @param[out] conversionDest Set if conversion output is present.
  * Preconditions: tx.IsCoinBase() is false.
  */
 [[nodiscard]] bool CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmountType& txfeeType, CAmount& txfee, std::optional<CTxConversionInfo>& conversionDest);
+
+/**
+ * Check if conversion is valid according to the sum-of-squares invariant and can
+ * be inlcuded in a block with a given cash and bond supply. Consensus critical.
+ * @param[out] block Set cash and bond supply if successful.
+ * @param[out] extraOutput Set to the necessary output amount so that the invariant is same-in, same-out.
+ */
+[[nodiscard]] bool IsValidConversion(CBlockIndex& block, const CAmounts inputs, const CAmounts minOutputs, const CAmountType extraType, CAmount& extraOutput);
 } // namespace Consensus
 
 /** Auxiliary functions for transaction validation (ideally should not be exposed) */

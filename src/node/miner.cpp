@@ -128,6 +128,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     assert(pindexPrev != nullptr);
     nHeight = pindexPrev->nHeight + 1;
 
+    // Set cash and bond supply with block rewards
+    CAmount cashReward = 0.5 * GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    CAmount bondReward = 0.5 * GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    pblock->cashSupply = pindexPrev->cashSupply + cashReward;
+    pblock->bondSupply = pindexPrev->bondSupply + bondReward;
+
     pblock->nVersion = m_chainstate.m_chainman.m_versionbitscache.ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
     // -regtest only: allow overriding block.nVersion with
     // -blockversion=N to test forking scenarios
@@ -159,10 +165,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vout[CASH].scriptPubKey = scriptPubKeyIn;
     coinbaseTx.vout[BOND].scriptPubKey = scriptPubKeyIn;
     // TODO: Set block subsidies correctly
-    CAmount newCash = 0.5 * GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-    CAmount newBond = 0.5 * GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-    coinbaseTx.vout[CASH].nValue = nFees[CASH] + newCash;
-    coinbaseTx.vout[BOND].nValue = nFees[BOND] + newBond;
+    coinbaseTx.vout[CASH].nValue = nFees[CASH] + cashReward;
+    coinbaseTx.vout[BOND].nValue = nFees[BOND] + bondReward;
     // Add conversion outputs
     coinbaseTx.vout.insert(coinbaseTx.vout.end(), conversionOutputs.begin(), conversionOutputs.end());
     // Add input
@@ -180,8 +184,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
     pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
     pblock->nNonce         = 0;
-    pblock->cashSupply     = pindexPrev->cashSupply + newCash;
-    pblock->bondSupply     = pindexPrev->bondSupply + newBond;
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
     BlockValidationState state;
