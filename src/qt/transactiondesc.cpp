@@ -113,6 +113,8 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
 
     CAmountType amountType = (rec->credit[CASH] > 0) ? CASH : BOND;
     unit = BitcoinUnits::unitOfType(unit, amountType);
+    BitcoinUnit cashUnit = BitcoinUnits::unitOfType(unit, CASH);
+    BitcoinUnit bondUnit = BitcoinUnits::unitOfType(unit, BOND);
 
     QString strHTML;
 
@@ -120,9 +122,11 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     strHTML += "<html><font face='verdana, arial, helvetica, sans-serif'>";
 
     int64_t nTime = wtx.time;
-    CAmount nCredit = wtx.credit;
-    CAmount nDebit = wtx.debit;
-    CAmount nNet = nCredit - nDebit;
+    CAmounts nCredit = wtx.credit;
+    CAmounts nDebit = wtx.debit;
+    CAmounts nNet = {0};
+    nNet[CASH] = nCredit[CASH] - nDebit[CASH];
+    nNet[BOND] = nCredit[BOND] - nDebit[BOND];
 
     strHTML += "<b>" + tr("Status") + ":</b> " + FormatTxStatus(status, inMempool);
     strHTML += "<br>";
@@ -144,7 +148,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     else
     {
         // Offline transaction
-        if (nNet > 0)
+        if ((nNet[CASH] > 0 && nNet[BOND] >= 0) || (nNet[CASH] >= 0 && nNet[BOND] > 0))
         {
             // Credit
             CTxDestination address = DecodeDestination(rec->address);
@@ -186,7 +190,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     //
     // Amount
     //
-    if (wtx.is_coinbase && nCredit == 0)
+    if (wtx.is_coinbase && nCredit[CASH] == 0 && nCredit[BOND] == 0)
     {
         //
         // Coinbase
@@ -203,12 +207,15 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
             strHTML += "(" + tr("not accepted") + ")";
         strHTML += "<br>";
     }
-    else if (nNet > 0)
+    else if ((nNet[CASH] > 0 && nNet[BOND] >= 0) || (nNet[CASH] >= 0 && nNet[BOND] > 0))
     {
         //
         // Credit
         //
-        strHTML += "<b>" + tr("Credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, nNet) + "<br>";
+        auto amountStr = nNet[CASH] > 0 ? BitcoinUnits::formatHtmlWithUnit(cashUnit, nNet[CASH]) : BitcoinUnits::formatHtmlWithUnit(bondUnit, nNet[BOND]);
+        if (nNet[CASH] > 0 && nNet[BOND] > 0)
+            amountStr += ", " + BitcoinUnits::formatHtmlWithUnit(bondUnit, nNet[BOND]);
+        strHTML += "<b>" + tr("Credit") + ":</b> " + amountStr + "<br>";
     }
     else
     {
@@ -260,6 +267,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                     }
                 }
 
+                BitcoinUnit unit = txout.amountType == CASH ? cashUnit : bondUnit;
                 strHTML += "<b>" + tr("Debit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, -txout.nValue) + "<br>";
                 if(toSelf)
                     strHTML += "<b>" + tr("Credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, txout.nValue) + "<br>";
@@ -268,13 +276,23 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
             if (fAllToMe)
             {
                 // Payment to self
-                CAmount nChange = wtx.change;
-                CAmount nValue = nCredit - nChange;
-                strHTML += "<b>" + tr("Total debit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, -nValue) + "<br>";
-                strHTML += "<b>" + tr("Total credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, nValue) + "<br>";
+                CAmounts nChange = wtx.change;
+                CAmounts nValue = {0};
+                nValue[CASH] = nCredit[CASH] - nChange[CASH];
+                nValue[BOND] = nCredit[BOND] - nChange[BOND];
+
+                auto debitAmountStr = nValue[CASH] != 0 ? BitcoinUnits::formatHtmlWithUnit(cashUnit, -nValue[CASH]) : BitcoinUnits::formatHtmlWithUnit(bondUnit, -nValue[BOND]);
+                auto creditAmountStr = nValue[CASH] != 0 ? BitcoinUnits::formatHtmlWithUnit(cashUnit, nValue[CASH]) : BitcoinUnits::formatHtmlWithUnit(bondUnit, nValue[BOND]);
+                if (nValue[CASH] != 0 && nValue[BOND] != 0) {
+                    debitAmountStr += ", " + BitcoinUnits::formatHtmlWithUnit(bondUnit, -nValue[BOND]);
+                    creditAmountStr += ", " + BitcoinUnits::formatHtmlWithUnit(bondUnit, nValue[BOND]);
+                }
+
+                strHTML += "<b>" + tr("Total debit") + ":</b> " + debitAmountStr + "<br>";
+                strHTML += "<b>" + tr("Total credit") + ":</b> " + creditAmountStr + "<br>";
             }
 
-            CAmount nTxFee = nDebit - wtx.tx->GetValueOut();
+            CAmount nTxFee = nDebit[CASH] + nDebit[BOND] - wtx.tx->GetValueOut(); // TODO: Implement txFee correctly to handle multiple types and conversion fees
             if (nTxFee > 0)
                 strHTML += "<b>" + tr("Transaction fee") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, -nTxFee) + "<br>";
         }
@@ -298,7 +316,10 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
         }
     }
 
-    strHTML += "<b>" + tr("Net amount") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, nNet, true) + "<br>";
+    auto amountStr = (nDebit[CASH] != 0 || nCredit[CASH] != 0) ? BitcoinUnits::formatHtmlWithUnit(cashUnit, nNet[CASH], true) : BitcoinUnits::formatHtmlWithUnit(bondUnit, nNet[BOND], true);
+    if ((nDebit[CASH] != 0 || nCredit[CASH] != 0) && (nDebit[BOND] != 0 || nCredit[BOND] != 0))
+        amountStr += ", " + BitcoinUnits::formatHtmlWithUnit(bondUnit, nNet[BOND], true);
+    strHTML += "<b>" + tr("Net amount") + ":</b> " + amountStr + "<br>";
 
     //
     // Message

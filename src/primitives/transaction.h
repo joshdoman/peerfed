@@ -355,6 +355,11 @@ public:
         return (vin.size() == 1 && vin[0].prevout.IsNull());
     }
 
+    // Returns TRUE if conversion output is present
+    bool IsConversion() const;
+    // Returns location of conversion output (-1 if not present)
+    int GetConversionOutputN() const;
+
     friend bool operator==(const CTransaction& a, const CTransaction& b)
     {
         return a.hash == b.hash;

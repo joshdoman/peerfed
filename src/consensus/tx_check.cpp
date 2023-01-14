@@ -57,7 +57,7 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
             bool has_conversion_script{false};
             for (const auto& txout : tx.vout)
             {
-                if (IsConversionScript(txout.scriptPubKey)) {
+                if (txout.scriptPubKey.IsConversionScript()) {
                     if (has_conversion_script) {
                         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-duplicate-conversion-script");
                     }

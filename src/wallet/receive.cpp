@@ -83,14 +83,14 @@ CAmount OutputGetChange(const CWallet& wallet, const CTxOut& txout)
     return (OutputIsChange(wallet, txout) ? txout.nValue : 0);
 }
 
-CAmount TxGetChange(const CWallet& wallet, const CTransaction& tx)
+CAmounts TxGetChange(const CWallet& wallet, const CTransaction& tx)
 {
     LOCK(wallet.cs_wallet);
-    CAmount nChange = 0;
+    CAmounts nChange = {0};
     for (const CTxOut& txout : tx.vout)
     {
-        nChange += OutputGetChange(wallet, txout);
-        if (!MoneyRange(nChange))
+        nChange[txout.amountType] += OutputGetChange(wallet, txout);
+        if (!MoneyRange(nChange[txout.amountType]))
             throw std::runtime_error(std::string(__func__) + ": value out of range");
     }
     return nChange;
@@ -106,41 +106,41 @@ static CAmount GetCachableAmount(const CWallet& wallet, const CWalletTx& wtx, CA
     return amount.m_value[filter];
 }
 
-CAmount CachedTxGetCredit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter)
+CAmounts CachedTxGetCredit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter)
 {
     AssertLockHeld(wallet.cs_wallet);
 
     // Must wait until coinbase is safely deep enough in the chain before valuing it
     if (wallet.IsTxImmatureCoinBase(wtx))
-        return 0;
+        return {0};
 
-    CAmount credit = 0;
+    CAmounts credit = {0};
     const isminefilter get_amount_filter{filter & ISMINE_ALL};
     if (get_amount_filter) {
         // GetBalance can assume transactions in mapWallet won't change
         // Add both cash and bond amounts since all outputs must be of the same type
-        credit += GetCachableAmount(wallet, wtx, CASH, CWalletTx::CREDIT, get_amount_filter);
-        credit += GetCachableAmount(wallet, wtx, BOND, CWalletTx::CREDIT, get_amount_filter);
+        credit[CASH] += GetCachableAmount(wallet, wtx, CASH, CWalletTx::CREDIT, get_amount_filter);
+        credit[BOND] += GetCachableAmount(wallet, wtx, BOND, CWalletTx::CREDIT, get_amount_filter);
     }
     return credit;
 }
 
-CAmount CachedTxGetDebit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter)
+CAmounts CachedTxGetDebit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter)
 {
     if (wtx.tx->vin.empty())
-        return 0;
+        return {0};
 
-    CAmount debit = 0;
+    CAmounts debit = {0};
     const isminefilter get_amount_filter{filter & ISMINE_ALL};
     if (get_amount_filter) {
         // Add both cash and bond amounts since all inputs must be of the same type
-        debit += GetCachableAmount(wallet, wtx, CASH, CWalletTx::DEBIT, get_amount_filter);
-        debit += GetCachableAmount(wallet, wtx, BOND, CWalletTx::DEBIT, get_amount_filter);
+        debit[CASH] += GetCachableAmount(wallet, wtx, CASH, CWalletTx::DEBIT, get_amount_filter);
+        debit[BOND] += GetCachableAmount(wallet, wtx, BOND, CWalletTx::DEBIT, get_amount_filter);
     }
     return debit;
 }
 
-CAmount CachedTxGetChange(const CWallet& wallet, const CWalletTx& wtx)
+CAmounts CachedTxGetChange(const CWallet& wallet, const CWalletTx& wtx)
 {
     if (wtx.fChangeCached)
         return wtx.nChangeCached;
@@ -205,11 +205,12 @@ void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
     listSent.clear();
 
     // Compute fee:
-    CAmount nDebit = CachedTxGetDebit(wallet, wtx, filter);
-    if (nDebit > 0) // debit>0 means we signed/sent this transaction
+    CAmounts nDebit = CachedTxGetDebit(wallet, wtx, filter);
+    if (nDebit[CASH] > 0 || nDebit[BOND] > 0) // debit>0 means we signed/sent this transaction
     {
+        // TODO: Handle conversion tx or multi-output transaction
         CAmount nValueOut = wtx.tx->GetValueOut();
-        nFee = nDebit - nValueOut;
+        nFee = (nDebit[CASH] + nDebit[BOND]) - nValueOut; // Temporary fix, assumeso only one output type
     }
 
     LOCK(wallet.cs_wallet);
@@ -221,7 +222,7 @@ void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
         // Only need to handle txouts if AT LEAST one of these is true:
         //   1) they debit from us (sent)
         //   2) the output is to us (received)
-        if (nDebit > 0)
+        if (nDebit[CASH] > 0 || nDebit[BOND] > 0)
         {
             if (!include_change && OutputIsChange(wallet, txout))
                 continue;
@@ -242,7 +243,7 @@ void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
         COutputEntry output = {address, txout.amountType, txout.nValue, (int)i};
 
         // If we are debited by the transaction, add the output as a "sent" entry
-        if (nDebit > 0)
+        if (nDebit[CASH] > 0 || nDebit[BOND] > 0)
             listSent.push_back(output);
 
         // If we are receiving the output, add it as a "received" entry
@@ -254,7 +255,8 @@ void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
 
 bool CachedTxIsFromMe(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter)
 {
-    return (CachedTxGetDebit(wallet, wtx, filter) > 0);
+    CAmounts debit = CachedTxGetDebit(wallet, wtx, filter);
+    return (debit[CASH] > 0 || debit[BOND] > 0);
 }
 
 bool CachedTxIsTrusted(const CWallet& wallet, const CWalletTx& wtx, std::set<uint256>& trusted_parents)

@@ -22,13 +22,13 @@ CAmount TxGetCredit(const CWallet& wallet, const CTransaction& tx, CAmountType a
 bool ScriptIsChange(const CWallet& wallet, const CScript& script) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
 bool OutputIsChange(const CWallet& wallet, const CTxOut& txout) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
 CAmount OutputGetChange(const CWallet& wallet, const CTxOut& txout) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
-CAmount TxGetChange(const CWallet& wallet, const CTransaction& tx);
+CAmounts TxGetChange(const CWallet& wallet, const CTransaction& tx);
 
-CAmount CachedTxGetCredit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter)
+CAmounts CachedTxGetCredit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter)
     EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
 //! filter decides which addresses will count towards the debit
-CAmount CachedTxGetDebit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter);
-CAmount CachedTxGetChange(const CWallet& wallet, const CWalletTx& wtx);
+CAmounts CachedTxGetDebit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter);
+CAmounts CachedTxGetChange(const CWallet& wallet, const CWalletTx& wtx);
 CAmount CachedTxGetImmatureCredit(const CWallet& wallet, const CWalletTx& wtx, CAmountType amountType, const isminefilter& filter)
     EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
 CAmount CachedTxGetAvailableCredit(const CWallet& wallet, const CWalletTx& wtx, CAmountType amountType, const isminefilter& filter = ISMINE_SPENDABLE)

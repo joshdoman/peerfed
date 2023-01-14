@@ -554,6 +554,8 @@ public:
         return (size() > 0 && (*begin() == OP_RETURN || *begin() == OP_CONVERT)) || (size() > MAX_SCRIPT_SIZE);
     }
 
+    bool IsConversionScript() const;
+
     void clear()
     {
         // The default prevector::clear() does not release memory

@@ -197,7 +197,7 @@ public:
      */
     mutable bool m_is_cache_empty{true};
     mutable bool fChangeCached;
-    mutable CAmount nChangeCached;
+    mutable CAmounts nChangeCached;
 
     CWalletTx(CTransactionRef tx, const TxState& state) : tx(std::move(tx)), m_state(state)
     {
@@ -213,7 +213,7 @@ public:
         nTimeSmart = 0;
         fFromMe = false;
         fChangeCached = false;
-        nChangeCached = 0;
+        nChangeCached = {0};
         nOrderPos = -1;
     }
 
@@ -303,6 +303,8 @@ public:
     const uint256& GetHash() const { return tx->GetHash(); }
     const uint256& GetWitnessHash() const { return tx->GetWitnessHash(); }
     bool IsCoinBase() const { return tx->IsCoinBase(); }
+    bool IsConversion() const { return tx->IsConversion(); }
+    bool GetConversionOutputN() const { return tx->GetConversionOutputN(); }
 
     // Disable copying of CWalletTx objects to prevent bugs where instances get
     // copied in and out of the mapWallet map, and fields are updated in the

@@ -409,12 +409,14 @@ struct WalletTx
     std::vector<wallet::isminetype> txout_is_mine;
     std::vector<CTxDestination> txout_address;
     std::vector<wallet::isminetype> txout_address_is_mine;
-    CAmount credit;
-    CAmount debit;
-    CAmount change;
+    CAmounts credit;
+    CAmounts debit;
+    CAmounts change;
     int64_t time;
     std::map<std::string, std::string> value_map;
     bool is_coinbase;
+    bool is_conversion;
+    int conversion_out_n;
 
     bool operator<(const WalletTx& a) const { return tx->GetHash() < a.tx->GetHash(); }
 };

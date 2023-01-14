@@ -790,10 +790,10 @@ RPCHelpMan gettransaction()
         entry.pushKV(ValueFromAmountType(BOND), ValueFromAmount(amounts[BOND]));
     } else {
         CAmountType amountType = wtx.tx->GetAmountTypeOut();
-        CAmount nCredit = CachedTxGetCredit(*pwallet, wtx, filter);
-        CAmount nDebit = CachedTxGetDebit(*pwallet, wtx, filter);
-        CAmount nNet = nCredit - nDebit;
-        CAmount nFee = (CachedTxIsFromMe(*pwallet, wtx, filter) ? wtx.tx->GetValueOut() - nDebit : 0);
+        CAmounts nCredit = CachedTxGetCredit(*pwallet, wtx, filter);
+        CAmounts nDebit = CachedTxGetDebit(*pwallet, wtx, filter);
+        CAmount nNet = nCredit[CASH] - nDebit[CASH] + (nCredit[BOND] - nDebit[BOND]); // TODO: Handle conversion
+        CAmount nFee = (CachedTxIsFromMe(*pwallet, wtx, filter) ? wtx.tx->GetValueOut() - (nDebit[CASH] + nDebit[BOND]) : 0); // TODO: Implement fee calc for multi-type outputs and conversions
 
         entry.pushKV(ValueFromAmountType(amountType), ValueFromAmount(nNet - nFee));
         entry.pushKV(ValueFromAmountType(!amountType), ValueFromAmount(0));

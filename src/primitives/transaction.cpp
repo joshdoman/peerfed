@@ -136,6 +136,21 @@ unsigned int CTransaction::GetTotalSize() const
     return ::GetSerializeSize(*this, PROTOCOL_VERSION);
 }
 
+bool CTransaction::IsConversion() const
+{
+    return CTransaction::GetConversionOutputN() != -1;
+}
+
+int CTransaction::GetConversionOutputN() const
+{
+    for (int i = 0; i < vout.size(); i++) {
+        if (vout[i].scriptPubKey.IsConversionScript()) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 std::string CTransaction::ToString() const
 {
     std::string str;

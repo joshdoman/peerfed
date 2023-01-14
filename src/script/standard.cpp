@@ -293,7 +293,7 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
 
 bool ExtractConversionInfo(const CScript& script, CTxConversionInfo& conversionInfoRet)
 {
-    if (script[0] == OP_CONVERT && script.size() > 3) {
+    if (script.size() > 3 && script[0] == OP_CONVERT) {
         conversionInfoRet.slippageType = script[1];
         int scriptLength = script[2];
         if (script.size() == 3 + scriptLength) {
@@ -375,11 +375,6 @@ CScript GetScriptForMultisig(int nRequired, const std::vector<CPubKey>& keys)
 
 bool IsValidDestination(const CTxDestination& dest) {
     return dest.index() != 0;
-}
-
-bool IsConversionScript(const CScript& script) {
-    CTxConversionInfo conversionInfo;
-    return ExtractConversionInfo(script, conversionInfo);
 }
 
 /*static*/ TaprootBuilder::NodeInfo TaprootBuilder::Combine(NodeInfo&& a, NodeInfo&& b)
