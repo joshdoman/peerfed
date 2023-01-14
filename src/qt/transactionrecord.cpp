@@ -52,8 +52,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             {
                 TransactionRecord sub(hash, nTime);
                 sub.idx = i; // vout index
-                sub.credit = txout.nValue;
-                sub.amountType = txout.amountType;
+                sub.credit[txout.amountType] = txout.nValue;
                 sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
                 if (wtx.txout_address_is_mine[i])
                 {
@@ -105,7 +104,11 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
 
             CAmount nChange = wtx.change;
             CAmountType amountType = wtx.tx->vout[0].amountType; // All inputs and outputs are of the same type and guaranteed to have at least one output
-            parts.append(TransactionRecord(hash, nTime, TransactionRecord::SendToSelf, address, -(nDebit - nChange), nCredit - nChange, amountType));
+            CAmounts debit = {0};
+            debit[amountType] = -(nDebit - nChange);
+            CAmounts credit = {0};
+            credit[amountType] = nCredit - nChange;
+            parts.append(TransactionRecord(hash, nTime, TransactionRecord::SendToSelf, address, debit, credit));
             parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
         }
         else if (fAllFromMe)
@@ -149,8 +152,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     nValue += nTxFee;
                     nTxFee = 0;
                 }
-                sub.debit = -nValue;
-                sub.amountType = txout.amountType;
+                sub.debit[txout.amountType] = -nValue;
 
                 parts.append(sub);
             }
@@ -160,8 +162,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             //
             // Mixed debit transaction, can't break down payees
             //
-            bool amountType = 1; // TODO: Implement
-            parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", nNet, 0, amountType));
+            bool amountType = BOND; // TODO: Implement
+            CAmounts debit = {0};
+            debit[amountType] = nNet;
+            parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", debit, {0}));
             parts.last().involvesWatchAddress = involvesWatchAddress;
         }
     }

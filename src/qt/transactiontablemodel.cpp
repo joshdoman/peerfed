@@ -455,7 +455,7 @@ QVariant TransactionTableModel::addressColor(const TransactionRecord *wtx) const
 
 QString TransactionTableModel::formatTxAmount(const TransactionRecord *wtx, bool showUnconfirmed, BitcoinUnits::SeparatorStyle separators) const
 {
-    QString str = BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), wtx->credit + wtx->debit, false, separators);
+    QString str = BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), wtx->credit[CASH] + wtx->debit[CASH] + wtx->credit[BOND] + wtx->debit[BOND], false, separators); // TODO: Implement
     if(showUnconfirmed)
     {
         if(!wtx->status.countsForBalance)
@@ -572,7 +572,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         case ToAddress:
             return formatTxToAddress(rec, true);
         case Amount:
-            return qint64(rec->credit + rec->debit);
+            return qint64(rec->credit[CASH] + rec->debit[CASH] + rec->credit[BOND] + rec->debit[BOND]); // TODO: Implement
         } // no default case, so the compiler can warn about missing cases
         assert(false);
     case Qt::ToolTipRole:
@@ -590,7 +590,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         {
             return COLOR_UNCONFIRMED;
         }
-        if(index.column() == Amount && (rec->credit+rec->debit) < 0)
+        if(index.column() == Amount && (rec->credit[CASH]+rec->debit[CASH]+rec->credit[BOND]+rec->debit[BOND]) < 0) // TODO: Implement
         {
             return COLOR_NEGATIVE;
         }
@@ -613,10 +613,10 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         return QString::fromStdString(rec->address);
     case LabelRole:
         return walletModel->getAddressTableModel()->labelForAddress(QString::fromStdString(rec->address));
-    case AmountRole:
-        return qint64(rec->credit + rec->debit);
-    case amountTypeRole:
-        return rec->amountType;
+    case CashAmountRole:
+        return qint64(rec->credit[CASH] + rec->debit[CASH]); // TODO: Implement CASH
+    case BondAmountRole:
+        return qint64(rec->credit[BOND] + rec->debit[BOND]); // TODO: Implement BOND
     case TxHashRole:
         return rec->getTxHash();
     case TxHexRole:

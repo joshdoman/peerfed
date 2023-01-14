@@ -53,8 +53,9 @@ bool TransactionFilterProxy::filterAcceptsRow(int sourceRow, const QModelIndex &
         return false;
     }
 
-    qint64 amount = llabs(index.data(TransactionTableModel::AmountRole).toLongLong());
-    if (amount < minAmount)
+    qint64 cashAmount = llabs(index.data(TransactionTableModel::CashAmountRole).toLongLong());
+    qint64 bondAmount = llabs(index.data(TransactionTableModel::BondAmountRole).toLongLong());
+    if (cashAmount < minAmount && bondAmount < minAmount)
         return false;
 
     return true;

@@ -58,10 +58,10 @@ public:
         AddressRole,
         /** Label of address related to transaction */
         LabelRole,
-        /** Net amount of transaction */
-        AmountRole,
-        /** Coin type of transaction */
-        amountTypeRole,
+        /** Net amount of cash in transaction */
+        CashAmountRole,
+        /** Net amount of bonds in transaction */
+        BondAmountRole,
         /** Transaction hash */
         TxHashRole,
         /** Transaction data, hex-encoded */

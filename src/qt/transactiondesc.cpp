@@ -111,7 +111,8 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     bool inMempool;
     interfaces::WalletTx wtx = wallet.getWalletTxDetails(rec->hash, status, orderForm, inMempool, numBlocks);
 
-    unit = BitcoinUnits::unitOfType(unit, rec->amountType);
+    CAmountType amountType = (rec->credit[CASH] > 0) ? CASH : BOND;
+    unit = BitcoinUnits::unitOfType(unit, amountType);
 
     QString strHTML;
 
@@ -192,7 +193,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
         //
         CAmount nUnmatured = 0;
         for (const CTxOut& txout : wtx.tx->vout) {
-            if (txout.amountType == rec->amountType)
+            if (txout.amountType == amountType)
                 nUnmatured += wallet.getCredit(txout, ISMINE_ALL);
         }
         strHTML += "<b>" + tr("Credit") + ":</b> ";
