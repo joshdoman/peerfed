@@ -125,6 +125,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     CAmounts nNet = {0};
     nNet[CASH] = nCredit[CASH] - nDebit[CASH];
     nNet[BOND] = nCredit[BOND] - nDebit[BOND];
+    CAmounts valuesOut = wtx.tx->GetValuesOut();
 
     strHTML += "<b>" + tr("Status") + ":</b> " + FormatTxStatus(status, inMempool);
     strHTML += "<br>";
@@ -276,21 +277,16 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                     strHTML += "<b>" + tr("Credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, txout.nValue) + "<br>";
             }
 
-            if (fAllToMe)
+            if (fAllToMe || wtx.is_conversion)
             {
                 // Payment to self
-                CAmounts nConversionTxFee = {0};
-                if (wtx.is_conversion) {
-                    const CTxOut& txout = wtx.tx->vout[wtx.conversion_out_n];
-                    nConversionTxFee[txout.amountType] = txout.nValue;
-                }
                 CAmounts nChange = wtx.change;
                 CAmounts totalDebit = {0};
                 CAmounts totalCredit = {0};
                 totalDebit[CASH] = -(nDebit[CASH] - nChange[CASH]);
                 totalDebit[BOND] = -(nDebit[BOND] - nChange[BOND]);
-                totalCredit[CASH] = nCredit[CASH] - nChange[CASH] + nConversionTxFee[CASH];
-                totalCredit[BOND] = nCredit[BOND] - nChange[BOND] + nConversionTxFee[BOND];
+                totalCredit[CASH] = valuesOut[CASH] - nChange[CASH];
+                totalCredit[BOND] = valuesOut[BOND] - nChange[BOND];
 
                 auto debitAmountStr = totalDebit[CASH] < 0 ? BitcoinUnits::formatHtmlWithUnit(cashUnit, totalDebit[CASH]) : BitcoinUnits::formatHtmlWithUnit(bondUnit, totalDebit[BOND]);
                 auto creditAmountStr = totalCredit[CASH] > 0 ? BitcoinUnits::formatHtmlWithUnit(cashUnit, totalCredit[CASH]) : BitcoinUnits::formatHtmlWithUnit(bondUnit, totalCredit[BOND]);
@@ -301,11 +297,25 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                     creditAmountStr += ", " + BitcoinUnits::formatHtmlWithUnit(bondUnit, totalCredit[BOND]);
                 }
 
-                strHTML += "<b>" + tr("Total debit") + ":</b> " + debitAmountStr + "<br>";
-                strHTML += "<b>" + tr("Total credit") + ":</b> " + creditAmountStr + "<br>";
+                if (fAllToMe) {
+                    strHTML += "<b>" + tr("Total debit") + ":</b> " + debitAmountStr + "<br>";
+                    strHTML += "<b>" + tr("Total credit") + ":</b> " + creditAmountStr + "<br>";
+                } else {
+                    // Conversion payment to self
+                    std::string address;
+                    for (unsigned int i = 0; i < wtx.txout_address.size(); i++) {
+                        if (!wtx.txout_is_mine[i]) continue;
+                        auto it = wtx.txout_address[i];
+                        if (address.size() > 0) address += ", ";
+                        address += EncodeDestination(it);
+                    }
+                    
+                    strHTML += "<b>" + tr("To") + ":</b> " + GUIUtil::HtmlEscape(address) + " <br>";
+                    strHTML += "<b>" + tr("Debit") + ":</b> " + debitAmountStr + "<br>";
+                    strHTML += "<b>" + tr("Credit") + ":</b> " + creditAmountStr + "<br>";
+                }
             }
 
-            CAmounts valuesOut = wtx.tx->GetValuesOut();
             CAmounts nTxFee = {0};
             if (wtx.is_conversion) {
                 const CTxOut& txout = wtx.tx->vout[wtx.conversion_out_n];
