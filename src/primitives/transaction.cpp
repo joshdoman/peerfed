@@ -138,7 +138,7 @@ unsigned int CTransaction::GetTotalSize() const
 
 bool CTransaction::IsConversion() const
 {
-    return CTransaction::GetConversionOutputN() != -1;
+    return CTransaction::GetConversionOutputN() != -1 && !CTransaction::IsCoinBase();
 }
 
 int CTransaction::GetConversionOutputN() const

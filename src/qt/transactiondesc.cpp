@@ -279,14 +279,21 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
 
             if (fAllToMe || wtx.is_conversion)
             {
-                // Payment to self
+                // Payment to self or conversion
+
+                CAmounts nConversionTxFee = {0};
+                if (wtx.is_conversion) {
+                    const CTxOut& txout = wtx.tx->vout[wtx.conversion_out_n];
+                    nConversionTxFee[txout.amountType] = txout.nValue;
+                }
+
                 CAmounts nChange = wtx.change;
                 CAmounts totalDebit = {0};
                 CAmounts totalCredit = {0};
                 totalDebit[CASH] = -(nDebit[CASH] - nChange[CASH]);
                 totalDebit[BOND] = -(nDebit[BOND] - nChange[BOND]);
-                totalCredit[CASH] = valuesOut[CASH] - nChange[CASH];
-                totalCredit[BOND] = valuesOut[BOND] - nChange[BOND];
+                totalCredit[CASH] = valuesOut[CASH] - nChange[CASH] - nConversionTxFee[CASH];
+                totalCredit[BOND] = valuesOut[BOND] - nChange[BOND] - nConversionTxFee[BOND];
 
                 auto debitAmountStr = totalDebit[CASH] < 0 ? BitcoinUnits::formatHtmlWithUnit(cashUnit, totalDebit[CASH]) : BitcoinUnits::formatHtmlWithUnit(bondUnit, totalDebit[BOND]);
                 auto creditAmountStr = totalCredit[CASH] > 0 ? BitcoinUnits::formatHtmlWithUnit(cashUnit, totalCredit[CASH]) : BitcoinUnits::formatHtmlWithUnit(bondUnit, totalCredit[BOND]);
@@ -309,7 +316,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                         if (address.size() > 0) address += ", ";
                         address += EncodeDestination(it);
                     }
-                    
+
                     strHTML += "<b>" + tr("To") + ":</b> " + GUIUtil::HtmlEscape(address) + " <br>";
                     strHTML += "<b>" + tr("Debit") + ":</b> " + debitAmountStr + "<br>";
                     strHTML += "<b>" + tr("Credit") + ":</b> " + creditAmountStr + "<br>";

@@ -197,60 +197,129 @@ CAmount CachedTxGetAvailableCredit(const CWallet& wallet, const CWalletTx& wtx, 
 
 void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
                   std::list<COutputEntry>& listReceived,
-                  std::list<COutputEntry>& listSent, CAmount& nFee, const isminefilter& filter,
+                  std::list<COutputEntry>& listSent,
+                  std::list<COutputEntry>& listConverted,
+                  CAmounts& nFee, const isminefilter& filter,
                   bool include_change)
 {
-    nFee = 0;
+    nFee = {0};
     listReceived.clear();
     listSent.clear();
+    listConverted.clear();
 
     // Compute fee:
     CAmounts nDebit = CachedTxGetDebit(wallet, wtx, filter);
     if (nDebit[CASH] > 0 || nDebit[BOND] > 0) // debit>0 means we signed/sent this transaction
     {
-        // TODO: Handle conversion tx or multi-output transaction
-        CAmount nValueOut = wtx.tx->GetValueOut();
-        nFee = (nDebit[CASH] + nDebit[BOND]) - nValueOut; // Temporary fix, assumeso only one output type
+        if (wtx.tx->IsConversion()) {
+            const CTxOut& conversionTxOut = wtx.tx->vout[wtx.tx->GetConversionOutputN()];
+            nFee[conversionTxOut.amountType] = conversionTxOut.nValue;
+        } else {
+            CAmounts nValuesOut = wtx.tx->GetValuesOut();
+            nFee[CASH] = nDebit[CASH] - nValuesOut[CASH];
+            nFee[BOND] = nDebit[BOND] - nValuesOut[BOND];
+        }
     }
 
     LOCK(wallet.cs_wallet);
-    // Sent/received.
-    for (unsigned int i = 0; i < wtx.tx->vout.size(); ++i)
-    {
-        const CTxOut& txout = wtx.tx->vout[i];
-        isminetype fIsMine = wallet.IsMine(txout);
-        // Only need to handle txouts if AT LEAST one of these is true:
-        //   1) they debit from us (sent)
-        //   2) the output is to us (received)
-        if (nDebit[CASH] > 0 || nDebit[BOND] > 0)
+
+    if ((nDebit[CASH] > 0 || nDebit[BOND] > 0) && wtx.tx->IsConversion()) { // Conversion by us
+        // Conversion.
+        CAmounts nCredit = CachedTxGetCredit(wallet, wtx, filter);
+        CAmounts nNet = {0};
+        nNet[CASH] = nCredit[CASH] - nDebit[CASH];
+        nNet[BOND] = nCredit[BOND] - nDebit[BOND];
+
+        for (unsigned int i = 0; i < wtx.tx->vout.size(); ++i)
         {
-            if (!include_change && OutputIsChange(wallet, txout))
+            const CTxOut& txout = wtx.tx->vout[i];
+
+            // Get the destination address
+            CTxDestination address;
+
+            if (!ExtractDestination(txout.scriptPubKey, address) && !txout.scriptPubKey.IsUnspendable())
+            {
+                wallet.WalletLogPrintf("CWalletTx::GetAmounts: Unknown transaction type found, txid %s\n",
+                                        wtx.GetHash().ToString());
+                address = CNoDestination();
+            }
+
+            isminetype fIsMine = wallet.IsMine(txout);
+            if (fIsMine & filter)
+            {
+                if (nNet[txout.amountType] < 0)
+                {
+                    // Converted
+                    COutputEntry output = {address, txout.amountType, -nNet[txout.amountType], (int)i};
+                    listConverted.push_back(output);
+                    nNet[txout.amountType] = 0;
+                }
+
+                if (nNet[txout.amountType] > 0)
+                {
+                    // Received
+                    COutputEntry output = {address, txout.amountType, nNet[txout.amountType], (int)i};
+                    listReceived.push_back(output);
+                    nNet[txout.amountType] = 0;
+                }
+            }
+            else if ((int)i != wtx.tx->GetConversionOutputN())
+            {
+                // Sent
+                COutputEntry sOutput = {address, txout.amountType, txout.nValue, (int)i};
+                listSent.push_back(sOutput);
+            }
+        }
+
+        // If nNet is still negative after looking for a change output, create an output with the remaining amount, assigned to the conversion output N
+        if (nNet[CASH] < 0) {
+            // Converted
+            COutputEntry output = {CNoDestination(), CASH, -nNet[CASH], wtx.tx->GetConversionOutputN()};
+            listConverted.push_back(output);
+        }
+        if (nNet[BOND] < 0) {
+            // Converted
+            COutputEntry output = {CNoDestination(), BOND, -nNet[BOND], wtx.tx->GetConversionOutputN()};
+            listConverted.push_back(output);
+        }
+    } else {
+        // Sent/received.
+        for (unsigned int i = 0; i < wtx.tx->vout.size(); ++i)
+        {
+            const CTxOut& txout = wtx.tx->vout[i];
+            isminetype fIsMine = wallet.IsMine(txout);
+            // Only need to handle txouts if AT LEAST one of these is true:
+            //   1) they debit from us (sent)
+            //   2) the output is to us (received)
+            if (nDebit[CASH] > 0 || nDebit[BOND] > 0)
+            {
+                if (!include_change && OutputIsChange(wallet, txout))
+                    continue;
+            }
+            else if (!(fIsMine & filter))
                 continue;
+
+            // In either case, we need to get the destination address
+            CTxDestination address;
+
+            if (!ExtractDestination(txout.scriptPubKey, address) && !txout.scriptPubKey.IsUnspendable())
+            {
+                wallet.WalletLogPrintf("CWalletTx::GetAmounts: Unknown transaction type found, txid %s\n",
+                                        wtx.GetHash().ToString());
+                address = CNoDestination();
+            }
+
+            COutputEntry output = {address, txout.amountType, txout.nValue, (int)i};
+
+            // If we are debited by the transaction, add the output as a "sent" entry
+            if (nDebit[CASH] > 0 || nDebit[BOND] > 0)
+                listSent.push_back(output);
+
+            // If we are receiving the output, add it as a "received" entry
+            if (fIsMine & filter)
+                listReceived.push_back(output);
         }
-        else if (!(fIsMine & filter))
-            continue;
-
-        // In either case, we need to get the destination address
-        CTxDestination address;
-
-        if (!ExtractDestination(txout.scriptPubKey, address) && !txout.scriptPubKey.IsUnspendable())
-        {
-            wallet.WalletLogPrintf("CWalletTx::GetAmounts: Unknown transaction type found, txid %s\n",
-                                    wtx.GetHash().ToString());
-            address = CNoDestination();
-        }
-
-        COutputEntry output = {address, txout.amountType, txout.nValue, (int)i};
-
-        // If we are debited by the transaction, add the output as a "sent" entry
-        if (nDebit[CASH] > 0 || nDebit[BOND] > 0)
-            listSent.push_back(output);
-
-        // If we are receiving the output, add it as a "received" entry
-        if (fIsMine & filter)
-            listReceived.push_back(output);
     }
-
 }
 
 bool CachedTxIsFromMe(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter)

@@ -22,6 +22,8 @@ static void WalletTxToJSON(const CWallet& wallet, const CWalletTx& wtx, UniValue
     entry.pushKV("confirmations", confirms);
     if (wtx.IsCoinBase())
         entry.pushKV("generated", true);
+    if (wtx.IsConversion())
+        entry.pushKV("converted", true);
     if (auto* conf = wtx.state<TxStateConfirmed>())
     {
         entry.pushKV("blockhash", conf->confirmed_block_hash.GetHex());
@@ -332,13 +334,38 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
                              bool include_change = false)
     EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet)
 {
-    CAmount nFee;
+    CAmounts nFee;
     std::list<COutputEntry> listReceived;
     std::list<COutputEntry> listSent;
+    std::list<COutputEntry> listConverted;
 
-    CachedTxGetAmounts(wallet, wtx, listReceived, listSent, nFee, filter_ismine, include_change);
+    CachedTxGetAmounts(wallet, wtx, listReceived, listSent, listConverted, nFee, filter_ismine, include_change);
 
     bool involvesWatchonly = CachedTxIsFromMe(wallet, wtx, ISMINE_WATCH_ONLY);
+
+    // Converted
+    for (const COutputEntry& c : listConverted)
+    {
+        UniValue entry(UniValue::VOBJ);
+        if (involvesWatchonly || (wallet.IsMine(c.destination) & ISMINE_WATCH_ONLY)) {
+            entry.pushKV("involvesWatchonly", true);
+        }
+        MaybePushAddress(entry, c.destination);
+        entry.pushKV("category", "converted");
+        entry.pushKV("amountType", ValueFromAmountType(c.amountType));
+        entry.pushKV("amount", ValueFromAmount(-c.amount+nFee[c.amountType]));
+        const auto* address_book_entry = wallet.FindAddressBookEntry(c.destination);
+        if (address_book_entry) {
+            entry.pushKV("label", address_book_entry->GetLabel());
+        }
+        entry.pushKV("vout", c.vout);
+        if (nFee[c.amountType])
+            entry.pushKV("fee", ValueFromAmount(-nFee[c.amountType]));
+        if (fLong)
+            WalletTxToJSON(wallet, wtx, entry);
+        entry.pushKV("abandoned", wtx.isAbandoned());
+        ret.push_back(entry);
+    }
 
     // Sent
     if (!filter_label)
@@ -358,7 +385,8 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
                 entry.pushKV("label", address_book_entry->GetLabel());
             }
             entry.pushKV("vout", s.vout);
-            entry.pushKV("fee", ValueFromAmount(-nFee));
+            if (nFee[s.amountType])
+                entry.pushKV("fee", ValueFromAmount(-nFee[s.amountType]));
             if (fLong)
                 WalletTxToJSON(wallet, wtx, entry);
             entry.pushKV("abandoned", wtx.isAbandoned());
@@ -416,6 +444,7 @@ static const std::vector<RPCResult> TransactionDescriptionString()
     return{{RPCResult::Type::NUM, "confirmations", "The number of confirmations for the transaction. Negative confirmations means the\n"
                "transaction conflicted that many blocks ago."},
            {RPCResult::Type::BOOL, "generated", /*optional=*/true, "Only present if the transaction's only input is a coinbase one."},
+           {RPCResult::Type::BOOL, "converted", /*optional=*/true, "Only present if the transaction contains a conversion output."},
            {RPCResult::Type::BOOL, "trusted", /*optional=*/true, "Whether we consider the transaction to be trusted and safe to spend from.\n"
                 "Only present when the transaction has 0 confirmations (or negative confirmations, if conflicted)."},
            {RPCResult::Type::STR_HEX, "blockhash", /*optional=*/true, "The block hash containing the transaction."},
@@ -712,9 +741,10 @@ RPCHelpMan gettransaction()
                     {
                         {RPCResult::Type::STR_AMOUNT, ValueFromAmountType(CASH), "The amount of cash in " + CURRENCY_UNIT},
                         {RPCResult::Type::STR_AMOUNT, ValueFromAmountType(BOND), "The amount of bonds in " + CURRENCY_UNIT},
-                        {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
+                        {RPCResult::Type::STR_AMOUNT, "fee_" + ValueFromAmountType(CASH), /*optional=*/true, "The amount of cash portion of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
                                      "'send' category of transactions."},
-                        {RPCResult::Type::STR, "feeType", "the transaction fee type ('" + ValueFromAmountType(CASH) + "' or '" + ValueFromAmountType(BOND) + "')"},
+                        {RPCResult::Type::STR_AMOUNT, "fee_" + ValueFromAmountType(BOND), /*optional=*/true, "The amount of bond portion of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
+                                     "'send' category of transactions."},
                     },
                     TransactionDescriptionString()),
                     {
@@ -784,23 +814,29 @@ RPCHelpMan gettransaction()
     }
     const CWalletTx& wtx = it->second;
 
-    if (wtx.tx->IsCoinBase()) {
-        CAmounts amounts = wtx.tx->GetValuesOut();
-        entry.pushKV(ValueFromAmountType(CASH), ValueFromAmount(amounts[CASH]));
-        entry.pushKV(ValueFromAmountType(BOND), ValueFromAmount(amounts[BOND]));
-    } else {
-        CAmountType amountType = wtx.tx->GetAmountTypeOut();
-        CAmounts nCredit = CachedTxGetCredit(*pwallet, wtx, filter);
-        CAmounts nDebit = CachedTxGetDebit(*pwallet, wtx, filter);
-        CAmount nNet = nCredit[CASH] - nDebit[CASH] + (nCredit[BOND] - nDebit[BOND]); // TODO: Handle conversion
-        CAmount nFee = (CachedTxIsFromMe(*pwallet, wtx, filter) ? wtx.tx->GetValueOut() - (nDebit[CASH] + nDebit[BOND]) : 0); // TODO: Implement fee calc for multi-type outputs and conversions
+    CAmounts nCredit = CachedTxGetCredit(*pwallet, wtx, filter);
+    CAmounts nDebit = CachedTxGetDebit(*pwallet, wtx, filter);
+    CAmounts nNet = {0};
+    nNet[CASH] = nCredit[CASH] - nDebit[CASH];
+    nNet[BOND] = nCredit[BOND] - nDebit[BOND];
 
-        entry.pushKV(ValueFromAmountType(amountType), ValueFromAmount(nNet - nFee));
-        entry.pushKV(ValueFromAmountType(!amountType), ValueFromAmount(0));
-        if (CachedTxIsFromMe(*pwallet, wtx, filter)) {
-            entry.pushKV("fee", ValueFromAmount(nFee));
-            entry.pushKV("feeType", ValueFromAmountType(amountType));
+    CAmounts nFee = {0};
+    if (CachedTxIsFromMe(*pwallet, wtx, filter)) {
+        if (wtx.tx->IsConversion()) {
+            const CTxOut& txout = wtx.tx->vout[wtx.tx->GetConversionOutputN()];
+            nFee[txout.amountType] = -txout.nValue;
+        } else {
+            CAmounts valuesOut = wtx.tx->GetValuesOut();
+            nFee[CASH] = valuesOut[CASH] - nDebit[CASH];
+            nFee[BOND] = valuesOut[BOND] - nDebit[BOND];
         }
+    }
+
+    entry.pushKV(ValueFromAmountType(CASH), ValueFromAmount(nNet[CASH] - nFee[CASH]));
+    entry.pushKV(ValueFromAmountType(BOND), ValueFromAmount(nNet[BOND] - nFee[BOND]));
+    if (CachedTxIsFromMe(*pwallet, wtx, filter)) {
+        entry.pushKV("fee_" + ValueFromAmountType(CASH), ValueFromAmount(nFee[CASH]));
+        entry.pushKV("fee_" + ValueFromAmountType(BOND), ValueFromAmount(nFee[BOND]));
     }
 
     WalletTxToJSON(*pwallet, wtx, entry);

@@ -355,7 +355,7 @@ public:
         return (vin.size() == 1 && vin[0].prevout.IsNull());
     }
 
-    // Returns TRUE if conversion output is present
+    // Returns TRUE if conversion output is present and not a coinbase transaction
     bool IsConversion() const;
     // Returns location of conversion output (-1 if not present)
     int GetConversionOutputN() const;
