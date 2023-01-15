@@ -72,8 +72,17 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 }
                 if (wtx.is_coinbase)
                 {
-                    // Generated
-                    sub.type = TransactionRecord::Generated;
+                    // In a standard coinbase transaction, all non-zero outputs after the first two are conversion remainders
+                    if (i < 2)
+                    {
+                        // Generated
+                        sub.type = TransactionRecord::Generated;
+                    }
+                    else
+                    {
+                        // Converted
+                        sub.type = TransactionRecord::Converted;
+                    }
                 }
 
                 parts.append(sub);
