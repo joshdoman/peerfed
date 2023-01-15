@@ -179,21 +179,23 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             credit[CASH] = valuesOut[CASH] - nChange[CASH] - nConversionTxFee[CASH];
             credit[BOND] = valuesOut[BOND] - nChange[BOND] - nConversionTxFee[BOND];
 
+            auto recType = wtx.is_conversion ? TransactionRecord::Converted : TransactionRecord::SendToSelf;
+
             // Sort so that positive amount shows up above negative amount if two amount types are present
             if (debit[CASH] + credit[CASH] > 0) {
-                parts.append(TransactionRecord(hash, nTime, TransactionRecord::SendToSelf, address, debit[CASH], credit[CASH], CASH));
+                parts.append(TransactionRecord(hash, nTime, recType, address, debit[CASH], credit[CASH], CASH));
                 parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
             }
             if (debit[BOND] + credit[BOND] > 0) {
-                parts.append(TransactionRecord(hash, nTime, TransactionRecord::SendToSelf, address, debit[BOND], credit[BOND], BOND));
+                parts.append(TransactionRecord(hash, nTime, recType, address, debit[BOND], credit[BOND], BOND));
                 parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
             }
             if (debit[CASH] + credit[CASH] < 0) {
-                parts.append(TransactionRecord(hash, nTime, TransactionRecord::SendToSelf, address, debit[CASH], credit[CASH], CASH));
+                parts.append(TransactionRecord(hash, nTime, recType, address, debit[CASH], credit[CASH], CASH));
                 parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
             }
             if (debit[BOND] + credit[BOND] < 0) {
-                parts.append(TransactionRecord(hash, nTime, TransactionRecord::SendToSelf, address, debit[BOND], credit[BOND], BOND));
+                parts.append(TransactionRecord(hash, nTime, recType, address, debit[BOND], credit[BOND], BOND));
                 parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
             }
         }
