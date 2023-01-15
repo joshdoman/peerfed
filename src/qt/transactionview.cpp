@@ -159,7 +159,8 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
         transactionView->setColumnWidth(TransactionTableModel::Watchonly, WATCHONLY_COLUMN_WIDTH);
         transactionView->setColumnWidth(TransactionTableModel::Date, DATE_COLUMN_WIDTH);
         transactionView->setColumnWidth(TransactionTableModel::Type, TYPE_COLUMN_WIDTH);
-        transactionView->setColumnWidth(TransactionTableModel::Amount, AMOUNT_MINIMUM_COLUMN_WIDTH);
+        transactionView->setColumnWidth(TransactionTableModel::CashAmount, AMOUNT_MINIMUM_COLUMN_WIDTH);
+        transactionView->setColumnWidth(TransactionTableModel::BondAmount, AMOUNT_MINIMUM_COLUMN_WIDTH);
         transactionView->horizontalHeader()->setMinimumSectionSize(MINIMUM_COLUMN_WIDTH);
         transactionView->horizontalHeader()->setStretchLastSection(true);
     }
@@ -168,7 +169,8 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
     contextMenu->setObjectName("contextMenu");
     copyAddressAction = contextMenu->addAction(tr("&Copy address"), this, &TransactionView::copyAddress);
     copyLabelAction = contextMenu->addAction(tr("Copy &label"), this, &TransactionView::copyLabel);
-    contextMenu->addAction(tr("Copy &amount"), this, &TransactionView::copyAmount);
+    copyCashAmountAction = contextMenu->addAction(tr("Copy &cash amount"), this, &TransactionView::copyCashAmount);
+    copyBondAmountAction = contextMenu->addAction(tr("Copy &bond amount"), this, &TransactionView::copyBondAmount);
     contextMenu->addAction(tr("Copy transaction &ID"), this, &TransactionView::copyTxID);
     contextMenu->addAction(tr("Copy &raw transaction"), this, &TransactionView::copyTxHex);
     contextMenu->addAction(tr("Copy full transaction &details"), this, &TransactionView::copyTxPlainText);
@@ -375,7 +377,8 @@ void TransactionView::exportClicked()
     writer.addColumn(tr("Type"), TransactionTableModel::Type, Qt::EditRole);
     writer.addColumn(tr("Label"), 0, TransactionTableModel::LabelRole);
     writer.addColumn(tr("Address"), 0, TransactionTableModel::AddressRole);
-    writer.addColumn(BitcoinUnits::getAmountColumnTitle(model->getOptionsModel()->getDisplayUnit()), 0, TransactionTableModel::FormattedAmountRole);
+    writer.addColumn(BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(model->getOptionsModel()->getDisplayUnit(), CASH)), 0, TransactionTableModel::FormattedCashAmountRole);
+    writer.addColumn(BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(model->getOptionsModel()->getDisplayUnit(), BOND)), 0, TransactionTableModel::FormattedBondAmountRole);
     writer.addColumn(tr("ID"), 0, TransactionTableModel::TxHashRole);
 
     if(!writer.write()) {
@@ -402,6 +405,8 @@ void TransactionView::contextualMenu(const QPoint &point)
     bumpFeeAction->setEnabled(model->wallet().transactionCanBeBumped(hash));
     copyAddressAction->setEnabled(GUIUtil::hasEntryData(transactionView, 0, TransactionTableModel::AddressRole));
     copyLabelAction->setEnabled(GUIUtil::hasEntryData(transactionView, 0, TransactionTableModel::LabelRole));
+    copyCashAmountAction->setEnabled(GUIUtil::hasEntryData(transactionView, 0, TransactionTableModel::FormattedCashAmountRole));
+    copyBondAmountAction->setEnabled(GUIUtil::hasEntryData(transactionView, 0, TransactionTableModel::FormattedBondAmountRole));
 
     if (index.isValid()) {
         GUIUtil::PopupMenu(contextMenu, transactionView->viewport()->mapToGlobal(point));
@@ -459,9 +464,14 @@ void TransactionView::copyLabel()
     GUIUtil::copyEntryData(transactionView, 0, TransactionTableModel::LabelRole);
 }
 
-void TransactionView::copyAmount()
+void TransactionView::copyCashAmount()
 {
-    GUIUtil::copyEntryData(transactionView, 0, TransactionTableModel::FormattedAmountRole);
+    GUIUtil::copyEntryData(transactionView, 0, TransactionTableModel::FormattedCashAmountRole);
+}
+
+void TransactionView::copyBondAmount()
+{
+    GUIUtil::copyEntryData(transactionView, 0, TransactionTableModel::FormattedBondAmountRole);
 }
 
 void TransactionView::copyTxID()

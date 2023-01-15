@@ -274,9 +274,9 @@ TransactionTableModel::~TransactionTableModel()
 /** Updates the column title to "Amount (DisplayUnit)" and emits headerDataChanged() signal for table headers to react. */
 void TransactionTableModel::updateAmountColumnTitle()
 {
-    columns[Amount] = BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(walletModel->getOptionsModel()->getDisplayUnit(), CASH));
+    columns[CashAmount] = BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(walletModel->getOptionsModel()->getDisplayUnit(), CASH));
     columns[BondAmount] = BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(walletModel->getOptionsModel()->getDisplayUnit(), BOND));
-    Q_EMIT headerDataChanged(Qt::Horizontal,Amount,Amount);
+    Q_EMIT headerDataChanged(Qt::Horizontal,CashAmount,CashAmount);
     Q_EMIT headerDataChanged(Qt::Horizontal,BondAmount,BondAmount);
 }
 
@@ -545,7 +545,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         case Type: return {};
         case ToAddress:
             return txAddressDecoration(rec);
-        case Amount: return {};
+        case CashAmount: return {};
         case BondAmount: return {};
         } // no default case, so the compiler can warn about missing cases
         assert(false);
@@ -564,7 +564,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
             return formatTxType(rec);
         case ToAddress:
             return formatTxToAddress(rec, false);
-        case Amount:
+        case CashAmount:
             if (rec->amountType == CASH) return formatTxAmount(rec, true, BitcoinUnits::SeparatorStyle::ALWAYS);
             else return {};
         case BondAmount:
@@ -585,7 +585,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
             return (rec->involvesWatchAddress ? 1 : 0);
         case ToAddress:
             return formatTxToAddress(rec, true);
-        case Amount:
+        case CashAmount:
             return rec->amountType == CASH ? qint64(rec->credit + rec->debit) : 0;
         case BondAmount:
             return rec->amountType == BOND ? qint64(rec->credit + rec->debit) : 0;
@@ -606,7 +606,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         {
             return COLOR_UNCONFIRMED;
         }
-        if(index.column() == Amount && rec->amountType == CASH && (rec->credit+rec->debit) < 0)
+        if(index.column() == CashAmount && rec->amountType == CASH && (rec->credit+rec->debit) < 0)
         {
             return COLOR_NEGATIVE;
         }
@@ -671,9 +671,14 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         }
     case ConfirmedRole:
         return rec->status.status == TransactionStatus::Status::Confirming || rec->status.status == TransactionStatus::Status::Confirmed;
-    case FormattedAmountRole:
+    case FormattedCashAmountRole:
         // Used for copy/export, so don't include separators
-        return formatTxAmount(rec, false, BitcoinUnits::SeparatorStyle::NEVER);
+        if (rec->amountType == CASH) return formatTxAmount(rec, false, BitcoinUnits::SeparatorStyle::NEVER);
+        else return {};
+    case FormattedBondAmountRole:
+        // Used for copy/export, so don't include separators
+        if (rec->amountType == BOND) return formatTxAmount(rec, false, BitcoinUnits::SeparatorStyle::NEVER);
+        else return {};
     case StatusRole:
         return rec->status.status;
     }
@@ -705,7 +710,7 @@ QVariant TransactionTableModel::headerData(int section, Qt::Orientation orientat
                 return tr("Whether or not a watch-only address is involved in this transaction.");
             case ToAddress:
                 return tr("User-defined intent/purpose of the transaction.");
-            case Amount:
+            case CashAmount:
                 return tr("Amount removed from or added to balance.");
             case BondAmount:
                 return tr("Amount removed from or added to balance.");
@@ -730,7 +735,8 @@ void TransactionTableModel::updateDisplayUnit()
 {
     // emit dataChanged to update Amount column with the current unit
     updateAmountColumnTitle();
-    Q_EMIT dataChanged(index(0, Amount), index(priv->size()-1, Amount));
+    Q_EMIT dataChanged(index(0, CashAmount), index(priv->size()-1, CashAmount));
+    Q_EMIT dataChanged(index(0, BondAmount), index(priv->size()-1, BondAmount));
 }
 
 void TransactionTablePriv::NotifyTransactionChanged(const uint256 &hash, ChangeType status)

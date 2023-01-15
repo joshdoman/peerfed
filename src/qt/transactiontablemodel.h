@@ -37,7 +37,7 @@ public:
         Date = 2,
         Type = 3,
         ToAddress = 4,
-        Amount = 5,
+        CashAmount = 5,
         BondAmount = 6,
     };
 
@@ -71,8 +71,10 @@ public:
         TxPlainTextRole,
         /** Is transaction confirmed? */
         ConfirmedRole,
-        /** Formatted amount, without brackets when unconfirmed */
-        FormattedAmountRole,
+        /** Formatted cash amount, without brackets when unconfirmed */
+        FormattedCashAmountRole,
+        /** Formatted bond amount, without brackets when unconfirmed */
+        FormattedBondAmountRole,
         /** Transaction status (TransactionRecord::Status) */
         StatusRole,
         /** Unprocessed icon */

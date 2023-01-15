@@ -83,6 +83,8 @@ private:
     QAction *bumpFeeAction{nullptr};
     QAction *copyAddressAction{nullptr};
     QAction *copyLabelAction{nullptr};
+    QAction *copyCashAmountAction{nullptr};
+    QAction *copyBondAmountAction{nullptr};
 
     QWidget *createDateRangeWidget();
 
@@ -97,7 +99,8 @@ private Q_SLOTS:
     void copyAddress();
     void editLabel();
     void copyLabel();
-    void copyAmount();
+    void copyCashAmount();
+    void copyBondAmount();
     void copyTxID();
     void copyTxHex();
     void copyTxPlainText();

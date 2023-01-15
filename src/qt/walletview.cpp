@@ -134,13 +134,16 @@ void WalletView::processNewTransaction(const QModelIndex& parent, int start, int
         return;
 
     QString date = ttm->index(start, TransactionTableModel::Date, parent).data().toString();
-    qint64 amount = ttm->index(start, TransactionTableModel::Amount, parent).data(Qt::EditRole).toULongLong();
+    qint64 cashAmount = ttm->index(start, TransactionTableModel::CashAmount, parent).data(Qt::EditRole).toULongLong();
+    qint64 bondAmount = ttm->index(start, TransactionTableModel::BondAmount, parent).data(Qt::EditRole).toULongLong();
     QString type = ttm->index(start, TransactionTableModel::Type, parent).data().toString();
     QModelIndex index = ttm->index(start, 0, parent);
     QString address = ttm->data(index, TransactionTableModel::AddressRole).toString();
     QString label = GUIUtil::HtmlEscape(ttm->data(index, TransactionTableModel::LabelRole).toString());
 
-    Q_EMIT incomingTransaction(date, walletModel->getOptionsModel()->getDisplayUnit(), amount, type, address, label, GUIUtil::HtmlEscape(walletModel->getWalletName()));
+    CAmountType amountType = cashAmount != 0 ? CASH : BOND;
+    BitcoinUnit unit = BitcoinUnits::unitOfType(walletModel->getOptionsModel()->getDisplayUnit(), amountType);
+    Q_EMIT incomingTransaction(date, unit, cashAmount + bondAmount, type, address, label, GUIUtil::HtmlEscape(walletModel->getWalletName()));
 }
 
 void WalletView::gotoOverviewPage()
