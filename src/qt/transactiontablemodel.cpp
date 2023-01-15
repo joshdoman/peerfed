@@ -38,7 +38,8 @@ static int column_alignments[] = {
         Qt::AlignLeft|Qt::AlignVCenter, /*date=*/
         Qt::AlignLeft|Qt::AlignVCenter, /*type=*/
         Qt::AlignLeft|Qt::AlignVCenter, /*address=*/
-        Qt::AlignRight|Qt::AlignVCenter /* amount */
+        Qt::AlignRight|Qt::AlignVCenter, /* amount */
+        Qt::AlignRight|Qt::AlignVCenter /* bondAmount */
     };
 
 // Comparison operator for sort/binary search of model tx list
@@ -258,7 +259,7 @@ TransactionTableModel::TransactionTableModel(const PlatformStyle *_platformStyle
 {
     subscribeToCoreSignals();
 
-    columns << QString() << QString() << tr("Date") << tr("Type") << tr("Label") << BitcoinUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit());
+    columns << QString() << QString() << tr("Date") << tr("Type") << tr("Label") << BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(walletModel->getOptionsModel()->getDisplayUnit(), CASH)) << BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(walletModel->getOptionsModel()->getDisplayUnit(), BOND));
     priv->refreshWallet(walletModel->wallet());
 
     connect(walletModel->getOptionsModel(), &OptionsModel::displayUnitChanged, this, &TransactionTableModel::updateDisplayUnit);
@@ -273,8 +274,10 @@ TransactionTableModel::~TransactionTableModel()
 /** Updates the column title to "Amount (DisplayUnit)" and emits headerDataChanged() signal for table headers to react. */
 void TransactionTableModel::updateAmountColumnTitle()
 {
-    columns[Amount] = BitcoinUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit());
+    columns[Amount] = BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(walletModel->getOptionsModel()->getDisplayUnit(), CASH));
+    columns[BondAmount] = BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(walletModel->getOptionsModel()->getDisplayUnit(), BOND));
     Q_EMIT headerDataChanged(Qt::Horizontal,Amount,Amount);
+    Q_EMIT headerDataChanged(Qt::Horizontal,BondAmount,BondAmount);
 }
 
 void TransactionTableModel::updateTransaction(const QString &hash, int status, bool showTransaction)
@@ -543,6 +546,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         case ToAddress:
             return txAddressDecoration(rec);
         case Amount: return {};
+        case BondAmount: return {};
         } // no default case, so the compiler can warn about missing cases
         assert(false);
     case Qt::DecorationRole:
@@ -561,7 +565,11 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         case ToAddress:
             return formatTxToAddress(rec, false);
         case Amount:
-            return formatTxAmount(rec, true, BitcoinUnits::SeparatorStyle::ALWAYS);
+            if (rec->amountType == CASH) return formatTxAmount(rec, true, BitcoinUnits::SeparatorStyle::ALWAYS);
+            else return {};
+        case BondAmount:
+            if (rec->amountType == BOND) return formatTxAmount(rec, true, BitcoinUnits::SeparatorStyle::ALWAYS);
+            else return {};
         } // no default case, so the compiler can warn about missing cases
         assert(false);
     case Qt::EditRole:
@@ -578,7 +586,9 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         case ToAddress:
             return formatTxToAddress(rec, true);
         case Amount:
-            return qint64(rec->credit + rec->debit); // TODO: Implement
+            return rec->amountType == CASH ? qint64(rec->credit + rec->debit) : 0;
+        case BondAmount:
+            return rec->amountType == BOND ? qint64(rec->credit + rec->debit) : 0;
         } // no default case, so the compiler can warn about missing cases
         assert(false);
     case Qt::ToolTipRole:
@@ -596,7 +606,11 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         {
             return COLOR_UNCONFIRMED;
         }
-        if(index.column() == Amount && (rec->credit+rec->debit) < 0) // TODO: Implement
+        if(index.column() == Amount && rec->amountType == CASH && (rec->credit+rec->debit) < 0)
+        {
+            return COLOR_NEGATIVE;
+        }
+        if(index.column() == BondAmount && rec->amountType == BOND && (rec->credit+rec->debit) < 0)
         {
             return COLOR_NEGATIVE;
         }
@@ -692,6 +706,8 @@ QVariant TransactionTableModel::headerData(int section, Qt::Orientation orientat
             case ToAddress:
                 return tr("User-defined intent/purpose of the transaction.");
             case Amount:
+                return tr("Amount removed from or added to balance.");
+            case BondAmount:
                 return tr("Amount removed from or added to balance.");
             }
         }
