@@ -54,7 +54,8 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             {
                 TransactionRecord sub(hash, nTime);
                 sub.idx = i; // vout index
-                sub.credit[txout.amountType] = txout.nValue;
+                sub.credit = txout.nValue;
+                sub.amountType = txout.amountType;
                 sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
                 if (wtx.txout_address_is_mine[i])
                 {
@@ -89,11 +90,11 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
         }
 
         isminetype fAllToMe = ISMINE_SPENDABLE;
-        for (int i = 0; i < wtx.txout_is_mine.size(); i++)
+        for (unsigned int i = 0; i < wtx.txout_is_mine.size(); i++)
         {
             const isminetype mine = wtx.txout_is_mine[i];
             if(mine & ISMINE_WATCH_ONLY) involvesWatchAddress = true;
-            if(wtx.is_conversion && wtx.conversion_out_n == i) continue; // Skip if conversion output, check if rest are all to me
+            if(wtx.is_conversion && wtx.conversion_out_n == (int) i) continue; // Skip if conversion output, check if rest are all to me
             if(fAllToMe > mine) fAllToMe = mine;
         }
 
@@ -101,8 +102,8 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
         {
             // Payment to self
             std::string address;
-            for (int i = 0; i < wtx.txout_address.size(); i++) {
-                if (wtx.is_conversion && wtx.conversion_out_n == i) continue;
+            for (unsigned int i = 0; i < wtx.txout_address.size(); i++) {
+                if (wtx.is_conversion && wtx.conversion_out_n == (int) i) continue;
                 auto it = wtx.txout_address[i];
                 if (address.size() > 0) address += ", ";
                 address += EncodeDestination(it);
@@ -115,15 +116,39 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             CAmounts credit = {0};
             credit[CASH] = nCredit[CASH] - nChange[CASH];
             credit[BOND] = nCredit[BOND] - nChange[BOND];
-            parts.append(TransactionRecord(hash, nTime, TransactionRecord::SendToSelf, address, debit, credit));
-            parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
+
+            // Sort so that positive amount shows up above negative amount if two amount types are present
+            if (debit[CASH] + credit[CASH] > 0) {
+                parts.append(TransactionRecord(hash, nTime, TransactionRecord::SendToSelf, address, debit[CASH], credit[CASH], CASH));
+                parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
+            }
+            if (debit[BOND] + credit[BOND] > 0) {
+                parts.append(TransactionRecord(hash, nTime, TransactionRecord::SendToSelf, address, debit[BOND], credit[BOND], BOND));
+                parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
+            }
+            if (debit[CASH] + credit[CASH] < 0) {
+                parts.append(TransactionRecord(hash, nTime, TransactionRecord::SendToSelf, address, debit[CASH], credit[CASH], CASH));
+                parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
+            }
+            if (debit[BOND] + credit[BOND] < 0) {
+                parts.append(TransactionRecord(hash, nTime, TransactionRecord::SendToSelf, address, debit[BOND], credit[BOND], BOND));
+                parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
+            }
         }
         else if (fAllFromMe)
         {
             //
             // Debit
             //
-            CAmount nTxFee = nDebit[CASH] + nDebit[BOND] - wtx.tx->GetValueOut(); // TODO: Implement multi-fee transactions and conversion txfee
+            CAmounts valuesOut = wtx.tx->GetValuesOut();
+            CAmounts nTxFee = {0};
+            if (wtx.is_conversion) {
+                const CTxOut& txout = wtx.tx->vout[wtx.conversion_out_n];
+                nTxFee[txout.amountType] = txout.nValue;
+            } else {
+                nTxFee[CASH] = nDebit[CASH] - valuesOut[CASH];
+                nTxFee[BOND] = nDebit[BOND] - valuesOut[BOND];
+            }
 
             for (unsigned int nOut = 0; nOut < wtx.tx->vout.size(); nOut++)
             {
@@ -154,12 +179,13 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
 
                 CAmount nValue = txout.nValue;
                 /* Add fee to first output */
-                if (nTxFee > 0)
+                if (nTxFee[txout.amountType] > 0)
                 {
-                    nValue += nTxFee;
-                    nTxFee = 0;
+                    nValue += nTxFee[txout.amountType];
+                    nTxFee[txout.amountType] = 0;
                 }
-                sub.debit[txout.amountType] = -nValue;
+                sub.debit = -nValue;
+                sub.amountType = txout.amountType;
 
                 parts.append(sub);
             }
@@ -169,18 +195,21 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             //
             // Mixed debit transaction, can't break down payees
             //
-            CAmounts debits = {0};
-            CAmounts credits = {0};
-            if (nNet[CASH] < 0)
-                debits[CASH] = nNet[CASH];
-            else
-                credits[CASH] = nNet[CASH];
-            if (nNet[BOND] < 0)
-                debits[BOND] = nNet[BOND];
-            else
-                credits[BOND] = nNet[BOND];
-            parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", debits, credits));
-            parts.last().involvesWatchAddress = involvesWatchAddress;
+            if (nNet[CASH] != 0) {
+                if (nNet[CASH] < 0)
+                    parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", nNet[CASH], 0, CASH));
+                else
+                    parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", 0, nNet[CASH], CASH));
+                parts.last().involvesWatchAddress = involvesWatchAddress;
+            }
+
+            if (nNet[BOND] != 0) {
+                if (nNet[BOND] < 0)
+                    parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", nNet[BOND], 0, BOND));
+                else
+                    parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", 0, nNet[BOND], BOND));
+                parts.last().involvesWatchAddress = involvesWatchAddress;
+            }
         }
     }
 

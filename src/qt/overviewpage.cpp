@@ -45,22 +45,19 @@ public:
     {
         painter->save();
 
-        qint64 cashAmount = index.data(TransactionTableModel::CashAmountRole).toLongLong();
-        qint64 bondAmount = index.data(TransactionTableModel::BondAmountRole).toLongLong();
-
         QIcon icon = qvariant_cast<QIcon>(index.data(TransactionTableModel::RawDecorationRole));
         QRect mainRect = option.rect;
         QRect decorationRect(mainRect.topLeft(), QSize(DECORATION_SIZE, DECORATION_SIZE));
         int xspace = DECORATION_SIZE + 8;
         int ypad = 6;
-        bool showSecondAmount = cashAmount && bondAmount;
-        int rectHeight = (mainRect.height() - 2*ypad)/(2 + showSecondAmount);
+        int rectHeight = (mainRect.height() - 2*ypad)/2;
         QRect amountRect(mainRect.left() + xspace, mainRect.top()+ypad, mainRect.width() - xspace, rectHeight);
-        QRect amountRect2(mainRect.left() + xspace, mainRect.top()+ypad+rectHeight, mainRect.width() - xspace, rectHeight);
-        QRect addressRect(mainRect.left() + xspace, mainRect.top()+ypad+rectHeight+rectHeight*showSecondAmount, mainRect.width() - xspace, rectHeight);
+        QRect addressRect(mainRect.left() + xspace, mainRect.top()+ypad+rectHeight, mainRect.width() - xspace, rectHeight);
         icon = platformStyle->SingleColorIcon(icon);
         icon.paint(painter, decorationRect);
 
+        qint64 amount = index.data(TransactionTableModel::AmountRole).toLongLong();
+        CAmountType amountType = index.data(TransactionTableModel::AmountTypeRole).toLongLong();
         QDateTime date = index.data(TransactionTableModel::DateRole).toDateTime();
         QString address = index.data(Qt::DisplayRole).toString();
         bool confirmed = index.data(TransactionTableModel::ConfirmedRole).toBool();
@@ -84,11 +81,7 @@ public:
         QRect boundingRect;
         painter->drawText(addressRect, Qt::AlignLeft | Qt::AlignVCenter, address, &boundingRect);
 
-        // If cash and bond amounts are non-zero, show the negative one first
-        CAmountType firstAmountType = ((showSecondAmount && cashAmount < 0) || cashAmount > 0) ? CASH : BOND;
-        BitcoinUnit firstUnit = (firstAmountType == CASH) ? cashUnit : bondUnit;
-        qint64 firstAmount = (firstAmountType == CASH) ? cashAmount : bondAmount;
-        if(firstAmount < 0)
+        if(amount < 0)
         {
             foreground = COLOR_NEGATIVE;
         }
@@ -102,7 +95,8 @@ public:
         }
         painter->setPen(foreground);
 
-        QString amountText = BitcoinUnits::formatWithUnit(firstUnit, firstAmount, true, BitcoinUnits::SeparatorStyle::ALWAYS);
+        BitcoinUnit unit = (amountType == CASH) ? cashUnit : bondUnit;
+        QString amountText = BitcoinUnits::formatWithUnit(unit, amount, true, BitcoinUnits::SeparatorStyle::ALWAYS);
         if(!confirmed)
         {
             amountText = QString("[") + amountText + QString("]");
@@ -110,31 +104,6 @@ public:
 
         QRect amount_bounding_rect;
         painter->drawText(amountRect, Qt::AlignRight | Qt::AlignVCenter, amountText, &amount_bounding_rect);
-
-        if (showSecondAmount) {
-            BitcoinUnit secondUnit = (firstAmountType == BOND) ? cashUnit : bondUnit;
-            qint64 secondAmount = (firstAmountType == BOND) ? cashAmount : bondAmount;
-            if(secondAmount < 0)
-            {
-                foreground = COLOR_NEGATIVE;
-            }
-            else if(!confirmed)
-            {
-                foreground = COLOR_UNCONFIRMED;
-            }
-            else
-            {
-                foreground = option.palette.color(QPalette::Text);
-            }
-            painter->setPen(foreground);
-
-            QString amountText2 = BitcoinUnits::formatWithUnit(secondUnit, secondAmount, true, BitcoinUnits::SeparatorStyle::ALWAYS);
-            if(!confirmed)
-            {
-                amountText2 = QString("[") + amountText2 + QString("]");
-            }
-            painter->drawText(amountRect2, Qt::AlignRight | Qt::AlignVCenter, amountText2);
-        }
 
         painter->setPen(option.palette.color(QPalette::Text));
         QRect date_bounding_rect;
