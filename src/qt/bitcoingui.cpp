@@ -294,6 +294,8 @@ void BitcoinGUI::createActions()
     connect(sendCoinsAction, &QAction::triggered, [this]{ gotoSendCoinsPage(); });
     connect(receiveCoinsAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
     connect(receiveCoinsAction, &QAction::triggered, this, &BitcoinGUI::gotoReceiveCoinsPage);
+    connect(convertCoinsAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
+    connect(convertCoinsAction, &QAction::triggered, this, &BitcoinGUI::gotoConvertCoinsPage);
     connect(historyAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
     connect(historyAction, &QAction::triggered, this, &BitcoinGUI::gotoHistoryPage);
 #endif // ENABLE_WALLET
@@ -939,6 +941,12 @@ void BitcoinGUI::gotoHistoryPage()
 {
     historyAction->setChecked(true);
     if (walletFrame) walletFrame->gotoHistoryPage();
+}
+
+void BitcoinGUI::gotoConvertCoinsPage()
+{
+    convertCoinsAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoConvertCoinsPage();
 }
 
 void BitcoinGUI::gotoReceiveCoinsPage()

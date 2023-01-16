@@ -11,6 +11,7 @@
 #include <qt/optionsmodel.h>
 #include <qt/overviewpage.h>
 #include <qt/platformstyle.h>
+#include <qt/convertcoinsdialog.h>
 #include <qt/receivecoinsdialog.h>
 #include <qt/sendcoinsdialog.h>
 #include <qt/signverifymessagedialog.h>
@@ -58,6 +59,9 @@ WalletView::WalletView(WalletModel* wallet_model, const PlatformStyle* _platform
     vbox->addLayout(hbox_buttons);
     transactionsPage->setLayout(vbox);
 
+    convertCoinsPage = new ConvertCoinsDialog(platformStyle);
+    convertCoinsPage->setModel(walletModel);
+
     receiveCoinsPage = new ReceiveCoinsDialog(platformStyle);
     receiveCoinsPage->setModel(walletModel);
 
@@ -72,6 +76,7 @@ WalletView::WalletView(WalletModel* wallet_model, const PlatformStyle* _platform
 
     addWidget(overviewPage);
     addWidget(transactionsPage);
+    addWidget(convertCoinsPage);
     addWidget(receiveCoinsPage);
     addWidget(sendCoinsPage);
 
@@ -154,6 +159,11 @@ void WalletView::gotoOverviewPage()
 void WalletView::gotoHistoryPage()
 {
     setCurrentWidget(transactionsPage);
+}
+
+void WalletView::gotoConvertCoinsPage()
+{
+    setCurrentWidget(convertCoinsPage);
 }
 
 void WalletView::gotoReceiveCoinsPage()
