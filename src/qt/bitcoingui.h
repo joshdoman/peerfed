@@ -146,6 +146,7 @@ private:
     QAction* m_load_psbt_clipboard_action = nullptr;
     QAction* aboutAction = nullptr;
     QAction* receiveCoinsAction = nullptr;
+    QAction* convertCoinsAction = nullptr;
     QAction* optionsAction = nullptr;
     QAction* encryptWalletAction = nullptr;
     QAction* backupWalletAction = nullptr;

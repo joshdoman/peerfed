@@ -271,11 +271,18 @@ void BitcoinGUI::createActions()
     receiveCoinsAction->setShortcut(QKeySequence(QStringLiteral("Alt+3")));
     tabGroup->addAction(receiveCoinsAction);
 
+    convertCoinsAction = new QAction(platformStyle->SingleColorIcon(":/icons/send"), tr("&Convert"), this); // TODO: replace icon
+    convertCoinsAction->setStatusTip(tr("Convert between cash and bonds"));
+    convertCoinsAction->setToolTip(convertCoinsAction->statusTip());
+    convertCoinsAction->setCheckable(true);
+    convertCoinsAction->setShortcut(QKeySequence(QStringLiteral("Alt+4")));
+    tabGroup->addAction(convertCoinsAction);
+
     historyAction = new QAction(platformStyle->SingleColorIcon(":/icons/history"), tr("&Transactions"), this);
     historyAction->setStatusTip(tr("Browse transaction history"));
     historyAction->setToolTip(historyAction->statusTip());
     historyAction->setCheckable(true);
-    historyAction->setShortcut(QKeySequence(QStringLiteral("Alt+4")));
+    historyAction->setShortcut(QKeySequence(QStringLiteral("Alt+5")));
     tabGroup->addAction(historyAction);
 
 #ifdef ENABLE_WALLET
@@ -573,6 +580,7 @@ void BitcoinGUI::createToolBars()
         toolbar->addAction(overviewAction);
         toolbar->addAction(sendCoinsAction);
         toolbar->addAction(receiveCoinsAction);
+        toolbar->addAction(convertCoinsAction);
         toolbar->addAction(historyAction);
         overviewAction->setChecked(true);
 
@@ -773,6 +781,7 @@ void BitcoinGUI::setWalletActionsEnabled(bool enabled)
     overviewAction->setEnabled(enabled);
     sendCoinsAction->setEnabled(enabled);
     receiveCoinsAction->setEnabled(enabled);
+    convertCoinsAction->setEnabled(enabled);
     historyAction->setEnabled(enabled);
     encryptWalletAction->setEnabled(enabled);
     backupWalletAction->setEnabled(enabled);
@@ -1233,6 +1242,7 @@ void BitcoinGUI::changeEvent(QEvent *e)
         overviewAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/overview")));
         sendCoinsAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/send")));
         receiveCoinsAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/receiving_addresses")));
+        convertCoinsAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/send"))); // TODO: replace icon
         historyAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/history")));
     }
 
