@@ -53,27 +53,10 @@ private:
     Ui::ConvertCoinsDialog *ui;
     WalletModel *model;
     QMenu *contextMenu;
-    QAction* copyLabelAction;
-    QAction* copyMessageAction;
-    QAction* copyAmountAction;
     const PlatformStyle *platformStyle;
 
-    QModelIndex selectedRow();
-    void copyColumnToClipboard(int column);
-
 private Q_SLOTS:
-    void on_receiveButton_clicked();
-    void on_showRequestButton_clicked();
-    void on_removeRequestButton_clicked();
-    void on_recentRequestsView_doubleClicked(const QModelIndex &index);
-    void recentRequestsView_selectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
     void updateDisplayUnit();
-    void showMenu(const QPoint &point);
-    void copyURI();
-    void copyAddress();
-    void copyLabel();
-    void copyMessage();
-    void copyAmount();
 };
 
 #endif // BITCOIN_QT_CONVERTCOINSDIALOG_H
