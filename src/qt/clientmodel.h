@@ -8,6 +8,8 @@
 #include <QObject>
 #include <QDateTime>
 
+#include <consensus/amount.h>
+
 #include <atomic>
 #include <memory>
 #include <sync.h>
@@ -71,6 +73,7 @@ public:
     uint256 getBestBlockHash() EXCLUSIVE_LOCKS_REQUIRED(!m_cached_tip_mutex);
     int getHeaderTipHeight() const;
     int64_t getHeaderTipTime() const;
+    CAmounts getHeaderTipSupply() const;
 
     //! Returns enum BlockSource of the current importing/syncing state
     enum BlockSource getBlockSource() const;

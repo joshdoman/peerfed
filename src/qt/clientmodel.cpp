@@ -117,6 +117,11 @@ int64_t ClientModel::getHeaderTipTime() const
     return cachedBestHeaderTime;
 }
 
+CAmounts ClientModel::getHeaderTipSupply() const
+{
+    return {1000000000000, 1000000000000};
+}
+
 int ClientModel::getNumBlocks() const
 {
     if (m_cached_num_blocks == -1) {

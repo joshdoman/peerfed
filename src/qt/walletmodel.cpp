@@ -20,6 +20,7 @@
 
 #include <interfaces/handler.h>
 #include <interfaces/node.h>
+#include <consensus/tx_verify.h>
 #include <key_io.h>
 #include <node/interface_ui.h>
 #include <psbt.h>
@@ -613,6 +614,16 @@ void WalletModel::refresh(bool pk_hash_only)
 uint256 WalletModel::getLastBlockProcessed() const
 {
     return m_client_model ? m_client_model->getBestBlockHash() : uint256{};
+}
+
+CAmount WalletModel::estimateConversionOutputAmount(CAmount inputAmount, CAmountType inputType) const
+{
+    return m_client_model ? Consensus::CalculateOutputAmount(m_client_model->getHeaderTipSupply(), inputAmount, inputType) : 0;
+}
+
+CAmount WalletModel::estimateConversionInputAmount(CAmount outputAmount, CAmountType outputType) const
+{
+    return m_client_model ? Consensus::CalculateInputAmount(m_client_model->getHeaderTipSupply(), outputAmount, outputType) : 0;
 }
 
 CAmount WalletModel::getAvailableBalance(CAmountType type, const CCoinControl* control)

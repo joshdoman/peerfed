@@ -56,6 +56,9 @@ private:
     QMenu *contextMenu;
     const PlatformStyle *platformStyle;
 
+    CAmountType getInputType();
+    CAmountType getOutputType();
+
 private Q_SLOTS:
     void updateDisplayUnit();
 };

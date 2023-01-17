@@ -67,21 +67,30 @@ ConvertCoinsDialog::~ConvertCoinsDialog()
     delete ui;
 }
 
+CAmountType ConvertCoinsDialog::getInputType()
+{
+    return ui->radioTypeCashIn->isChecked() ? CASH : BOND;
+}
+
+CAmountType ConvertCoinsDialog::getOutputType()
+{
+    return !getInputType();
+}
+
 void ConvertCoinsDialog::updateConversionType()
 {
-    CAmountType inType = (ui->radioTypeCashIn->isChecked()) ? CASH : BOND;
+    CAmountType inType = getInputType();
+    CAmountType outType = getOutputType();
+
     if (inType != ui->reqAmountIn->type()) {
         // Conversion type has changed - set the amount field
         if (inputIsExact) {
-            LogPrintf("Set output: %d\n", ui->reqAmountIn->value());
             ui->reqAmountOut->setValue(ui->reqAmountIn->value());
         } else {
-            LogPrintf("Set input: %d\n", ui->reqAmountOut->value());
             ui->reqAmountIn->setValue(ui->reqAmountOut->value());
         }
     }
 
-    CAmountType outType = !inType;
     calculatingInput = true;   // Prevents setting type from calling onInputChanged calculation
     calculatingOutput = true;  // Prevents setting type from calling onOutputChanged calculation
     ui->reqAmountIn->setType(inType);
@@ -99,8 +108,8 @@ void ConvertCoinsDialog::onInputChanged()
         // Input changed by user
         inputIsExact = true;
         calculatingOutput = true;
-        LogPrintf("Set output: %d\n", ui->reqAmountIn->value() / 2);
-        ui->reqAmountOut->setValue(ui->reqAmountIn->value() / 2);
+        CAmount outputAmount = this->model->estimateConversionOutputAmount(ui->reqAmountIn->value(), getInputType());
+        ui->reqAmountOut->setValue(outputAmount);
     }
 }
 
@@ -113,8 +122,8 @@ void ConvertCoinsDialog::onOutputChanged()
         // Output changed by user
         inputIsExact = false;
         calculatingInput = true;
-        LogPrintf("Set input: %d\n", ui->reqAmountOut->value() / 2);
-        ui->reqAmountIn->setValue(ui->reqAmountOut->value() / 2);
+        CAmount inputAmount = this->model->estimateConversionInputAmount(ui->reqAmountOut->value(), getOutputType());
+        ui->reqAmountIn->setValue(inputAmount);
     }
 }
 
