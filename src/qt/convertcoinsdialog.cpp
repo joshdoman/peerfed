@@ -19,8 +19,6 @@
 #include <QSettings>
 #include <QTextDocument>
 
-#include <logging.h>
-
 ConvertCoinsDialog::ConvertCoinsDialog(const PlatformStyle *_platformStyle, QWidget *parent) :
     QDialog(parent, GUIUtil::dialog_flags),
     ui(new Ui::ConvertCoinsDialog),
