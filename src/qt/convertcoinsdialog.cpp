@@ -19,6 +19,8 @@
 #include <QSettings>
 #include <QTextDocument>
 
+#include <logging.h>
+
 ConvertCoinsDialog::ConvertCoinsDialog(const PlatformStyle *_platformStyle, QWidget *parent) :
     QDialog(parent, GUIUtil::dialog_flags),
     ui(new Ui::ConvertCoinsDialog),
@@ -35,12 +37,31 @@ ConvertCoinsDialog::ConvertCoinsDialog(const PlatformStyle *_platformStyle, QWid
         ui->convertButton->setIcon(_platformStyle->SingleColorIcon(":/icons/receiving_addresses"));
     }
 
+    ui->reqSlippage->setValue(DEFAULT_SLIPPAGE);
+    ui->reqSlippage->setSingleStep(0.01);
+
+    #if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
+        connect(ui->groupType, &QButtonGroup::idClicked, this, &ConvertCoinsDialog::updateConversionType);
+    #else
+        connect(ui->groupType, qOverload<int>(&QButtonGroup::buttonClicked), this, &ConvertCoinsDialog::updateConversionType);
+    #endif
+
+    connect(ui->reqAmountIn, &BitcoinAmountField::valueChanged, this, &ConvertCoinsDialog::onInputChanged);
+    connect(ui->reqAmountOut, &BitcoinAmountField::valueChanged, this, &ConvertCoinsDialog::onOutputChanged);
     connect(ui->clearButton, &QPushButton::clicked, this, &ConvertCoinsDialog::clear);
+
+    updateConversionType();
 }
 
 void ConvertCoinsDialog::setModel(WalletModel *_model)
 {
     this->model = _model;
+
+    if(_model && _model->getOptionsModel())
+    {
+        connect(_model->getOptionsModel(), &OptionsModel::displayUnitChanged, this, &ConvertCoinsDialog::updateDisplayUnit);
+        updateDisplayUnit();
+    }
 }
 
 ConvertCoinsDialog::~ConvertCoinsDialog()
@@ -48,10 +69,62 @@ ConvertCoinsDialog::~ConvertCoinsDialog()
     delete ui;
 }
 
+void ConvertCoinsDialog::updateConversionType()
+{
+    CAmountType inType = (ui->radioTypeCashIn->isChecked()) ? CASH : BOND;
+    if (inType != ui->reqAmountIn->type()) {
+        // Conversion type has changed - set the amount field
+        if (inputIsExact) {
+            LogPrintf("Set output: %d\n", ui->reqAmountIn->value());
+            ui->reqAmountOut->setValue(ui->reqAmountIn->value());
+        } else {
+            LogPrintf("Set input: %d\n", ui->reqAmountOut->value());
+            ui->reqAmountIn->setValue(ui->reqAmountOut->value());
+        }
+    }
+
+    CAmountType outType = !inType;
+    calculatingInput = true;   // Prevents setting type from calling onInputChanged calculation
+    calculatingOutput = true;  // Prevents setting type from calling onOutputChanged calculation
+    ui->reqAmountIn->setType(inType);
+    ui->reqAmountOut->setType(outType);
+    calculatingInput = false;  // Set to false because setType() does not call onInputChanged on first load
+    calculatingOutput = false; // Set to false because setType() does not call onOutputChanged on first load
+}
+
+void ConvertCoinsDialog::onInputChanged()
+{
+    if (calculatingInput) {
+        // Input changed as a result of calculation after user changed output
+        calculatingInput = false;
+    } else {
+        // Input changed by user
+        inputIsExact = true;
+        calculatingOutput = true;
+        LogPrintf("Set output: %d\n", ui->reqAmountIn->value() / 2);
+        ui->reqAmountOut->setValue(ui->reqAmountIn->value() / 2);
+    }
+}
+
+void ConvertCoinsDialog::onOutputChanged()
+{
+    if (calculatingOutput) {
+        // Input changed as a result of calculation after user changed output
+        calculatingOutput = false;
+    } else {
+        // Output changed by user
+        inputIsExact = false;
+        calculatingInput = true;
+        LogPrintf("Set input: %d\n", ui->reqAmountOut->value() / 2);
+        ui->reqAmountIn->setValue(ui->reqAmountOut->value() / 2);
+    }
+}
+
 void ConvertCoinsDialog::clear()
 {
     ui->reqAmountIn->clear();
     ui->reqAmountOut->clear();
+    ui->reqSlippage->setValue(DEFAULT_SLIPPAGE);
     updateDisplayUnit();
 }
 

@@ -47,7 +47,7 @@
            <string>An optional amount to request. Leave this empty or zero to not request a specific amount.</string>
           </property>
           <property name="text">
-           <string>Amount In:</string>
+           <string>Input:</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -63,13 +63,29 @@
            <string>An optional amount to request. Leave this empty or zero to not request a specific amount.</string>
           </property>
           <property name="text">
-           <string>Amount Out:</string>
+           <string>Output:</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
           <property name="buddy">
            <cstring>reqAmountOut</cstring>
+          </property>
+         </widget>
+        </item>
+        <item row="7" column="0">
+         <widget class="QLabel" name="labelSlippage">
+          <property name="toolTip">
+           <string>Transaction will fail if price changes unfavorably by more than this amount.</string>
+          </property>
+          <property name="text">
+           <string>Slippage tolerance:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="buddy">
+           <cstring>reqSlippage</cstring>
           </property>
          </widget>
         </item>
@@ -123,7 +139,7 @@
           </item>
          </layout>
         </item>
-        <item row="7" column="2">
+        <item row="8" column="2">
          <layout class="QHBoxLayout" name="horizontalLayout_2">
           <item>
            <widget class="QPushButton" name="convertButton">
@@ -186,7 +202,7 @@
           </item>
          </layout>
         </item>
-        <item row="7" column="0">
+        <item row="8" column="0">
          <widget class="QLabel" name="label_7">
           <property name="text">
            <string/>
@@ -236,7 +252,7 @@
          </layout>
         </item>
         <item row="5" column="2">
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
           <item>
            <widget class="BitcoinAmountField" name="reqAmountOut">
             <property name="sizePolicy">
@@ -264,6 +280,60 @@
           </item>
           <item>
            <spacer name="horizontalSpacer_4">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item row="7" column="2">
+         <layout class="QHBoxLayout" name="horizontalLayout_5">
+          <item>
+           <widget class="QDoubleSpinBox" name="reqSlippage">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>1000</width>
+              <height>100</height>
+             </size>
+            </property>
+            <property name="decimals">
+                <number>2</number>
+            </property>
+            <property name="maximum">
+                <number>50</number>
+            </property>
+            <property name="suffix">
+                <string>&#37;</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="toolTip">
+             <string>The amount of allowable slippage.</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_5">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -312,6 +382,7 @@
   <tabstop>reqAmountOut</tabstop>
   <tabstop>convertButton</tabstop>
   <tabstop>clearButton</tabstop>
+  <tabstop>reqSlippage</tabstop>
  </tabstops>
  <resources>
   <include location="../bitcoin.qrc"/>

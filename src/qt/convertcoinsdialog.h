@@ -32,12 +32,7 @@ class ConvertCoinsDialog : public QDialog
     Q_OBJECT
 
 public:
-    enum ColumnWidths {
-        DATE_COLUMN_WIDTH = 130,
-        LABEL_COLUMN_WIDTH = 120,
-        AMOUNT_MINIMUM_COLUMN_WIDTH = 180,
-        MINIMUM_COLUMN_WIDTH = 130
-    };
+    double DEFAULT_SLIPPAGE = 0.5;
 
     explicit ConvertCoinsDialog(const PlatformStyle *platformStyle, QWidget *parent = nullptr);
     ~ConvertCoinsDialog();
@@ -45,11 +40,17 @@ public:
     void setModel(WalletModel *model);
 
 public Q_SLOTS:
+    void updateConversionType();
+    void onInputChanged();
+    void onOutputChanged();
     void clear();
     void reject() override;
     void accept() override;
 
 private:
+    bool inputIsExact = true; // if false, output is exact
+    bool calculatingInput = false;
+    bool calculatingOutput = false;
     Ui::ConvertCoinsDialog *ui;
     WalletModel *model;
     QMenu *contextMenu;
