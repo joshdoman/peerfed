@@ -618,12 +618,12 @@ uint256 WalletModel::getLastBlockProcessed() const
 
 CAmount WalletModel::estimateConversionOutputAmount(CAmount inputAmount, CAmountType inputType) const
 {
-    return m_client_model ? Consensus::CalculateOutputAmount(m_client_model->getHeaderTipSupply(), inputAmount, inputType) : 0;
+    return m_client_model ? Consensus::CalculateOutputAmount(m_client_model->getBestTotalSupply(), inputAmount, inputType) : 0;
 }
 
 CAmount WalletModel::estimateConversionInputAmount(CAmount outputAmount, CAmountType outputType) const
 {
-    return m_client_model ? Consensus::CalculateInputAmount(m_client_model->getHeaderTipSupply(), outputAmount, outputType) : 0;
+    return m_client_model ? Consensus::CalculateInputAmount(m_client_model->getBestTotalSupply(), outputAmount, outputType) : 0;
 }
 
 CAmount WalletModel::getAvailableBalance(CAmountType type, const CCoinControl* control)

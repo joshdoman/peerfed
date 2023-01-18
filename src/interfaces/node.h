@@ -168,6 +168,9 @@ public:
     //! Get best block hash.
     virtual uint256 getBestBlockHash() = 0;
 
+    //! Get best total supply.
+    virtual CAmounts getBestTotalSupply() = 0;
+
     //! Get last block time.
     virtual int64_t getLastBlockTime() = 0;
 
@@ -277,6 +280,7 @@ struct BlockTip {
     int block_height;
     int64_t block_time;
     uint256 block_hash;
+    CAmounts block_supply;
 };
 
 } // namespace interfaces

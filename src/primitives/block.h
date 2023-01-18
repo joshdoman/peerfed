@@ -117,6 +117,14 @@ public:
     }
 
     std::string ToString() const;
+
+    CAmounts GetTotalSupply() const
+    {
+        CAmounts totalSupply = {0};
+        totalSupply[CASH] = cashSupply;
+        totalSupply[BOND] = bondSupply;
+        return totalSupply;
+    }
 };
 
 /** Describes a place in the block chain to another node such that if the

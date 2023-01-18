@@ -36,6 +36,18 @@ namespace Consensus {
  * @param[out] extraOutput Set to the necessary output amount so that the invariant is same-in, same-out.
  */
 [[nodiscard]] bool IsValidConversion(CAmounts& totalSupply, const CAmounts inputs, const CAmounts minOutputs, const CAmountType extraType, CAmount& extraOutput);
+
+/**
+ * Calculate output amount if conversion transaction is executed immediately after given block.
+ * Not consensus critical.
+ */
+[[nodiscard]] CAmount CalculateOutputAmount(CAmounts totalSupply, CAmount inputAmount, CAmountType inputType);
+
+/**
+ * Calculate input amount if conversion transaction is executed immediately after given block.
+ * Not consensus critical.
+ */
+[[nodiscard]] CAmount CalculateInputAmount(CAmounts totalSupply, CAmount outputAmount, CAmountType outputType);
 } // namespace Consensus
 
 /** Auxiliary functions for transaction validation (ideally should not be exposed) */
