@@ -47,6 +47,7 @@ ConvertCoinsDialog::ConvertCoinsDialog(const PlatformStyle *_platformStyle, QWid
 
     connect(ui->reqAmountIn, &BitcoinAmountField::valueChanged, this, &ConvertCoinsDialog::onInputChanged);
     connect(ui->reqAmountOut, &BitcoinAmountField::valueChanged, this, &ConvertCoinsDialog::onOutputChanged);
+    connect(ui->convertButton, &QPushButton::clicked, this, &ConvertCoinsDialog::convertButtonClicked);
     connect(ui->clearButton, &QPushButton::clicked, this, &ConvertCoinsDialog::clear);
 
     updateConversionType();
@@ -144,6 +145,21 @@ void ConvertCoinsDialog::recalculate()
         CAmount inputAmount = this->model->estimateConversionInputAmount(ui->reqAmountOut->value(), getOutputType());
         ui->reqAmountIn->setValue(inputAmount);
     }
+}
+
+void ConvertCoinsDialog::convertButtonClicked()
+{
+    CAmount maxInput = ui->reqAmountIn->value();
+    CAmount minOutput = ui->reqAmountOut->value();
+    if (inputIsExact) {
+        // Apply slippage to output
+        minOutput = int(double(minOutput) * (1 - double(ui->reqSlippage->value()) / 100));
+    } else {
+        // Apply slippage to input
+        maxInput = int(double(maxInput) / (1 - double(ui->reqSlippage->value()) / 100));
+    }
+    CAmountType remainderType = inputIsExact ? getOutputType() : getInputType();
+    m_current_transaction = std::make_unique<WalletModelConversionTransaction>(maxInput, minOutput, getInputType(), getOutputType(), remainderType);
 }
 
 void ConvertCoinsDialog::clear()

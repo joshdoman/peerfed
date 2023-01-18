@@ -25,11 +25,11 @@ public:
 
     void setTransactionFee(const CAmount& newFee, const CAmountType& newFeeType);
     CAmount getTransactionFee() const;
-    CAmount getTransactionFeeType() const;
+    CAmountType getTransactionFeeType() const;
 
 private:
     CAmount maxInput;
-    CAmount maxOutput;
+    CAmount minOutput;
     CAmountType inputType;
     CAmountType outputType;
     CAmountType remainderType;

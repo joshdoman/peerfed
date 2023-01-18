@@ -12,6 +12,7 @@
 #include <key.h>
 #include <script/standard.h>
 
+#include <qt/walletmodelconversiontransaction.h>
 #include <qt/walletmodeltransaction.h>
 
 #include <interfaces/wallet.h>
@@ -30,6 +31,7 @@ class PlatformStyle;
 class RecentRequestsTableModel;
 class SendCoinsRecipient;
 class TransactionTableModel;
+class WalletModelConversionTransaction;
 class WalletModelTransaction;
 
 class CKeyID;

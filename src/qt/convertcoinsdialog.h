@@ -6,6 +6,7 @@
 #define BITCOIN_QT_CONVERTCOINSDIALOG_H
 
 #include <qt/guiutil.h>
+#include <qt/walletmodel.h>
 
 #include <QDialog>
 #include <QHeaderView>
@@ -45,6 +46,7 @@ public Q_SLOTS:
     void updateConversionType();
     void onInputChanged();
     void onOutputChanged();
+    void convertButtonClicked();
     void clear();
     void reject() override;
     void accept() override;
@@ -58,6 +60,8 @@ private:
     WalletModel *model;
     QMenu *contextMenu;
     const PlatformStyle *platformStyle;
+
+    std::unique_ptr<WalletModelConversionTransaction> m_current_transaction;
 
     CAmountType getInputType();
     CAmountType getOutputType();

@@ -18,36 +18,36 @@ WalletModelConversionTransaction::WalletModelConversionTransaction(const CAmount
     outputType(_outputType),
     remainderType(_remainderType),
     fee(0),
-    feeType(0),
+    feeType(0)
 {
 }
 
-CTransactionRef& WalletModelTransaction::getWtx()
+CTransactionRef& WalletModelConversionTransaction::getWtx()
 {
     return wtx;
 }
 
-void WalletModelTransaction::setWtx(const CTransactionRef& newTx)
+void WalletModelConversionTransaction::setWtx(const CTransactionRef& newTx)
 {
     wtx = newTx;
 }
 
-unsigned int WalletModelTransaction::getTransactionSize()
+unsigned int WalletModelConversionTransaction::getTransactionSize()
 {
     return wtx ? GetVirtualTransactionSize(*wtx) : 0;
 }
 
-CAmount WalletModelTransaction::getTransactionFee() const
+CAmount WalletModelConversionTransaction::getTransactionFee() const
 {
     return fee;
 }
 
-CAmountType WalletModelTransaction::getTransactionFeeType() const
+CAmountType WalletModelConversionTransaction::getTransactionFeeType() const
 {
     return feeType;
 }
 
-void WalletModelTransaction::setTransactionFee(const CAmount& newFee, const CAmountType& newFeeType)
+void WalletModelConversionTransaction::setTransactionFee(const CAmount& newFee, const CAmountType& newFeeType)
 {
     fee = newFee;
     feeType = newFeeType;
