@@ -16,6 +16,7 @@
 #include <QVariant>
 
 class PlatformStyle;
+class ClientModel;
 class WalletModel;
 
 namespace Ui {
@@ -37,6 +38,7 @@ public:
     explicit ConvertCoinsDialog(const PlatformStyle *platformStyle, QWidget *parent = nullptr);
     ~ConvertCoinsDialog();
 
+    void setClientModel(ClientModel *clientModel);
     void setModel(WalletModel *model);
 
 public Q_SLOTS:
@@ -52,6 +54,7 @@ private:
     bool calculatingInput = false;
     bool calculatingOutput = false;
     Ui::ConvertCoinsDialog *ui;
+    ClientModel *clientModel;
     WalletModel *model;
     QMenu *contextMenu;
     const PlatformStyle *platformStyle;
@@ -61,6 +64,7 @@ private:
 
 private Q_SLOTS:
     void updateDisplayUnit();
+    void recalculate();
 };
 
 #endif // BITCOIN_QT_CONVERTCOINSDIALOG_H

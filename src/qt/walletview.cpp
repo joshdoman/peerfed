@@ -124,6 +124,7 @@ void WalletView::setClientModel(ClientModel *_clientModel)
 
     overviewPage->setClientModel(_clientModel);
     sendCoinsPage->setClientModel(_clientModel);
+    convertCoinsPage->setClientModel(_clientModel);
     walletModel->setClientModel(_clientModel);
 }
 

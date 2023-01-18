@@ -7,6 +7,7 @@
 #include <qt/convertcoinsdialog.h>
 #include <qt/forms/ui_convertcoinsdialog.h>
 
+#include <qt/clientmodel.h>
 #include <qt/guiutil.h>
 #include <qt/optionsmodel.h>
 #include <qt/platformstyle.h>
@@ -49,6 +50,15 @@ ConvertCoinsDialog::ConvertCoinsDialog(const PlatformStyle *_platformStyle, QWid
     connect(ui->clearButton, &QPushButton::clicked, this, &ConvertCoinsDialog::clear);
 
     updateConversionType();
+}
+
+void ConvertCoinsDialog::setClientModel(ClientModel *_clientModel)
+{
+    this->clientModel = _clientModel;
+
+    if (_clientModel) {
+        connect(_clientModel, &ClientModel::numBlocksChanged, this, &ConvertCoinsDialog::recalculate);
+    }
 }
 
 void ConvertCoinsDialog::setModel(WalletModel *_model)
@@ -102,25 +112,34 @@ void ConvertCoinsDialog::updateConversionType()
 void ConvertCoinsDialog::onInputChanged()
 {
     if (calculatingInput) {
-        // Input changed as a result of calculation after user changed output
+        // Already recalculating - don't recalculate again
         calculatingInput = false;
     } else {
         // Input changed by user
         inputIsExact = true;
-        calculatingOutput = true;
-        CAmount outputAmount = this->model->estimateConversionOutputAmount(ui->reqAmountIn->value(), getInputType());
-        ui->reqAmountOut->setValue(outputAmount);
+        recalculate();
     }
 }
 
 void ConvertCoinsDialog::onOutputChanged()
 {
     if (calculatingOutput) {
-        // Input changed as a result of calculation after user changed output
+        // Already recalculating - don't recalculate again
         calculatingOutput = false;
     } else {
         // Output changed by user
         inputIsExact = false;
+        recalculate();
+    }
+}
+
+void ConvertCoinsDialog::recalculate()
+{
+    if (inputIsExact) {
+        calculatingOutput = true;
+        CAmount outputAmount = this->model->estimateConversionOutputAmount(ui->reqAmountIn->value(), getInputType());
+        ui->reqAmountOut->setValue(outputAmount);
+    } else {
         calculatingInput = true;
         CAmount inputAmount = this->model->estimateConversionInputAmount(ui->reqAmountOut->value(), getOutputType());
         ui->reqAmountIn->setValue(inputAmount);
