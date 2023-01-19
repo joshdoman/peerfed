@@ -170,7 +170,7 @@ void ConvertCoinsDialog::convertButtonClicked()
 
     m_coin_control = std::make_unique<CCoinControl>(); // TODO: Implement coin control
     m_coin_control->m_feerate = CFeeRate(100000); // TODO: Implement fee rate (currently 0.001)
-    m_coin_control->m_fee_type = CASH;
+    m_coin_control->m_fee_type = getInputType(); // TODO: Allow user to choose fee type (input or output / cash or bond)
 
     WalletModel::ConvertCoinsReturn prepareStatus = model->prepareTransaction(*m_current_transaction, *m_coin_control);
     BitcoinUnit unit = BitcoinUnits::unitOfType(model->getOptionsModel()->getDisplayUnit(), m_current_transaction->getTransactionFeeType());
@@ -231,6 +231,8 @@ void ConvertCoinsDialog::convertButtonClicked()
             // now send the prepared transaction
             model->convertCoins(*m_current_transaction);
             Q_EMIT coinsConverted(m_current_transaction->getWtx()->GetHash());
+            // update the cached total supply so that a follow-up transaction is calculated properly
+            clientModel->updateBestSupplyPostConversion(ui->reqAmountIn->value(), ui->reqAmountOut->value(), getInputType(), getOutputType());
         }
     }
     if (!send_failure) {

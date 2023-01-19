@@ -75,6 +75,8 @@ public:
     int getHeaderTipHeight() const;
     int64_t getHeaderTipTime() const;
 
+    void updateBestSupplyPostConversion(CAmount expectedInput, CAmount expectedOutput, CAmountType inputType, CAmountType outputType);
+
     //! Returns enum BlockSource of the current importing/syncing state
     enum BlockSource getBlockSource() const;
     //! Return warnings to be displayed in status bar

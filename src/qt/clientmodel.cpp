@@ -238,6 +238,16 @@ QString ClientModel::blocksDir() const
     return GUIUtil::PathToQString(gArgs.GetBlocksDirPath());
 }
 
+void ClientModel::updateBestSupplyPostConversion(CAmount expectedInput, CAmount expectedOutput, CAmountType inputType, CAmountType outputType)
+{
+    CAmounts tip{WITH_LOCK(m_cached_tip_mutex, return m_cached_tip_supply)};
+
+    tip[inputType] -= expectedInput;
+    tip[outputType] += expectedOutput;
+
+    WITH_LOCK(m_cached_tip_mutex, m_cached_tip_supply = tip;);
+}
+
 void ClientModel::TipChanged(SynchronizationState sync_state, interfaces::BlockTip tip, double verification_progress, SyncType synctype)
 {
     if (synctype == SyncType::HEADER_SYNC) {

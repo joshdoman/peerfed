@@ -223,11 +223,27 @@ bool BlockAssembler::TestPackage(uint64_t packageSize, int64_t packageSigOpsCost
 
 // Perform transaction-level checks before adding to block:
 // - transaction finality (locktime)
+// - conversion validity for current block supply
 bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& package) const
 {
+    // Track changes to total supply after each conversion tx in package
+    CBlock* const pblock = &pblocktemplate->block; // pointer for convenience
+    CAmounts totalSupply = {0};
+    totalSupply[CASH] = pblock->cashSupply;
+    totalSupply[BOND] = pblock->bondSupply;
+
     for (CTxMemPool::txiter it : package) {
         if (!IsFinalTx(it->GetTx(), nHeight, m_lock_time_cutoff)) {
             return false;
+        }
+
+        std::optional<CTxConversionInfo> conversionDest = it->GetConversionDest();
+        if (conversionDest) {
+            CAmountType amountType = 0;
+            CAmount nAmount = 0;
+            if (!Consensus::IsValidConversion(totalSupply, conversionDest.value().inputs, conversionDest.value().minOutputs, amountType, nAmount)) {
+                return false;
+            }
         }
     }
     return true;
