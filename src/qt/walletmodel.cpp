@@ -37,6 +37,7 @@
 #include <QSet>
 #include <QTimer>
 
+using interfaces::WalletConversionTxDetails;
 using wallet::CCoinControl;
 using wallet::CRecipient;
 using wallet::DEFAULT_DISABLE_WALLET;
@@ -290,6 +291,73 @@ void WalletModel::sendCoins(WalletModelTransaction& transaction)
             }
         }
         Q_EMIT coinsSent(this, rcp, transaction_array);
+    }
+
+    checkBalanceChanged(m_wallet->getBalances()); // update balance immediately, otherwise there could be a short noticeable delay until pollBalanceChanged hits
+}
+
+WalletModel::ConvertCoinsReturn WalletModel::prepareTransaction(WalletModelConversionTransaction &transaction, const CCoinControl& coinControl)
+{
+    // If no coin was manually selected, use the cached balance
+    // Future: can merge this call with 'createConversionTransaction'.
+    CAmount inputBalance = getAvailableBalance(transaction.getInputType(), &coinControl);
+
+    if(transaction.getMaxInput() > inputBalance)
+    {
+        return InputAmountExceedsBalance;
+    }
+
+    if(transaction.getMaxInput() <= 0)
+    {
+        return InvalidInputAmount;
+    }
+
+    if(transaction.getMinOutput() < 0)
+    {
+        return InvalidOutputAmount;
+    }
+
+    {
+        CAmount nFeeRequired = 0;
+        CAmountType nFeeTypeRequired = 0;
+        int nChangePosRet = -1;
+
+        auto& newTx = transaction.getWtx();
+        WalletConversionTxDetails txDetails = {transaction.getMaxInput(), transaction.getMinOutput(), transaction.getInputType(), transaction.getOutputType(), transaction.getRemainderType()};
+        const auto& res = m_wallet->createConversionTransaction(txDetails, coinControl, !wallet().privateKeysDisabled() /* sign */, nChangePosRet, nFeeRequired, nFeeTypeRequired);
+        newTx = res ? *res : nullptr;
+        transaction.setTransactionFee(nFeeRequired, nFeeTypeRequired);
+
+        if(!newTx)
+        {
+            if (nFeeTypeRequired == transaction.getOutputType() && nFeeRequired > transaction.getMinOutput())
+            {
+                return ConvertCoinsReturn(FeeExceedsOutputAmount);
+            }
+            if (nFeeTypeRequired == transaction.getInputType() && (nFeeRequired + transaction.getMaxInput()) > inputBalance)
+            {
+                return ConvertCoinsReturn(InputAmountWithFeeExceedsBalance);
+            }
+            Q_EMIT message(tr("Convert Coins"), QString::fromStdString(util::ErrorString(res).translated),
+                CClientUIInterface::MSG_ERROR);
+            return ConversionCreationFailed;
+        }
+    }
+
+    return ConvertCoinsReturn(ConversionOK);
+}
+
+void WalletModel::convertCoins(WalletModelConversionTransaction& transaction)
+{
+    QByteArray transaction_array; /* store serialized transaction */
+
+    {
+        auto& newTx = transaction.getWtx();
+        wallet().commitTransaction(newTx, {} /* mapValue */, {} /* orderForm */);
+
+        CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
+        ssTx << *newTx;
+        transaction_array.append((const char*)ssTx.data(), ssTx.size());
     }
 
     checkBalanceChanged(m_wallet->getBalances()); // update balance immediately, otherwise there could be a short noticeable delay until pollBalanceChanged hits

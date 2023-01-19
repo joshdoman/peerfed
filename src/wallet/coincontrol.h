@@ -44,6 +44,8 @@ public:
     bool fOverrideFeeRate = false;
     //! Override the wallet's m_pay_tx_fee if set
     std::optional<CFeeRate> m_feerate;
+    //! Override the wallet's m_pay_tx_fee_type if set
+    std::optional<CAmountType> m_fee_type;
     //! Override the default confirmation target if set
     std::optional<unsigned int> m_confirm_target;
     //! Override the wallet's m_signal_rbf if set

@@ -41,6 +41,7 @@ class uint256;
 
 namespace interfaces {
 class Node;
+struct WalletConversionTxDetails;
 } // namespace interfaces
 namespace wallet {
 class CCoinControl;
@@ -69,6 +70,17 @@ public:
         DuplicateAddress,
         TransactionCreationFailed, // Error returned when wallet is still locked
         AbsurdFee
+    };
+
+    enum ConversionStatusCode // Returned by convertCoins
+    {
+        ConversionOK,
+        InvalidInputAmount,
+        InvalidOutputAmount,
+        InputAmountExceedsBalance,
+        InputAmountWithFeeExceedsBalance,
+        FeeExceedsOutputAmount,
+        ConversionCreationFailed // Error returned when wallet is still locked
     };
 
     enum EncryptionStatus
@@ -101,11 +113,29 @@ public:
         QString reasonCommitFailed;
     };
 
+    // Return status record for ConvertCoins, contains error id + information
+    struct ConvertCoinsReturn
+    {
+        ConvertCoinsReturn(ConversionStatusCode _status = ConversionOK, QString _reasonCommitFailed = "")
+            : status(_status),
+              reasonCommitFailed(_reasonCommitFailed)
+        {
+        }
+        ConversionStatusCode status;
+        QString reasonCommitFailed;
+    };
+
     // prepare transaction for getting txfee before sending coins
     SendCoinsReturn prepareTransaction(WalletModelTransaction &transaction, const wallet::CCoinControl& coinControl);
 
+    // prepare transaction for getting txfee before converting coins
+    ConvertCoinsReturn prepareTransaction(WalletModelConversionTransaction &transaction, const wallet::CCoinControl& coinControl);
+
     // Send coins to a list of recipients
     void sendCoins(WalletModelTransaction& transaction);
+
+    // Convert coins
+    void convertCoins(WalletModelConversionTransaction& transaction);
 
     // Wallet encryption
     bool setWalletEncrypted(const SecureString& passphrase);

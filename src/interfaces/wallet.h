@@ -54,6 +54,16 @@ struct WalletTxStatus;
 using WalletOrderForm = std::vector<std::pair<std::string, std::string>>;
 using WalletValueMap = std::map<std::string, std::string>;
 
+//! Wallet conversion transaction details
+struct WalletConversionTxDetails
+{
+    CAmount maxInput;
+    CAmount minOutput;
+    CAmountType inputType;
+    CAmountType outputType;
+    CAmountType remainderType;
+};
+
 //! Interface for accessing a wallet.
 class Wallet
 {
@@ -145,6 +155,14 @@ public:
         bool sign,
         int& change_pos,
         CAmount& fee) = 0;
+
+    //! Create conversion transaction.
+    virtual util::Result<CTransactionRef> createConversionTransaction(const WalletConversionTxDetails& tx_details,
+        const wallet::CCoinControl& coin_control,
+        bool sign,
+        int& change_pos,
+        CAmount& fee,
+        CAmountType& feeType) = 0;
 
     //! Commit transaction.
     virtual void commitTransaction(CTransactionRef tx,

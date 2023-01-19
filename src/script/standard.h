@@ -202,7 +202,7 @@ CScript GetScriptForDestination(const CTxDestination& dest);
 CScript GetScriptForRawPubKey(const CPubKey& pubkey);
 
 /** Generate a scriptPubKey for the given CTxConversionInfo. */
-CScript GetScriptForConversionInfo(const CTxConversionInfo& info);
+CScript GetConversionScript(const bool& remainderType, const CScript& remainderScript);
 
 /** Determine if script is a "multi_a" script. Returns (threshold, keyspans) if so, and nullopt otherwise.
  *  The keyspans refer to bytes in the passed script. */

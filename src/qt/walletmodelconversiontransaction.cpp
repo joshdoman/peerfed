@@ -22,6 +22,31 @@ WalletModelConversionTransaction::WalletModelConversionTransaction(const CAmount
 {
 }
 
+CAmount WalletModelConversionTransaction::getMaxInput()
+{
+    return maxInput;
+}
+
+CAmount WalletModelConversionTransaction::getMinOutput()
+{
+    return minOutput;
+}
+
+CAmountType WalletModelConversionTransaction::getInputType()
+{
+    return inputType;
+}
+
+CAmountType WalletModelConversionTransaction::getOutputType()
+{
+    return outputType;
+}
+
+CAmountType WalletModelConversionTransaction::getRemainderType()
+{
+    return remainderType;
+}
+
 CTransactionRef& WalletModelConversionTransaction::getWtx()
 {
     return wtx;

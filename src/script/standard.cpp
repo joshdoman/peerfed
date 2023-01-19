@@ -356,9 +356,9 @@ CScript GetScriptForRawPubKey(const CPubKey& pubKey)
     return CScript() << std::vector<unsigned char>(pubKey.begin(), pubKey.end()) << OP_CHECKSIG;
 }
 
-CScript GetScriptForConversionInfo(const CTxConversionInfo& info)
+CScript GetConversionScript(const bool& remainderType, const CScript& remainderScript)
 {
-    return CScript() << OP_CONVERT << info.slippageType << std::vector<unsigned char>(info.scriptPubKey.begin(), info.scriptPubKey.end());
+    return CScript() << OP_CONVERT << remainderType << std::vector<unsigned char>(remainderScript.begin(), remainderScript.end());
 }
 
 CScript GetScriptForMultisig(int nRequired, const std::vector<CPubKey>& keys)

@@ -75,6 +75,8 @@ std::unique_ptr<WalletDatabase> MakeWalletDatabase(const std::string& name, cons
 
 //! -paytxfee default
 constexpr CAmount DEFAULT_PAY_TX_FEE = 0;
+//! -paytxfeetype default
+constexpr CAmountType DEFAULT_PAY_TX_FEE_TYPE = CASH;
 //! -fallbackfee default
 static const CAmount DEFAULT_FALLBACK_FEE = 0;
 //! -discardfee default
@@ -606,6 +608,7 @@ public:
     bool ImportScriptPubKeys(const std::string& label, const std::set<CScript>& script_pub_keys, const bool have_solving_data, const bool apply_label, const int64_t timestamp) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     CFeeRate m_pay_tx_fee{DEFAULT_PAY_TX_FEE};
+    CAmount m_pay_tx_fee_type{DEFAULT_PAY_TX_FEE_TYPE};
     unsigned int m_confirm_target{DEFAULT_TX_CONFIRM_TARGET};
     /** Allow Coin Selection to pick unconfirmed UTXOs that were sent from our own wallet if it
      * cannot fund the transaction otherwise. */

@@ -6,6 +6,7 @@
 #define BITCOIN_WALLET_SPEND_H
 
 #include <consensus/amount.h>
+#include <interfaces/wallet.h>
 #include <policy/fees.h> // for FeeCalculation
 #include <util/result.h>
 #include <wallet/coinselection.h>
@@ -13,6 +14,8 @@
 #include <wallet/wallet.h>
 
 #include <optional>
+
+using interfaces::WalletConversionTxDetails;
 
 namespace wallet {
 /** Get the marginal bytes if spending the specified output from this transaction.
@@ -147,11 +150,12 @@ struct CreatedTransactionResult
 {
     CTransactionRef tx;
     CAmount fee;
+    CAmountType feeType;
     FeeCalculation fee_calc;
     int change_pos;
 
-    CreatedTransactionResult(CTransactionRef _tx, CAmount _fee, int _change_pos, const FeeCalculation& _fee_calc)
-        : tx(_tx), fee(_fee), fee_calc(_fee_calc), change_pos(_change_pos) {}
+    CreatedTransactionResult(CTransactionRef _tx, CAmount _fee, CAmountType _feeType, int _change_pos, const FeeCalculation& _fee_calc)
+        : tx(_tx), fee(_fee), feeType(_feeType), fee_calc(_fee_calc), change_pos(_change_pos) {}
 };
 
 /**
@@ -160,6 +164,13 @@ struct CreatedTransactionResult
  * @note passing change_pos as -1 will result in setting a random position
  */
 util::Result<CreatedTransactionResult> CreateTransaction(CWallet& wallet, const std::vector<CRecipient>& vecSend, int change_pos, const CCoinControl& coin_control, bool sign = true);
+
+/**
+ * Create a new transaction converting the designated amounts with a set of
+ * coins selected by SelectCoins(); Also create the change output, when needed
+ * @note passing change_pos as -1 will result in setting a random position
+ */
+util::Result<CreatedTransactionResult> CreateConversionTransaction(CWallet& wallet, const WalletConversionTxDetails& tx_details, int change_pos, const CCoinControl& coin_control, bool sign = true);
 
 /**
  * Insert additional inputs into the transaction by

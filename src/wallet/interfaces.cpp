@@ -270,6 +270,24 @@ public:
 
         return txr.tx;
     }
+    util::Result<CTransactionRef> createConversionTransaction(const WalletConversionTxDetails& tx_details,
+        const CCoinControl& coin_control,
+        bool sign,
+        int& change_pos,
+        CAmount& fee,
+        CAmountType& feeType) override
+    {
+        LOCK(m_wallet->cs_wallet);
+        auto res = CreateConversionTransaction(*m_wallet, tx_details, change_pos,
+                                               coin_control, sign);
+        if (!res) return util::Error{util::ErrorString(res)};
+        const auto& txr = *res;
+        fee = txr.fee;
+        feeType = txr.feeType;
+        change_pos = txr.change_pos;
+
+        return txr.tx;
+    }
     void commitTransaction(CTransactionRef tx,
         WalletValueMap value_map,
         WalletOrderForm order_form) override

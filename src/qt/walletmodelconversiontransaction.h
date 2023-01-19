@@ -18,6 +18,12 @@ public:
     explicit WalletModelConversionTransaction(const CAmount maxInput, const CAmount minOutput, const CAmountType inputType,
                                                 const CAmountType outputType, const CAmountType remainderType);
 
+    CAmount getMaxInput();
+    CAmount getMinOutput();
+    CAmountType getInputType();
+    CAmountType getOutputType();
+    CAmountType getRemainderType();
+
     CTransactionRef& getWtx();
     void setWtx(const CTransactionRef&);
 
