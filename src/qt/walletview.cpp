@@ -90,6 +90,10 @@ WalletView::WalletView(WalletModel* wallet_model, const PlatformStyle* _platform
     // Highlight transaction after send
     connect(sendCoinsPage, &SendCoinsDialog::coinsSent, transactionView, qOverload<const uint256&>(&TransactionView::focusTransaction));
 
+    connect(convertCoinsPage, &ConvertCoinsDialog::coinsConverted, this, &WalletView::coinsConverted);
+    // Highlight transaction after conversion
+    connect(convertCoinsPage, &ConvertCoinsDialog::coinsConverted, transactionView, qOverload<const uint256&>(&TransactionView::focusTransaction));
+
     // Clicking on "Export" allows to export the transaction list
     connect(exportButton, &QPushButton::clicked, transactionView, &TransactionView::exportClicked);
 

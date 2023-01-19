@@ -115,6 +115,7 @@ Q_SIGNALS:
     void setPrivacy(bool privacy);
     void transactionClicked();
     void coinsSent();
+    void coinsConverted();
     /**  Fired when a message should be reported to the user */
     void message(const QString &title, const QString &message, unsigned int style);
     /** Encryption status of wallet changed */
