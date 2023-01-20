@@ -99,9 +99,9 @@
         <item row="2" column="2">
          <layout class="QHBoxLayout" name="horizontalLayout">
          <item>
-          <widget class="QRadioButton" name="radioTypeCashIn">
+          <widget class="QRadioButton" name="radioTypeBondIn">
            <property name="text">
-            <string>Cash to bonds</string>
+            <string>Bonds to cash</string>
            </property>
            <property name="checked">
             <bool>true</bool>
@@ -112,9 +112,9 @@
           </widget>
          </item>
          <item>
-          <widget class="QRadioButton" name="radioTypeBondIn">
+          <widget class="QRadioButton" name="radioTypeCashIn">
            <property name="text">
-            <string>Bonds to cash</string>
+            <string>Cash to bonds</string>
            </property>
            <property name="checked">
             <bool>false</bool>

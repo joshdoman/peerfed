@@ -57,7 +57,7 @@
                </font>
               </property>
               <property name="text">
-               <string>Cash Balances</string>
+               <string>Bond Balances</string>
               </property>
              </widget>
             </item>
@@ -375,7 +375,7 @@
                </font>
               </property>
               <property name="text">
-               <string>Bond Balances</string>
+               <string>Cash Balances</string>
               </property>
              </widget>
             </item>
