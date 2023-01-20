@@ -1480,12 +1480,11 @@ PackageMempoolAcceptResult ProcessNewPackage(Chainstate& active_chainstate, CTxM
 
 CAmounts GetBlockSubsidy(int nHeight, const CAmounts startingSupply, const Consensus::Params& consensusParams)
 {
-    CAmount subsidy = GetBlockSubsidy(nHeight, consensusParams);
-    int128_t invariant_sq = pow((int128_t)startingSupply[CASH], 2) + pow((int128_t)startingSupply[BOND], 2); // K^2
-    int128_t invariant = sqrt(invariant_sq); // K
+    int128_t maxBondSupply = sqrt(pow((int128_t)startingSupply[CASH], 2) + pow((int128_t)startingSupply[BOND], 2)); // K
     CAmounts reward = {0};
-    reward[CASH] = ((int128_t)startingSupply[CASH] * (int128_t)subsidy / invariant).convert_to<CAmount>();
-    reward[BOND] = ((int128_t)startingSupply[BOND] * (int128_t)subsidy / invariant).convert_to<CAmount>();
+    CAmount subsidy = GetBlockSubsidy(nHeight, consensusParams);
+    reward[CASH] = ((int128_t)startingSupply[CASH] * (int128_t)subsidy / maxBondSupply).convert_to<CAmount>();
+    reward[BOND] = ((int128_t)startingSupply[BOND] * (int128_t)subsidy / maxBondSupply).convert_to<CAmount>();
     return reward;
 }
 
