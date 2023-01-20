@@ -57,6 +57,7 @@
 #include <warnings.h>
 
 #include <algorithm>
+#include <boost/multiprecision/cpp_int.hpp>
 #include <cassert>
 #include <chrono>
 #include <deque>
@@ -81,6 +82,8 @@ using node::ReadBlockFromDisk;
 using node::SnapshotMetadata;
 using node::UndoReadFromDisk;
 using node::UnlinkPrunedFiles;
+
+using namespace boost::multiprecision;
 
 #define MICRO 0.000001
 #define MILLI 0.001
@@ -1475,6 +1478,17 @@ PackageMempoolAcceptResult ProcessNewPackage(Chainstate& active_chainstate, CTxM
     return result;
 }
 
+CAmounts GetBlockSubsidy(int nHeight, const CAmounts startingSupply, const Consensus::Params& consensusParams)
+{
+    CAmount subsidy = GetBlockSubsidy(nHeight, consensusParams);
+    int128_t invariant_sq = pow((int128_t)startingSupply[CASH], 2) + pow((int128_t)startingSupply[BOND], 2); // K^2
+    int128_t invariant = sqrt(invariant_sq); // K
+    CAmounts reward = {0};
+    reward[CASH] = ((int128_t)startingSupply[CASH] * (int128_t)subsidy / invariant).convert_to<CAmount>();
+    reward[BOND] = ((int128_t)startingSupply[BOND] * (int128_t)subsidy / invariant).convert_to<CAmount>();
+    return reward;
+}
+
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
@@ -2177,11 +2191,10 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
 
     // Add rewards to total supply of previous block to obtain current total supply
-    CAmount cashReward = 0.5 * GetBlockSubsidy(pindex->nHeight, m_params.GetConsensus());
-    CAmount bondReward = 0.5 * GetBlockSubsidy(pindex->nHeight, m_params.GetConsensus());
     CAmounts totalSupply = pindex->pprev->GetTotalSupply();
-    totalSupply[CASH] += cashReward;
-    totalSupply[BOND] += bondReward;
+    CAmounts reward = GetBlockSubsidy(pindex->nHeight, totalSupply, m_params.GetConsensus());
+    totalSupply[CASH] += reward[CASH];
+    totalSupply[BOND] += reward[BOND];
 
     std::vector<int> prevheights;
     std::vector<CTxOut> conversionOutputs;
@@ -2289,8 +2302,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     coinbaseAmounts[CASH] -= conversionOutputAmount[CASH];
     coinbaseAmounts[BOND] -= conversionOutputAmount[BOND];
     CAmounts blockRewards = {0};
-    blockRewards[CASH] = nFees[CASH] + cashReward;
-    blockRewards[BOND] = nFees[BOND] + bondReward;
+    blockRewards[CASH] = nFees[CASH] + reward[CASH];
+    blockRewards[BOND] = nFees[BOND] + reward[BOND];
     if (coinbaseAmounts[CASH] > blockRewards[CASH]) {
         LogPrintf("ERROR: ConnectBlock(): coinbase pays too much cash (actual=%d vs limit=%d)\n", coinbaseAmounts[CASH], blockRewards[CASH]);
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");

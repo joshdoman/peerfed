@@ -99,6 +99,8 @@ WalletView::WalletView(WalletModel* wallet_model, const PlatformStyle* _platform
 
     // Pass through messages from sendCoinsPage
     connect(sendCoinsPage, &SendCoinsDialog::message, this, &WalletView::message);
+    // Pass through messages from convertCoinsPage
+    connect(convertCoinsPage, &ConvertCoinsDialog::message, this, &WalletView::message);
     // Pass through messages from transactionView
     connect(transactionView, &TransactionView::message, this, &WalletView::message);
 

@@ -160,10 +160,10 @@ void ConvertCoinsDialog::convertButtonClicked()
     CAmount minOutput = ui->reqAmountOut->value();
     if (inputIsExact) {
         // Apply slippage to output
-        minOutput = int(double(minOutput) * (1 - double(ui->reqSlippage->value()) / 100));
+        minOutput = minOutput * (10000 - int(ui->reqSlippage->value() * 100)) / 10000;
     } else {
         // Apply slippage to input
-        maxInput = int(double(maxInput) / (1 - double(ui->reqSlippage->value()) / 100));
+        maxInput = maxInput * 10000 / (10000 - int(ui->reqSlippage->value()) * 100);
     }
     CAmountType remainderType = inputIsExact ? getOutputType() : getInputType();
     m_current_transaction = std::make_unique<WalletModelConversionTransaction>(maxInput, minOutput, getInputType(), getOutputType(), remainderType);

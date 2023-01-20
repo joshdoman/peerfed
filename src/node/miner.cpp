@@ -129,10 +129,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     nHeight = pindexPrev->nHeight + 1;
 
     // Set cash and bond supply with block rewards
-    CAmount cashReward = 0.5 * GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-    CAmount bondReward = 0.5 * GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-    pblock->cashSupply = pindexPrev->cashSupply + cashReward;
-    pblock->bondSupply = pindexPrev->bondSupply + bondReward;
+    CAmounts reward = GetBlockSubsidy(nHeight, pindexPrev->GetTotalSupply(), chainparams.GetConsensus());
+    pblock->cashSupply = pindexPrev->cashSupply + reward[CASH];
+    pblock->bondSupply = pindexPrev->bondSupply + reward[BOND];
 
     pblock->nVersion = m_chainstate.m_chainman.m_versionbitscache.ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
     // -regtest only: allow overriding block.nVersion with
@@ -165,8 +164,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vout[CASH].scriptPubKey = scriptPubKeyIn;
     coinbaseTx.vout[BOND].scriptPubKey = scriptPubKeyIn;
     // TODO: Set block subsidies correctly
-    coinbaseTx.vout[CASH].nValue = nFees[CASH] + cashReward;
-    coinbaseTx.vout[BOND].nValue = nFees[BOND] + bondReward;
+    coinbaseTx.vout[CASH].nValue = nFees[CASH] + reward[CASH];
+    coinbaseTx.vout[BOND].nValue = nFees[BOND] + reward[BOND];
     // Add conversion outputs
     coinbaseTx.vout.insert(coinbaseTx.vout.end(), conversionOutputs.begin(), conversionOutputs.end());
     // Add input

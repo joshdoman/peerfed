@@ -119,6 +119,8 @@ void StartScriptCheckWorkerThreads(int threads_num);
 /** Stop all of the script checking worker threads */
 void StopScriptCheckWorkerThreads();
 
+CAmounts GetBlockSubsidy(int nHeight, const CAmounts startingSupply, const Consensus::Params& consensusParams);
+
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams);
 
 bool AbortNode(BlockValidationState& state, const std::string& strMessage, const bilingual_str& userMessage = bilingual_str{});
