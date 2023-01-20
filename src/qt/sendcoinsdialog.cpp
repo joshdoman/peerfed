@@ -736,7 +736,7 @@ void SendCoinsDialog::setBalance(const interfaces::WalletBalances& balances)
         } else {
             ui->labelBalanceName->setText(tr("Balance:\n"));
         }
-        ui->labelBalance->setText(BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayCashUnit(), cashBalance) + "\n" + BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayBondUnit(), bondBalance));
+        ui->labelBalance->setText(BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayBondUnit(), bondBalance) + "\n" + BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayCashUnit(), cashBalance));
     }
 }
 
