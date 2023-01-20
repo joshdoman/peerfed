@@ -340,6 +340,9 @@ bool CachedTxIsTrusted(const CWallet& wallet, const CWalletTx& wtx, std::set<uin
     // Don't trust unconfirmed transactions from us unless they are in the mempool.
     if (!wtx.InMempool()) return false;
 
+    // Don't trust unconfirmed conversion transactions.
+    if (wtx.IsConversion()) return false;
+
     // Trusted if all inputs are from us and are in the mempool:
     for (const CTxIn& txin : wtx.tx->vin)
     {
