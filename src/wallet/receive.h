@@ -22,7 +22,7 @@ CAmount TxGetCredit(const CWallet& wallet, const CTransaction& tx, CAmountType a
 bool ScriptIsChange(const CWallet& wallet, const CScript& script) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
 bool OutputIsChange(const CWallet& wallet, const CTxOut& txout) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
 CAmount OutputGetChange(const CWallet& wallet, const CTxOut& txout) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
-CAmounts TxGetChange(const CWallet& wallet, const CTransaction& tx);
+CAmounts TxGetChange(const CWallet& wallet, const CWalletTx& wtx);
 
 CAmounts CachedTxGetCredit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter)
     EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);

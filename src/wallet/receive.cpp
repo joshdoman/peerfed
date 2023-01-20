@@ -83,15 +83,22 @@ CAmount OutputGetChange(const CWallet& wallet, const CTxOut& txout)
     return (OutputIsChange(wallet, txout) ? txout.nValue : 0);
 }
 
-CAmounts TxGetChange(const CWallet& wallet, const CTransaction& tx)
+CAmounts TxGetChange(const CWallet& wallet, const CWalletTx& wtx)
 {
     LOCK(wallet.cs_wallet);
     CAmounts nChange = {0};
-    for (const CTxOut& txout : tx.vout)
+    CAmounts debit = CachedTxGetDebit(wallet, wtx, ISMINE_ALL);
+    CAmounts credit = CachedTxGetCredit(wallet, wtx, ISMINE_ALL);
+    for (const CTxOut& txout : wtx.tx->vout)
     {
         nChange[txout.amountType] += OutputGetChange(wallet, txout);
         if (!MoneyRange(nChange[txout.amountType]))
             throw std::runtime_error(std::string(__func__) + ": value out of range");
+    }
+    if (wtx.IsConversion()) {
+        // If conversion credit exceeds debit, reduce the change amount to the debit amount
+        nChange[CASH] = credit[CASH] <= debit[CASH] ? nChange[CASH] : debit[CASH];
+        nChange[BOND] = credit[BOND] <= debit[BOND] ? nChange[BOND] : debit[BOND];
     }
     return nChange;
 }
@@ -144,7 +151,7 @@ CAmounts CachedTxGetChange(const CWallet& wallet, const CWalletTx& wtx)
 {
     if (wtx.fChangeCached)
         return wtx.nChangeCached;
-    wtx.nChangeCached = TxGetChange(wallet, *wtx.tx);
+    wtx.nChangeCached = TxGetChange(wallet, wtx);
     wtx.fChangeCached = true;
     return wtx.nChangeCached;
 }

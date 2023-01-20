@@ -229,7 +229,6 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
         for (unsigned int i = 0; i < wtx.txout_is_mine.size(); i++)
         {
             const isminetype mine = wtx.txout_is_mine[i];
-            if(wtx.is_conversion && wtx.conversion_out_n == (int) i) continue; // Skip if conversion output, check if rest are all to me
             if(fAllToMe > mine) fAllToMe = mine;
         }
 
