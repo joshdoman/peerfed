@@ -70,7 +70,8 @@ public:
         RecvWithAddress,
         RecvFromOther,
         SendToSelf,
-        Converted
+        Converted,
+        ResidualConversion
     };
 
     /** Number of confirmation recommended for accepting a transaction */

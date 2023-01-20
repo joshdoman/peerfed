@@ -80,8 +80,8 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     }
                     else
                     {
-                        // Converted
-                        sub.type = TransactionRecord::Converted;
+                        // Converted Residual
+                        sub.type = TransactionRecord::ResidualConversion;
                     }
                 }
 
@@ -249,7 +249,7 @@ void TransactionRecord::updateStatus(const interfaces::WalletTxStatus& wtx, cons
     status.m_cur_block_hash = block_hash;
 
     // For generated transactions, determine maturity
-    if (type == TransactionRecord::Generated) {
+    if (type == TransactionRecord::Generated || type == TransactionRecord::ResidualConversion) {
         if (wtx.blocks_to_maturity > 0)
         {
             status.status = TransactionStatus::Immature;
