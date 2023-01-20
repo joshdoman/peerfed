@@ -143,11 +143,11 @@ void ConvertCoinsDialog::onOutputChanged()
 
 void ConvertCoinsDialog::recalculate()
 {
-    if (inputIsExact) {
+    if (inputIsExact && ui->reqAmountIn->value() != 0) {
         calculatingOutput = true;
         CAmount outputAmount = this->model->estimateConversionOutputAmount(ui->reqAmountIn->value(), getInputType());
         ui->reqAmountOut->setValue(outputAmount);
-    } else {
+    } else if (ui->reqAmountOut->value() != 0) {
         calculatingInput = true;
         CAmount inputAmount = this->model->estimateConversionInputAmount(ui->reqAmountOut->value(), getOutputType());
         ui->reqAmountIn->setValue(inputAmount);
