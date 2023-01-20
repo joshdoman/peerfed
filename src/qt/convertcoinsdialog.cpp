@@ -100,7 +100,7 @@ void ConvertCoinsDialog::updateConversionType()
     CAmountType inType = getInputType();
     CAmountType outType = getOutputType();
 
-    if (inType != ui->reqAmountIn->type() && !(ui->reqAmountOut->value() == 0 && ui->reqAmountOut->value() == 0)) {
+    if (inType != ui->reqAmountIn->type() && !(ui->reqAmountIn->value() == 0 && ui->reqAmountOut->value() == 0)) {
         // Conversion type has changed and amount fields aren't both empty - flip the amounts
         if (inputIsExact) {
             ui->reqAmountOut->setValue(ui->reqAmountIn->value());
