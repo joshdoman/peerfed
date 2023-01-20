@@ -1142,7 +1142,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
 
     const OutputType change_type = wallet.TransactionChangeType(coin_control.m_change_type ? *coin_control.m_change_type : wallet.m_default_change_type, {} /* vecSend */);
     ReserveDestination reservedest(&wallet, change_type);
-    coin_selection_params.m_subtract_fee_outputs = tx_details.inputType != coin_control.m_fee_type;
+    coin_selection_params.m_subtract_fee_outputs = tx_details.outputType == coin_control.m_fee_type;
 
     // Create change script that will be used if we need change
     CScript scriptChange;
@@ -1333,7 +1333,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
             CTxOut& txout = txNew.vout[i];
 
             if (!txout.scriptPubKey.IsConversionScript()) {
-                txout.nValue -= nFeeRet - fee_needed; // Subtract fee from minimum output
+                txout.nValue -= fee_needed; // Subtract fee_needed from minimum output
 
                 // Error if this output is reduced to be below dust
                 if (IsDust(txout, wallet.chain().relayDustFee())) {
