@@ -72,6 +72,7 @@ public:
     int getNumBlocks() const;
     uint256 getBestBlockHash() EXCLUSIVE_LOCKS_REQUIRED(!m_cached_tip_mutex);
     CAmounts getBestTotalSupply() EXCLUSIVE_LOCKS_REQUIRED(!m_cached_tip_mutex);
+    CAmountScaleFactor getBestScaleFactor() EXCLUSIVE_LOCKS_REQUIRED(!m_cached_tip_mutex);
     int getHeaderTipHeight() const;
     int64_t getHeaderTipTime() const;
 
@@ -99,6 +100,7 @@ public:
     Mutex m_cached_tip_mutex;
     uint256 m_cached_tip_blocks GUARDED_BY(m_cached_tip_mutex){};
     CAmounts m_cached_tip_supply GUARDED_BY(m_cached_tip_mutex){};
+    CAmountScaleFactor m_cached_tip_scale_factor GUARDED_BY(m_cached_tip_mutex){};
 
 private:
     interfaces::Node& m_node;

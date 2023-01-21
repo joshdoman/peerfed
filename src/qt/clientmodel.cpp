@@ -171,6 +171,29 @@ CAmounts ClientModel::getBestTotalSupply()
     return m_cached_tip_supply;
 }
 
+CAmountScaleFactor ClientModel::getBestScaleFactor()
+{
+    CAmountScaleFactor tip{WITH_LOCK(m_cached_tip_mutex, return m_cached_tip_scale_factor)};
+
+    if (tip >= BASE_FACTOR) {
+        return tip;
+    }
+
+    // Lock order must be: first `cs_main`, then `m_cached_tip_mutex`.
+    // The following will lock `cs_main` (and release it), so we must not
+    // own `m_cached_tip_mutex` here.
+    tip = m_node.getBestScaleFactor();
+
+    LOCK(m_cached_tip_mutex);
+    // We checked that `m_cached_tip_supply` is valid above, but then we
+    // released the mutex `m_cached_tip_mutex`, so it could have changed in the
+    // meantime. Thus, check again.
+    if (tip >= BASE_FACTOR) {
+        m_cached_tip_scale_factor = tip;
+    }
+    return m_cached_tip_scale_factor;
+}
+
 enum BlockSource ClientModel::getBlockSource() const
 {
     if (m_node.getReindex())
@@ -258,6 +281,7 @@ void ClientModel::TipChanged(SynchronizationState sync_state, interfaces::BlockT
         m_cached_num_blocks = tip.block_height;
         WITH_LOCK(m_cached_tip_mutex, m_cached_tip_blocks = tip.block_hash;);
         WITH_LOCK(m_cached_tip_mutex, m_cached_tip_supply = tip.block_supply;);
+        WITH_LOCK(m_cached_tip_mutex, m_cached_tip_scale_factor = tip.block_scale_factor;);
     }
 
     // Throttle GUI notifications about (a) blocks during initial sync, and (b) both blocks and headers during reindex.
