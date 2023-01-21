@@ -6,6 +6,9 @@
 #include <chain.h>
 #include <tinyformat.h>
 #include <util/time.h>
+#include <boost/multiprecision/cpp_int.hpp>
+
+using namespace boost::multiprecision;
 
 std::string CBlockFileInfo::ToString() const
 {
@@ -126,6 +129,22 @@ void CBlockIndex::BuildSkip()
 {
     if (pprev)
         pskip = pprev->GetAncestor(GetSkipHeight(nHeight));
+}
+
+void CBlockIndex::BuildScaleFactor(const Consensus::Params& consensus_params)
+{
+    if (pprev) {
+        CAmounts prevTotalSupply = pprev->GetTotalSupply();
+        uint128_t interest = (uint128_t)pprev->scaleFactor;
+        interest *= (uint128_t)prevTotalSupply[CASH];
+        interest /= (uint128_t)prevTotalSupply[BOND];
+        interest /= (uint128_t)consensus_params.TargetBlocksPerYear();
+        scaleFactor = pprev->scaleFactor + interest.convert_to<CAmountScaleFactor>();
+        if (scaleFactor < BASE_FACTOR) {
+            // Handle potential overflow by resetting the scale factor
+            scaleFactor = BASE_FACTOR;
+        }
+    }
 }
 
 arith_uint256 GetBlockProof(const CBlockIndex& block)

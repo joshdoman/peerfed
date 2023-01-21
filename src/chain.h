@@ -163,6 +163,9 @@ public:
     //! height of the entry in the chain. The genesis block has height 0
     int nHeight{0};
 
+    //! scale factor at the entry in the chain. The genesis block has scale factor of BASE_FACTOR
+    CAmountScaleFactor scaleFactor{BASE_FACTOR};
+
     //! Which # file this block is stored in (blk?????.dat)
     int nFile GUARDED_BY(::cs_main){0};
 
@@ -365,6 +368,9 @@ public:
 
     //! Build the skiplist pointer for this entry.
     void BuildSkip();
+
+    //! Build the scale factor for this entry.
+    void BuildScaleFactor(const Consensus::Params& consensus_params);
 
     //! Efficiently find an ancestor of this block.
     CBlockIndex* GetAncestor(int height);

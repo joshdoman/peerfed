@@ -3742,7 +3742,7 @@ bool ChainstateManager::AcceptBlockHeader(const CBlockHeader& block, BlockValida
         LogPrint(BCLog::VALIDATION, "%s: not adding new block header %s, missing anti-dos proof-of-work validation\n", __func__, hash.ToString());
         return state.Invalid(BlockValidationResult::BLOCK_HEADER_LOW_WORK, "too-little-chainwork");
     }
-    CBlockIndex* pindex{m_blockman.AddToBlockIndex(block, m_best_header)};
+    CBlockIndex* pindex{m_blockman.AddToBlockIndex(block, m_best_header, GetConsensus())};
 
     if (ppindex)
         *ppindex = pindex;
@@ -4369,7 +4369,7 @@ bool Chainstate::LoadGenesisBlock()
         if (blockPos.IsNull()) {
             return error("%s: writing genesis block to disk failed", __func__);
         }
-        CBlockIndex* pindex = m_blockman.AddToBlockIndex(block, m_chainman.m_best_header);
+        CBlockIndex* pindex = m_blockman.AddToBlockIndex(block, m_chainman.m_best_header, m_params.GetConsensus());
         ReceivedBlockTransactions(block, pindex, blockPos);
     } catch (const std::runtime_error& e) {
         return error("%s: failed to write genesis block: %s", __func__, e.what());
