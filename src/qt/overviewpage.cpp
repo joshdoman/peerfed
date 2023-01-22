@@ -295,6 +295,8 @@ void OverviewPage::setClientModel(ClientModel *model)
 
         connect(model->getOptionsModel(), &OptionsModel::useEmbeddedMonospacedFontChanged, this, &OverviewPage::setMonospacedFont);
         setMonospacedFont(model->getOptionsModel()->getUseEmbeddedMonospacedFont());
+
+        connect(model, &ClientModel::numBlocksChanged, this, &OverviewPage::updateDisplayUnit);
     }
 }
 

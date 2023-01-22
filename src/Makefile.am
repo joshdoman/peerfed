@@ -584,6 +584,7 @@ libbitcoin_consensus_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_consensus_a_SOURCES = \
   arith_uint256.cpp \
   arith_uint256.h \
+  consensus/amount.cpp \
   consensus/amount.h \
   consensus/merkle.cpp \
   consensus/merkle.h \
@@ -880,6 +881,7 @@ libbitcoinkernel_la_SOURCES = \
   clientversion.cpp \
   coins.cpp \
   compressor.cpp \
+  consensus/amount.cpp \
   consensus/merkle.cpp \
   consensus/tx_check.cpp \
   consensus/tx_verify.cpp \

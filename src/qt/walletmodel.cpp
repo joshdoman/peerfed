@@ -112,6 +112,10 @@ void WalletModel::pollBalanceChanged()
         return;
     }
 
+    // Apply scale factor
+    if (m_client_model)
+        new_balances = new_balances.applyingScaleFactor(m_client_model->getBestScaleFactor());
+
     if (fForceCheckBalanceChanged || block_hash != m_cached_last_update_tip) {
         fForceCheckBalanceChanged = false;
 

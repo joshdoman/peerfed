@@ -39,8 +39,8 @@ static constexpr CAmountScaleFactor BASE_FACTOR = 10000000000;
 static constexpr CAmount MAX_MONEY = 21000000 * COIN;
 inline bool MoneyRange(const CAmount& nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
 
-static CAmount ScaleAmount(const CAmount& nValue, const CAmountScaleFactor& scaleFactor);
+CAmount ScaleAmount(const CAmount& nValue, const CAmountScaleFactor& scaleFactor);
 
-static CAmount DescaleAmount(const CAmount& scaledValue, const CAmountScaleFactor& scaleFactor);
+CAmount DescaleAmount(const CAmount& scaledValue, const CAmountScaleFactor& scaleFactor);
 
 #endif // BITCOIN_CONSENSUS_AMOUNT_H

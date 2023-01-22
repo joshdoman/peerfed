@@ -401,6 +401,19 @@ struct WalletBalancesForAmountType
                unconfirmed_watch_only_balance != prev.unconfirmed_watch_only_balance ||
                immature_watch_only_balance != prev.immature_watch_only_balance;
     }
+
+    WalletBalancesForAmountType applyingScaleFactor(const CAmountScaleFactor& scaleFactor) const
+    {
+        WalletBalancesForAmountType res;
+        res.balance = ScaleAmount(balance, scaleFactor);
+        res.unconfirmed_balance = ScaleAmount(unconfirmed_balance, scaleFactor);
+        res.immature_balance = ScaleAmount(immature_balance, scaleFactor);
+        res.have_watch_only = have_watch_only;
+        res.watch_only_balance = ScaleAmount(watch_only_balance, scaleFactor);
+        res.unconfirmed_watch_only_balance = ScaleAmount(unconfirmed_watch_only_balance, scaleFactor);
+        res.immature_watch_only_balance = ScaleAmount(immature_watch_only_balance, scaleFactor);
+        return res;
+    }
 };
 
 //! Collection of wallet balances for each coin type.
@@ -416,6 +429,14 @@ struct WalletBalances
 
     WalletBalancesForAmountType forType(CAmountType type) {
         return (type == CASH) ? cash : bond;
+    }
+
+    WalletBalances applyingScaleFactor(const CAmountScaleFactor& scaleFactor) const
+    {
+        WalletBalances res;
+        res.cash = cash.applyingScaleFactor(scaleFactor);
+        res.bond = bond.applyingScaleFactor(scaleFactor);
+        return res;
     }
 };
 
