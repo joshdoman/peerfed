@@ -154,7 +154,7 @@ void WalletView::processNewTransaction(const QModelIndex& parent, int start, int
     QString label = GUIUtil::HtmlEscape(ttm->data(index, TransactionTableModel::LabelRole).toString());
 
     CAmountType amountType = cashAmount != 0 ? CASH : BOND;
-    BitcoinUnit unit = BitcoinUnits::unitOfType(walletModel->getOptionsModel()->getDisplayUnit(), amountType);
+    BitcoinUnit unit = walletModel->getOptionsModel()->getDisplayUnit(amountType);
     Q_EMIT incomingTransaction(date, unit, cashAmount + bondAmount, type, address, label, GUIUtil::HtmlEscape(walletModel->getWalletName()));
 }
 

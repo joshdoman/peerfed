@@ -47,7 +47,15 @@ public:
         BOND,
         mBOND,
         uBOND,
-        sBOND
+        sBOND,
+        sh_CASH,
+        sh_mCASH,
+        sh_uCASH,
+        sh_sCASH,
+        sh_BOND,
+        sh_mBOND,
+        sh_uBOND,
+        sh_sBOND
     };
     Q_ENUM(Unit)
 
@@ -76,6 +84,8 @@ public:
     static int decimals(Unit unit);
     //! Type of the unit
     static CAmountType type(Unit unit);
+    //! Returns if the unit is a share
+    static bool isShare(Unit unit);
     //! Returns equivalent unit of a given amount type
     static Unit unitOfType(Unit unit, CAmountType type);
     //! Format as string

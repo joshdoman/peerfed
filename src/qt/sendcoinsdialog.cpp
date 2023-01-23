@@ -296,7 +296,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
     updateCoinControlState();
 
     prepareStatus = model->prepareTransaction(*m_current_transaction, *m_coin_control);
-    BitcoinUnit unit = amount_type == CASH ? model->getOptionsModel()->getDisplayCashUnit() : model->getOptionsModel()->getDisplayBondUnit();
+    BitcoinUnit unit = model->getOptionsModel()->getDisplayUnit(amount_type);
 
     // process prepareStatus and on error generate message shown to user
     processSendCoinsReturn(prepareStatus, BitcoinUnits::formatWithUnit(unit, m_current_transaction->getTransactionFee()));
@@ -385,7 +385,8 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
     CAmount totalAmount = m_current_transaction->getTotalTransactionAmount() + txFee;
     QStringList alternativeUnits;
     for (const BitcoinUnit u : BitcoinUnits::availableUnits()) {
-        if(u != unit && BitcoinUnits::type(u) == BitcoinUnits::type(unit))
+        if(u != unit && BitcoinUnits::type(u) == BitcoinUnits::type(unit)
+            && BitcoinUnits::isShare(u) == BitcoinUnits::isShare(unit))
             alternativeUnits.append(BitcoinUnits::formatHtmlWithUnit(u, totalAmount));
     }
     question_string.append(QString("<b>%1</b>: <b>%2</b>").arg(tr("Total Amount"))
@@ -736,7 +737,7 @@ void SendCoinsDialog::setBalance(const interfaces::WalletBalances& balances)
         } else {
             ui->labelBalanceName->setText(tr("Balance:\n"));
         }
-        ui->labelBalance->setText(BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayBondUnit(), bondBalance) + "\n" + BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayCashUnit(), cashBalance));
+        ui->labelBalance->setText(BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(BOND), bondBalance) + "\n" + BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(CASH), cashBalance));
     }
 }
 
@@ -852,7 +853,7 @@ void SendCoinsDialog::updateFeeMinimizedLabel()
     if (ui->radioSmartFee->isChecked())
         ui->labelFeeMinimized->setText(ui->labelSmartFee->text());
     else {
-        BitcoinUnit unit = (getSendAmountType() == CASH) ? model->getOptionsModel()->getDisplayCashUnit() : model->getOptionsModel()->getDisplayBondUnit();
+        BitcoinUnit unit = model->getOptionsModel()->getDisplayUnit(getSendAmountType());
         ui->labelFeeMinimized->setText(BitcoinUnits::formatWithUnit(unit, ui->customFee->value()) + "/kvB");
     }
 }
@@ -888,7 +889,7 @@ void SendCoinsDialog::updateSmartFeeLabel()
     FeeReason reason;
     CFeeRate feeRate = CFeeRate(model->wallet().getMinimumFee(1000, *m_coin_control, &returned_target, &reason));
 
-    BitcoinUnit unit = (getSendAmountType() == CASH) ? model->getOptionsModel()->getDisplayCashUnit() : model->getOptionsModel()->getDisplayBondUnit();
+    BitcoinUnit unit = model->getOptionsModel()->getDisplayUnit(getSendAmountType());
     ui->labelSmartFee->setText(BitcoinUnits::formatWithUnit(unit, feeRate.GetFeePerK()) + "/kvB");
 
     if (reason == FeeReason::FALLBACK) {

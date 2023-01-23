@@ -259,7 +259,7 @@ TransactionTableModel::TransactionTableModel(const PlatformStyle *_platformStyle
 {
     subscribeToCoreSignals();
 
-    columns << QString() << QString() << tr("Date") << tr("Type") << tr("Label") << BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(walletModel->getOptionsModel()->getDisplayUnit(), CASH)) << BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(walletModel->getOptionsModel()->getDisplayUnit(), BOND));
+    columns << QString() << QString() << tr("Date") << tr("Type") << tr("Label") << BitcoinUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit(CASH)) << BitcoinUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit(BOND));
     priv->refreshWallet(walletModel->wallet());
 
     connect(walletModel->getOptionsModel(), &OptionsModel::displayUnitChanged, this, &TransactionTableModel::updateDisplayUnit);
@@ -274,8 +274,8 @@ TransactionTableModel::~TransactionTableModel()
 /** Updates the column title to "Amount (DisplayUnit)" and emits headerDataChanged() signal for table headers to react. */
 void TransactionTableModel::updateAmountColumnTitle()
 {
-    columns[CashAmount] = BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(walletModel->getOptionsModel()->getDisplayUnit(), CASH));
-    columns[BondAmount] = BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(walletModel->getOptionsModel()->getDisplayUnit(), BOND));
+    columns[CashAmount] = BitcoinUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit(CASH));
+    columns[BondAmount] = BitcoinUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit(BOND));
     Q_EMIT headerDataChanged(Qt::Horizontal,CashAmount,CashAmount);
     Q_EMIT headerDataChanged(Qt::Horizontal,BondAmount,BondAmount);
 }

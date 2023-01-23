@@ -176,12 +176,14 @@ std::string PSBTOperationsDialog::renderTransaction(const PartiallySignedTransac
 {
     QString tx_description = "";
     CAmount totalAmount = 0;
+    BitcoinUnit unit; // TODO: Handle unit type if different outputs have different amount types
     for (const CTxOut& out : psbtx.tx->vout) {
         CTxDestination address;
         ExtractDestination(out.scriptPubKey, address);
         totalAmount += out.nValue;
+        unit = m_client_model->getOptionsModel()->getDisplayUnit(out.amountType);
         tx_description.append(tr(" * Sends %1 to %2")
-            .arg(BitcoinUnits::formatWithUnit((out.amountType == CASH ? BitcoinUnit::CASH : BitcoinUnit::BOND), out.nValue))
+            .arg(BitcoinUnits::formatWithUnit(unit, out.nValue))
             .arg(QString::fromStdString(EncodeDestination(address))));
         tx_description.append("<br>");
     }
@@ -193,14 +195,15 @@ std::string PSBTOperationsDialog::renderTransaction(const PartiallySignedTransac
         tx_description.append(tr("Unable to calculate transaction fee or total transaction amount."));
     } else {
         tx_description.append(tr("Pays transaction fee: "));
-        tx_description.append(BitcoinUnits::formatWithUnit(BitcoinUnit::CASH, *analysis.fee)); // TODO: Fee amount type
+        tx_description.append(BitcoinUnits::formatWithUnit(unit, *analysis.fee));
 
         // add total amount in all subdivision units
         tx_description.append("<hr />");
         QStringList alternativeUnits;
         for (const BitcoinUnits::Unit u : BitcoinUnits::availableUnits())
         {
-            if(u != m_client_model->getOptionsModel()->getDisplayUnit()) {
+            if(u != unit && BitcoinUnits::type(u) == BitcoinUnits::type(unit)
+                && BitcoinUnits::isShare(u) == BitcoinUnits::isShare(unit)) {
                 alternativeUnits.append(BitcoinUnits::formatHtmlWithUnit(u, totalAmount));
             }
         }

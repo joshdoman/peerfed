@@ -98,11 +98,8 @@ public:
     bool getEnablePSBTControls() const { return m_enable_psbt_controls; }
     const QString& getOverriddenByCommandLine() { return strOverriddenByCommandLine; }
 
-    BitcoinUnit getDisplayCashUnit() const {
-        return BitcoinUnits::unitOfType(m_display_bitcoin_unit, CASH);
-    }
-    BitcoinUnit getDisplayBondUnit() const {
-        return BitcoinUnits::unitOfType(m_display_bitcoin_unit, BOND);
+    BitcoinUnit getDisplayUnit(const CAmountType& type) const {
+        return BitcoinUnits::unitOfType(m_display_bitcoin_unit, type);
     }
 
     /* Explicit setters */

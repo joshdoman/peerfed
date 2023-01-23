@@ -5,6 +5,7 @@
 #include <qt/bitcoinunits.h>
 
 #include <consensus/amount.h>
+#include <logging.h>
 
 #include <QStringList>
 
@@ -29,6 +30,14 @@ QList<BitcoinUnit> BitcoinUnits::availableUnits()
     unitlist.append(Unit::mBOND);
     unitlist.append(Unit::uBOND);
     unitlist.append(Unit::sBOND);
+    // unitlist.append(Unit::sh_CASH);
+    // unitlist.append(Unit::sh_mCASH);
+    // unitlist.append(Unit::sh_uCASH);
+    // unitlist.append(Unit::sh_sCASH);
+    // unitlist.append(Unit::sh_BOND);
+    // unitlist.append(Unit::sh_mBOND);
+    // unitlist.append(Unit::sh_uBOND);
+    // unitlist.append(Unit::sh_sBOND);
     return unitlist;
 }
 
@@ -38,11 +47,19 @@ QString BitcoinUnits::longName(Unit unit)
     case Unit::CASH: return QString("CASH");
     case Unit::mCASH: return QString("mCASH");
     case Unit::uCASH: return QString::fromUtf8("µCASH (bits-c)");
-    case Unit::sCASH: return QString("sCASH (sat-c)");
+    case Unit::sCASH: return QString("sCASH (sats-c)");
     case Unit::BOND: return QString("BOND");
     case Unit::mBOND: return QString("mBOND");
     case Unit::uBOND: return QString::fromUtf8("µBOND (bits-b)");
-    case Unit::sBOND: return QString("sBOND (sat-c)");
+    case Unit::sBOND: return QString("sBOND (sats-b)");
+    case Unit::sh_CASH: return QString("sh-CASH");
+    case Unit::sh_mCASH: return QString("sh-mCASH");
+    case Unit::sh_uCASH: return QString::fromUtf8("sh-µCASH");
+    case Unit::sh_sCASH: return QString("sh-sCASH");
+    case Unit::sh_BOND: return QString("sh-BOND");
+    case Unit::sh_mBOND: return QString("sh-mBOND");
+    case Unit::sh_uBOND: return QString::fromUtf8("sh-µBOND");
+    case Unit::sh_sBOND: return QString("sh-sBOND");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -58,6 +75,14 @@ QString BitcoinUnits::shortName(Unit unit)
     case Unit::mBOND: return longName(unit);
     case Unit::uBOND: return QString("bits-b");
     case Unit::sBOND: return QString("sat-b");
+    case Unit::sh_CASH: return longName(unit);
+    case Unit::sh_mCASH: return longName(unit);
+    case Unit::sh_uCASH: return QString("sh-bits-c");
+    case Unit::sh_sCASH: return QString("sh-sats-c");
+    case Unit::sh_BOND: return longName(unit);
+    case Unit::sh_mBOND: return longName(unit);
+    case Unit::sh_uBOND: return QString("sh-bits-b");
+    case Unit::sh_sBOND: return QString("sh-sats-b");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -73,6 +98,14 @@ QString BitcoinUnits::description(Unit unit)
     case Unit::mBOND: return QString("Milli-Bonds (1 / 1" THIN_SP_UTF8 "000)");
     case Unit::uBOND: return QString("Micro-Bonds (bits-b) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     case Unit::sBOND: return QString("Satoshi-Bonds (sat-b) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::sh_CASH: return QString("Cash Shares");
+    case Unit::sh_mCASH: return QString("Milli-Cash Shares (1 / 1" THIN_SP_UTF8 "000)");
+    case Unit::sh_uCASH: return QString("Micro-Cash Shares (sh-bits-c) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::sh_sCASH: return QString("Satoshi-Cash Shares (sh-sat-c) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::sh_BOND: return QString("Bond Shares");
+    case Unit::sh_mBOND: return QString("Milli-Bond Shares (1 / 1" THIN_SP_UTF8 "000)");
+    case Unit::sh_uBOND: return QString("Micro-Bond Shares (sh-bits-b) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::sh_sBOND: return QString("Satoshi-Bond Shares (sh-sat-b) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -88,6 +121,14 @@ qint64 BitcoinUnits::factor(Unit unit)
     case Unit::mBOND: return 100'000;
     case Unit::uBOND: return 100;
     case Unit::sBOND: return 1;
+    case Unit::sh_CASH: return 100'000'000;
+    case Unit::sh_mCASH: return 100'000;
+    case Unit::sh_uCASH: return 100;
+    case Unit::sh_sCASH: return 1;
+    case Unit::sh_BOND: return 100'000'000;
+    case Unit::sh_mBOND: return 100'000;
+    case Unit::sh_uBOND: return 100;
+    case Unit::sh_sBOND: return 1;
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -103,6 +144,14 @@ int BitcoinUnits::decimals(Unit unit)
     case Unit::mBOND: return 5;
     case Unit::uBOND: return 2;
     case Unit::sBOND: return 0;
+    case Unit::sh_CASH: return 8;
+    case Unit::sh_mCASH: return 5;
+    case Unit::sh_uCASH: return 2;
+    case Unit::sh_sCASH: return 0;
+    case Unit::sh_BOND: return 8;
+    case Unit::sh_mBOND: return 5;
+    case Unit::sh_uBOND: return 2;
+    case Unit::sh_sBOND: return 0;
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -118,6 +167,37 @@ CAmountType BitcoinUnits::type(Unit unit)
     case Unit::mBOND: return BOND;
     case Unit::uBOND: return BOND;
     case Unit::sBOND: return BOND;
+    case Unit::sh_CASH: return CASH;
+    case Unit::sh_mCASH: return CASH;
+    case Unit::sh_uCASH: return CASH;
+    case Unit::sh_sCASH: return CASH;
+    case Unit::sh_BOND: return BOND;
+    case Unit::sh_mBOND: return BOND;
+    case Unit::sh_uBOND: return BOND;
+    case Unit::sh_sBOND: return BOND;
+    } // no default case, so the compiler can warn about missing cases
+    assert(false);
+}
+
+bool BitcoinUnits::isShare(Unit unit)
+{
+    switch (unit) {
+    case Unit::CASH: return false;
+    case Unit::mCASH: return false;
+    case Unit::uCASH: return false;
+    case Unit::sCASH: return false;
+    case Unit::BOND: return false;
+    case Unit::mBOND: return false;
+    case Unit::uBOND: return false;
+    case Unit::sBOND: return false;
+    case Unit::sh_CASH: return true;
+    case Unit::sh_mCASH: return true;
+    case Unit::sh_uCASH: return true;
+    case Unit::sh_sCASH: return true;
+    case Unit::sh_BOND: return true;
+    case Unit::sh_mBOND: return true;
+    case Unit::sh_uBOND: return true;
+    case Unit::sh_sBOND: return true;
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -244,20 +324,20 @@ QString BitcoinUnits::getAmountColumnTitle(Unit unit)
 int BitcoinUnits::rowCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-    return unitlist.size() / 2;
+    return 4;
 }
 
 int BitcoinUnits::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-    return 2;
+    return 4;
 }
 
 QVariant BitcoinUnits::data(const QModelIndex &index, int role) const
 {
     int row = index.row();
     int col = index.column();
-    if(row >= 0 && row < unitlist.size())
+    if(row >= 0 && row < 4)
     {
         Unit unit = unitlist.at(row + col * 4);
         switch(role)
@@ -291,6 +371,14 @@ qint8 ToQint8(BitcoinUnit unit)
     case BitcoinUnit::mBOND: return 5;
     case BitcoinUnit::uBOND: return 6;
     case BitcoinUnit::sBOND: return 7;
+    case BitcoinUnit::sh_CASH: return 8;
+    case BitcoinUnit::sh_mCASH: return 9;
+    case BitcoinUnit::sh_uCASH: return 10;
+    case BitcoinUnit::sh_sCASH: return 11;
+    case BitcoinUnit::sh_BOND: return 12;
+    case BitcoinUnit::sh_mBOND: return 13;
+    case BitcoinUnit::sh_uBOND: return 14;
+    case BitcoinUnit::sh_sBOND: return 15;
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -306,6 +394,14 @@ BitcoinUnit FromQint8(qint8 num)
     case 5: return BitcoinUnit::mBOND;
     case 6: return BitcoinUnit::uBOND;
     case 7: return BitcoinUnit::sBOND;
+    case 8: return BitcoinUnit::sh_CASH;
+    case 9: return BitcoinUnit::sh_mCASH;
+    case 10: return BitcoinUnit::sh_uCASH;
+    case 11: return BitcoinUnit::sh_sCASH;
+    case 12: return BitcoinUnit::sh_BOND;
+    case 13: return BitcoinUnit::sh_mBOND;
+    case 14: return BitcoinUnit::sh_uBOND;
+    case 15: return BitcoinUnit::sh_sBOND;
     }
     assert(false);
 }

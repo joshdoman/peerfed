@@ -379,8 +379,8 @@ void TransactionView::exportClicked()
     writer.addColumn(tr("Type"), TransactionTableModel::Type, Qt::EditRole);
     writer.addColumn(tr("Label"), 0, TransactionTableModel::LabelRole);
     writer.addColumn(tr("Address"), 0, TransactionTableModel::AddressRole);
-    writer.addColumn(BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(model->getOptionsModel()->getDisplayUnit(), CASH)), 0, TransactionTableModel::FormattedCashAmountRole);
-    writer.addColumn(BitcoinUnits::getAmountColumnTitle(BitcoinUnits::unitOfType(model->getOptionsModel()->getDisplayUnit(), BOND)), 0, TransactionTableModel::FormattedBondAmountRole);
+    writer.addColumn(BitcoinUnits::getAmountColumnTitle(model->getOptionsModel()->getDisplayUnit(CASH)), 0, TransactionTableModel::FormattedCashAmountRole);
+    writer.addColumn(BitcoinUnits::getAmountColumnTitle(model->getOptionsModel()->getDisplayUnit(BOND)), 0, TransactionTableModel::FormattedBondAmountRole);
     writer.addColumn(tr("ID"), 0, TransactionTableModel::TxHashRole);
 
     if(!writer.write()) {

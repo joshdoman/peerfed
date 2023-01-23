@@ -203,8 +203,8 @@ void OverviewPage::setBalance(const interfaces::WalletBalances& balances)
 {
     interfaces::WalletBalancesForAmountType cash = balances.cash;
     interfaces::WalletBalancesForAmountType bond = balances.bond;
-    BitcoinUnit cashUnit = walletModel->getOptionsModel()->getDisplayCashUnit();
-    BitcoinUnit bondUnit = walletModel->getOptionsModel()->getDisplayBondUnit();
+    BitcoinUnit cashUnit = walletModel->getOptionsModel()->getDisplayUnit(CASH);
+    BitcoinUnit bondUnit = walletModel->getOptionsModel()->getDisplayUnit(BOND);
     if (walletModel->wallet().isLegacy()) {
         if (walletModel->wallet().privateKeysDisabled()) {
             ui->labelBalance0->setText(BitcoinUnits::formatWithPrivacy(bondUnit, bond.watch_only_balance, BitcoinUnits::SeparatorStyle::ALWAYS, m_privacy));
@@ -356,8 +356,8 @@ void OverviewPage::updateDisplayUnit()
 
         // Update txdelegate->unit with the current unit
         BitcoinUnit displayUnit = walletModel->getOptionsModel()->getDisplayUnit();
-        txdelegate->cashUnit = walletModel->getOptionsModel()->getDisplayCashUnit();
-        txdelegate->bondUnit = walletModel->getOptionsModel()->getDisplayBondUnit();
+        txdelegate->cashUnit = walletModel->getOptionsModel()->getDisplayUnit(CASH);
+        txdelegate->bondUnit = walletModel->getOptionsModel()->getDisplayUnit(BOND);
 
         ui->listTransactions->update();
     }

@@ -173,7 +173,7 @@ void ConvertCoinsDialog::convertButtonClicked()
     m_coin_control->m_fee_type = getInputType(); // TODO: Allow user to choose fee type (input or output / cash or bond)
 
     WalletModel::ConvertCoinsReturn prepareStatus = model->prepareTransaction(*m_current_transaction, *m_coin_control);
-    BitcoinUnit unit = BitcoinUnits::unitOfType(model->getOptionsModel()->getDisplayUnit(), m_current_transaction->getTransactionFeeType());
+    BitcoinUnit unit = model->getOptionsModel()->getDisplayUnit(m_current_transaction->getTransactionFeeType());
 
     // process prepareStatus and on error generate message shown to user
     processConvertCoinsReturn(prepareStatus, BitcoinUnits::formatWithUnit(unit, m_current_transaction->getTransactionFee()));
