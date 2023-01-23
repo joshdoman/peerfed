@@ -87,6 +87,7 @@ public:
     void setDisplayUnit(const QVariant& new_unit);
 
     /* Explicit getters */
+    bool getShowScaledAmount(const CAmountType& type) const { return true; } // TODO: Implement
     bool getShowTrayIcon() const { return m_show_tray_icon; }
     bool getMinimizeToTray() const { return fMinimizeToTray; }
     bool getMinimizeOnClose() const { return fMinimizeOnClose; }
@@ -101,6 +102,7 @@ public:
     BitcoinUnit getDisplayUnit(const CAmountType& type) const {
         return BitcoinUnits::unitOfType(m_display_bitcoin_unit, type);
     }
+
 
     /* Explicit setters */
     void SetPruneTargetGB(int prune_target_gb);

@@ -57,6 +57,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 sub.idx = i; // vout index
                 sub.credit = txout.nValue;
                 sub.amountType = txout.amountType;
+                sub.scaleFactor = wtx.scale_factor;
                 sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
                 if (wtx.txout_address_is_mine[i])
                 {
@@ -158,6 +159,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 }
                 sub.debit = -nValue;
                 sub.amountType = txout.amountType;
+                sub.scaleFactor = wtx.scale_factor;
 
                 parts.append(sub);
             }
@@ -192,19 +194,19 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
 
             // Sort so that positive amount shows up above negative amount if two amount types are present
             if (debit[CASH] + credit[CASH] > 0) {
-                parts.append(TransactionRecord(hash, nTime, recType, address, debit[CASH], credit[CASH], CASH));
+                parts.append(TransactionRecord(hash, nTime, recType, address, debit[CASH], credit[CASH], CASH, wtx.scale_factor));
                 parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
             }
             if (debit[BOND] + credit[BOND] > 0) {
-                parts.append(TransactionRecord(hash, nTime, recType, address, debit[BOND], credit[BOND], BOND));
+                parts.append(TransactionRecord(hash, nTime, recType, address, debit[BOND], credit[BOND], BOND, wtx.scale_factor));
                 parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
             }
             if (debit[CASH] + credit[CASH] < 0) {
-                parts.append(TransactionRecord(hash, nTime, recType, address, debit[CASH], credit[CASH], CASH));
+                parts.append(TransactionRecord(hash, nTime, recType, address, debit[CASH], credit[CASH], CASH, wtx.scale_factor));
                 parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
             }
             if (debit[BOND] + credit[BOND] < 0) {
-                parts.append(TransactionRecord(hash, nTime, recType, address, debit[BOND], credit[BOND], BOND));
+                parts.append(TransactionRecord(hash, nTime, recType, address, debit[BOND], credit[BOND], BOND, wtx.scale_factor));
                 parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
             }
         }
@@ -215,17 +217,17 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             //
             if (nNet[CASH] != 0) {
                 if (nNet[CASH] < 0)
-                    parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", nNet[CASH], 0, CASH));
+                    parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", nNet[CASH], 0, CASH, wtx.scale_factor));
                 else
-                    parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", 0, nNet[CASH], CASH));
+                    parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", 0, nNet[CASH], CASH, wtx.scale_factor));
                 parts.last().involvesWatchAddress = involvesWatchAddress;
             }
 
             if (nNet[BOND] != 0) {
                 if (nNet[BOND] < 0)
-                    parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", nNet[BOND], 0, BOND));
+                    parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", nNet[BOND], 0, BOND, wtx.scale_factor));
                 else
-                    parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", 0, nNet[BOND], BOND));
+                    parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", 0, nNet[BOND], BOND, wtx.scale_factor));
                 parts.last().involvesWatchAddress = involvesWatchAddress;
             }
         }

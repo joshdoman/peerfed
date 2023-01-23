@@ -194,6 +194,12 @@ public:
     //! Check if transaction has descendants in mempool.
     virtual bool hasDescendantsInMempool(const uint256& txid) = 0;
 
+    //! Get last scale factor.
+    virtual CAmountScaleFactor getLastScaleFactor() = 0;
+
+    //! Get scale factor for confirmed block hash
+    virtual CAmountScaleFactor findScaleFactor(const uint256& block_hash) = 0;
+
     //! Transaction is added to memory pool, if the transaction fee is below the
     //! amount specified by max_tx_fee, and broadcast to all peers if relay is set to true.
     //! Return false if the transaction could not be added due to the fee or for another reason.

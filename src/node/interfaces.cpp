@@ -634,6 +634,17 @@ public:
         auto it = m_node.mempool->GetIter(txid);
         return it && (*it)->GetCountWithDescendants() > 1;
     }
+    CAmountScaleFactor getLastScaleFactor() override
+    {
+        const CBlockIndex* tip = WITH_LOCK(::cs_main, return chainman().ActiveChain().Tip());
+        return tip ? tip->scaleFactor : BASE_FACTOR;
+    }
+    CAmountScaleFactor findScaleFactor(const uint256& block_hash) override
+    {
+        LOCK(::cs_main);
+        const CBlockIndex* index = chainman().m_blockman.LookupBlockIndex(block_hash);
+        return index ? index->scaleFactor : BASE_FACTOR;
+    }
     bool broadcastTransaction(const CTransactionRef& tx,
         const CAmount& max_tx_fee,
         bool relay,

@@ -78,21 +78,22 @@ public:
     static const int RecommendedNumConfirmations = 6;
 
     TransactionRecord():
-            hash(), time(0), type(Other), address(""), debit(0), credit(0), amountType(0), idx(0)
+            hash(), time(0), type(Other), address(""), debit(0), credit(0), amountType(0), scaleFactor(0), idx(0)
     {
     }
 
     TransactionRecord(uint256 _hash, qint64 _time):
             hash(_hash), time(_time), type(Other), address(""), debit(0),
-            credit(0), amountType(0), idx(0)
+            credit(0), amountType(0), scaleFactor(0), idx(0)
     {
     }
 
     TransactionRecord(uint256 _hash, qint64 _time,
                 Type _type, const std::string &_address,
-                const CAmount& _debit, const CAmount& _credit, const CAmountType& _amountType):
+                const CAmount& _debit, const CAmount& _credit, const CAmountType& _amountType,
+                const CAmountScaleFactor& _scaleFactor):
             hash(_hash), time(_time), type(_type), address(_address), debit(_debit), credit(_credit),
-            amountType(_amountType), idx(0)
+            amountType(_amountType), scaleFactor(_scaleFactor), idx(0)
     {
     }
 
@@ -110,6 +111,7 @@ public:
     CAmount debit;
     CAmount credit;
     CAmountType amountType;
+    CAmountScaleFactor scaleFactor;
     /**@}*/
 
     /** Subtransaction index, for sort key */

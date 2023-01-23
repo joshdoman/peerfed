@@ -234,9 +234,9 @@ public:
         return nullptr;
     }
 
-    QString describe(interfaces::Node& node, interfaces::Wallet& wallet, TransactionRecord* rec, BitcoinUnit unit)
+    QString describe(interfaces::Node& node, interfaces::Wallet& wallet, TransactionRecord* rec, BitcoinUnit cashUnit, BitcoinUnit bondUnit)
     {
-        return TransactionDesc::toHTML(node, wallet, rec, unit);
+        return TransactionDesc::toHTML(node, wallet, rec, cashUnit, bondUnit);
     }
 
     QString getTxHex(interfaces::Wallet& wallet, TransactionRecord *rec)
@@ -464,7 +464,8 @@ QVariant TransactionTableModel::addressColor(const TransactionRecord *wtx) const
 
 QString TransactionTableModel::formatTxAmount(const TransactionRecord *wtx, bool showUnconfirmed, BitcoinUnits::SeparatorStyle separators) const
 {
-    QString str = BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), wtx->credit + wtx->debit, false, separators); // TODO: Implement
+    CAmount amount = walletModel->getOptionsModel()->getShowScaledAmount(wtx->amountType) ? ScaleAmount(wtx->credit + wtx->debit, wtx->scaleFactor) : wtx->credit + wtx->debit;
+    QString str = BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), amount, false, separators); // TODO: Implement
     if(showUnconfirmed)
     {
         if(!wtx->status.countsForBalance)
@@ -586,9 +587,9 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         case ToAddress:
             return formatTxToAddress(rec, true);
         case CashAmount:
-            return rec->amountType == CASH ? qint64(rec->credit + rec->debit) : 0;
+            return rec->amountType == CASH ? qint64(walletModel->getOptionsModel()->getShowScaledAmount(CASH) ? ScaleAmount(rec->credit + rec->debit, rec->scaleFactor) : (rec->credit + rec->debit)) : 0;
         case BondAmount:
-            return rec->amountType == BOND ? qint64(rec->credit + rec->debit) : 0;
+            return rec->amountType == BOND ? qint64(walletModel->getOptionsModel()->getShowScaledAmount(CASH) ? ScaleAmount(rec->credit + rec->debit, rec->scaleFactor) : (rec->credit + rec->debit)) : 0;
         } // no default case, so the compiler can warn about missing cases
         assert(false);
     case Qt::ToolTipRole:
@@ -628,13 +629,13 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
     case WatchonlyDecorationRole:
         return txWatchonlyDecoration(rec);
     case LongDescriptionRole:
-        return priv->describe(walletModel->node(), walletModel->wallet(), rec, walletModel->getOptionsModel()->getDisplayUnit());
+        return priv->describe(walletModel->node(), walletModel->wallet(), rec, walletModel->getOptionsModel()->getDisplayUnit(CASH), walletModel->getOptionsModel()->getDisplayUnit(BOND));
     case AddressRole:
         return QString::fromStdString(rec->address);
     case LabelRole:
         return walletModel->getAddressTableModel()->labelForAddress(QString::fromStdString(rec->address));
     case AmountRole:
-        return qint64(rec->credit + rec->debit);
+        return qint64(walletModel->getOptionsModel()->getShowScaledAmount(rec->amountType) ? ScaleAmount(rec->credit + rec->debit, rec->scaleFactor) : (rec->credit + rec->debit));
     case AmountTypeRole:
         return rec->amountType;
     case TxHashRole:

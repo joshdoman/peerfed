@@ -451,6 +451,7 @@ struct WalletTx
     CAmounts credit;
     CAmounts debit;
     CAmounts change;
+    CAmountScaleFactor scale_factor;
     int64_t time;
     std::map<std::string, std::string> value_map;
     bool is_coinbase;

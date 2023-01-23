@@ -75,6 +75,7 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
     result.credit = CachedTxGetCredit(wallet, wtx, ISMINE_ALL);
     result.debit = CachedTxGetDebit(wallet, wtx, ISMINE_ALL);
     result.change = CachedTxGetChange(wallet, wtx);
+    result.scale_factor = wtx.state<TxStateConfirmed>() ? wallet.chain().findScaleFactor(wtx.state<TxStateConfirmed>()->confirmed_block_hash) : wallet.chain().getLastScaleFactor();
     result.time = wtx.GetTxTime();
     result.value_map = wtx.mapValue;
     result.is_coinbase = wtx.IsCoinBase();

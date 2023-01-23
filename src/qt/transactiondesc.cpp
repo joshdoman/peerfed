@@ -103,16 +103,13 @@ bool GetPaymentRequestMerchant(const std::string& pr, QString& merchant)
     return false;
 }
 
-QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wallet, TransactionRecord* rec, BitcoinUnit& unit)
+QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wallet, TransactionRecord* rec, BitcoinUnit& cashUnit, BitcoinUnit& bondUnit)
 {
     int numBlocks;
     interfaces::WalletTxStatus status;
     interfaces::WalletOrderForm orderForm;
     bool inMempool;
     interfaces::WalletTx wtx = wallet.getWalletTxDetails(rec->hash, status, orderForm, inMempool, numBlocks);
-
-    BitcoinUnit cashUnit = BitcoinUnits::unitOfType(unit, CASH);
-    BitcoinUnit bondUnit = BitcoinUnits::unitOfType(unit, BOND);
 
     QString strHTML;
 
@@ -122,10 +119,14 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     int64_t nTime = wtx.time;
     CAmounts nCredit = wtx.credit;
     CAmounts nDebit = wtx.debit;
+    CAmounts valuesOut = wtx.tx->GetValuesOut();
     CAmounts nNet = {0};
     nNet[CASH] = nCredit[CASH] - nDebit[CASH];
     nNet[BOND] = nCredit[BOND] - nDebit[BOND];
-    CAmounts valuesOut = wtx.tx->GetValuesOut();
+    if (!BitcoinUnits::isShare(cashUnit))
+        nNet[CASH] = ScaleAmount(nNet[CASH], wtx.scale_factor);
+    if (!BitcoinUnits::isShare(bondUnit))
+        nNet[BOND] = ScaleAmount(nNet[BOND], wtx.scale_factor);
 
     strHTML += "<b>" + tr("Status") + ":</b> " + FormatTxStatus(status, inMempool);
     strHTML += "<br>";
@@ -201,6 +202,8 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
         }
         strHTML += "<b>" + tr("Credit") + ":</b> ";
         BitcoinUnit unit = rec->amountType == CASH ? cashUnit : bondUnit;
+        if (!BitcoinUnits::isShare(unit))
+            nUnmatured = ScaleAmount(nUnmatured, wtx.scale_factor);
         if (status.is_in_main_chain)
             strHTML += BitcoinUnits::formatHtmlWithUnit(unit, nUnmatured) + " (" + tr("matures in %n more block(s)", "", status.blocks_to_maturity) + ")";
         else
@@ -271,9 +274,10 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                 }
 
                 BitcoinUnit unit = txout.amountType == CASH ? cashUnit : bondUnit;
-                strHTML += "<b>" + tr("Debit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, -txout.nValue) + "<br>";
+                CAmount amount = BitcoinUnits::isShare(unit) ? txout.nValue : ScaleAmount(txout.nValue, wtx.scale_factor);
+                strHTML += "<b>" + tr("Debit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, -amount) + "<br>";
                 if(toSelf)
-                    strHTML += "<b>" + tr("Credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, txout.nValue) + "<br>";
+                    strHTML += "<b>" + tr("Credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, amount) + "<br>";
             }
 
             if (fAllToMe || wtx.is_conversion)
@@ -293,6 +297,14 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                 totalDebit[BOND] = -(nDebit[BOND] - nChange[BOND]);
                 totalCredit[CASH] = valuesOut[CASH] - nChange[CASH] - nConversionTxFee[CASH];
                 totalCredit[BOND] = valuesOut[BOND] - nChange[BOND] - nConversionTxFee[BOND];
+                if (!BitcoinUnits::isShare(cashUnit)) {
+                    totalDebit[CASH] = ScaleAmount(totalDebit[CASH], wtx.scale_factor);
+                    totalCredit[CASH] = ScaleAmount(totalCredit[CASH], wtx.scale_factor);
+                }
+                if (!BitcoinUnits::isShare(bondUnit)) {
+                    totalDebit[BOND] = ScaleAmount(totalDebit[BOND], wtx.scale_factor);
+                    totalCredit[BOND] = ScaleAmount(totalCredit[BOND], wtx.scale_factor);
+                }
 
                 auto debitAmountStr = totalDebit[CASH] < 0 ? BitcoinUnits::formatHtmlWithUnit(cashUnit, totalDebit[CASH]) : BitcoinUnits::formatHtmlWithUnit(bondUnit, totalDebit[BOND]);
                 auto creditAmountStr = totalCredit[CASH] > 0 ? BitcoinUnits::formatHtmlWithUnit(cashUnit, totalCredit[CASH]) : BitcoinUnits::formatHtmlWithUnit(bondUnit, totalCredit[BOND]);
@@ -330,6 +342,11 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                 nTxFee[CASH] = nDebit[CASH] - valuesOut[CASH];
                 nTxFee[BOND] = nDebit[BOND] - valuesOut[BOND];
             }
+            if (!BitcoinUnits::isShare(cashUnit))
+                nTxFee[CASH] = ScaleAmount(nTxFee[CASH], wtx.scale_factor);
+            if (!BitcoinUnits::isShare(bondUnit))
+                nTxFee[BOND] = ScaleAmount(nTxFee[BOND], wtx.scale_factor);
+
 
             if (nTxFee[CASH] > 0 || nTxFee[BOND] > 0) {
                 auto txFeeStr = nTxFee[CASH] > 0 ? BitcoinUnits::formatHtmlWithUnit(cashUnit, -nTxFee[CASH]) : BitcoinUnits::formatHtmlWithUnit(bondUnit, -nTxFee[BOND]);
@@ -349,14 +366,20 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                 if (*(mine++)) {
                     CAmountType amountType = wallet.getDebitAmountType(txin);
                     BitcoinUnit unit = amountType == CASH ? cashUnit : bondUnit;
-                    strHTML += "<b>" + tr("Debit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, -wallet.getDebit(txin, ISMINE_ALL)) + "<br>";
+                    CAmount amount = -wallet.getDebit(txin, ISMINE_ALL);
+                    if (!BitcoinUnits::isShare(unit))
+                        amount = ScaleAmount(amount, wtx.scale_factor);
+                    strHTML += "<b>" + tr("Debit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, amount) + "<br>";
                 }
             }
             mine = wtx.txout_is_mine.begin();
             for (const CTxOut& txout : wtx.tx->vout) {
                 if (*(mine++)) {
                     BitcoinUnit unit = txout.amountType == CASH ? cashUnit : bondUnit;
-                    strHTML += "<b>" + tr("Credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, wallet.getCredit(txout, ISMINE_ALL)) + "<br>";
+                    CAmount amount = wallet.getCredit(txout, ISMINE_ALL);
+                    if (!BitcoinUnits::isShare(unit))
+                        amount = ScaleAmount(amount, wtx.scale_factor);
+                    strHTML += "<b>" + tr("Credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, amount) + "<br>";
                 }
             }
         }
@@ -418,13 +441,19 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
             if(wallet.txinIsMine(txin)) {
                 CAmountType amountType = wallet.getDebitAmountType(txin);
                 BitcoinUnit unit = amountType == CASH ? cashUnit : bondUnit;
-                strHTML += "<b>" + tr("Debit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, -wallet.getDebit(txin, ISMINE_ALL)) + "<br>";
+                CAmount amount = -wallet.getDebit(txin, ISMINE_ALL);
+                if (!BitcoinUnits::isShare(unit))
+                    amount = ScaleAmount(amount, wtx.scale_factor);
+                strHTML += "<b>" + tr("Debit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, amount) + "<br>";
             }
         }
         for (const CTxOut& txout : wtx.tx->vout) {
             if(wallet.txoutIsMine(txout)) {
                 BitcoinUnit unit = txout.amountType == CASH ? cashUnit : bondUnit;
-                strHTML += "<b>" + tr("Credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, wallet.getCredit(txout, ISMINE_ALL)) + "<br>";
+                CAmount amount = wallet.getCredit(txout, ISMINE_ALL);
+                if (!BitcoinUnits::isShare(unit))
+                    amount = ScaleAmount(amount, wtx.scale_factor);
+                strHTML += "<b>" + tr("Credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, amount) + "<br>";
             }
         }
 
