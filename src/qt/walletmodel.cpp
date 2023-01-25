@@ -201,11 +201,16 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             setAddress.insert(rcp.address);
             ++nAddresses;
 
+            CAmount baseAmount = rcp.amount;
+            if (optionsModel->getShowScaledAmount(amountType)) {
+                baseAmount = DescaleAmount(baseAmount, m_client_model->getBestScaleFactor());
+            }
+
             CScript scriptPubKey = GetScriptForDestination(DecodeDestination(rcp.address.toStdString()));
-            CRecipient recipient = {scriptPubKey, amountType, rcp.amount, rcp.fSubtractFeeFromAmount};
+            CRecipient recipient = {scriptPubKey, amountType, baseAmount, rcp.fSubtractFeeFromAmount};
             vecSend.push_back(recipient);
 
-            total += rcp.amount;
+            total += baseAmount;
         }
     }
     if(setAddress.size() != nAddresses)
