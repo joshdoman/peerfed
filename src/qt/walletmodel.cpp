@@ -112,13 +112,6 @@ void WalletModel::pollBalanceChanged()
         return;
     }
 
-    // Apply scale factor
-    if (m_client_model && optionsModel->getShowScaledAmount(CASH))
-        new_balances.cash = new_balances.cash.applyingScaleFactor(m_client_model->getBestScaleFactor());
-    if (m_client_model && optionsModel->getShowScaledAmount(BOND))
-        new_balances.bond = new_balances.bond.applyingScaleFactor(m_client_model->getBestScaleFactor());
-
-
     if (fForceCheckBalanceChanged || block_hash != m_cached_last_update_tip) {
         fForceCheckBalanceChanged = false;
 
@@ -133,9 +126,16 @@ void WalletModel::pollBalanceChanged()
 
 void WalletModel::checkBalanceChanged(const interfaces::WalletBalances& new_balances)
 {
-    if (new_balances.balanceChanged(m_cached_balances)) {
-        m_cached_balances = new_balances;
-        Q_EMIT balanceChanged(new_balances);
+    // Apply scale factor
+    interfaces::WalletBalances scaled_balances = new_balances;
+    if (m_client_model && optionsModel->getShowScaledAmount(CASH))
+        scaled_balances.cash = new_balances.cash.applyingScaleFactor(m_client_model->getBestScaleFactor());
+    if (m_client_model && optionsModel->getShowScaledAmount(BOND))
+        scaled_balances.bond = new_balances.bond.applyingScaleFactor(m_client_model->getBestScaleFactor());
+
+    if (scaled_balances.balanceChanged(m_cached_balances)) {
+        m_cached_balances = scaled_balances;
+        Q_EMIT balanceChanged(scaled_balances);
     }
 }
 
@@ -310,15 +310,6 @@ void WalletModel::sendCoins(WalletModelTransaction& transaction)
 
 WalletModel::ConvertCoinsReturn WalletModel::prepareTransaction(WalletModelConversionTransaction &transaction, const CCoinControl& coinControl)
 {
-    // If no coin was manually selected, use the cached balance
-    // Future: can merge this call with 'createConversionTransaction'.
-    CAmount inputBalance = getAvailableBalance(transaction.getInputType(), &coinControl);
-
-    if(transaction.getMaxInput() > inputBalance)
-    {
-        return InputAmountExceedsBalance;
-    }
-
     if(transaction.getMaxInput() <= 0)
     {
         return InvalidInputAmount;
@@ -329,24 +320,43 @@ WalletModel::ConvertCoinsReturn WalletModel::prepareTransaction(WalletModelConve
         return InvalidOutputAmount;
     }
 
+    // If no coin was manually selected, use the cached balance
+    // Future: can merge this call with 'createConversionTransaction'.
+    CAmount inputBalance = getAvailableBalance(transaction.getInputType(), &coinControl);
+
+    CAmount baseMaxInput = transaction.getMaxInput();
+    if (optionsModel->getShowScaledAmount(transaction.getInputType())) {
+        baseMaxInput = DescaleAmount(baseMaxInput, m_client_model->getBestScaleFactor());
+    }
+
+    CAmount baseMinOutput = transaction.getMinOutput();
+    if (optionsModel->getShowScaledAmount(transaction.getOutputType())) {
+        baseMinOutput = DescaleAmount(baseMinOutput, m_client_model->getBestScaleFactor());
+    }
+
+    if(baseMaxInput > inputBalance)
+    {
+        return InputAmountExceedsBalance;
+    }
+
     {
         CAmount nFeeRequired = 0;
         CAmountType nFeeTypeRequired = 0;
         int nChangePosRet = -1;
 
         auto& newTx = transaction.getWtx();
-        WalletConversionTxDetails txDetails = {transaction.getMaxInput(), transaction.getMinOutput(), transaction.getInputType(), transaction.getOutputType(), transaction.getRemainderType()};
+        WalletConversionTxDetails txDetails = {baseMaxInput, baseMinOutput, transaction.getInputType(), transaction.getOutputType(), transaction.getRemainderType()};
         const auto& res = m_wallet->createConversionTransaction(txDetails, coinControl, !wallet().privateKeysDisabled() /* sign */, nChangePosRet, nFeeRequired, nFeeTypeRequired);
         newTx = res ? *res : nullptr;
         transaction.setTransactionFee(nFeeRequired, nFeeTypeRequired);
 
         if(!newTx)
         {
-            if (nFeeTypeRequired == transaction.getOutputType() && nFeeRequired > transaction.getMinOutput())
+            if (nFeeTypeRequired == transaction.getOutputType() && nFeeRequired > baseMinOutput)
             {
                 return ConvertCoinsReturn(FeeExceedsOutputAmount);
             }
-            if (nFeeTypeRequired == transaction.getInputType() && (nFeeRequired + transaction.getMaxInput()) > inputBalance)
+            if (nFeeTypeRequired == transaction.getInputType() && (nFeeRequired + baseMaxInput) > inputBalance)
             {
                 return ConvertCoinsReturn(InputAmountWithFeeExceedsBalance);
             }
