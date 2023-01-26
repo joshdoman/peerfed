@@ -13,5 +13,9 @@ CAmount ScaleAmount(const CAmount& nValue, const CAmountScaleFactor& scaleFactor
 }
 
 CAmount DescaleAmount(const CAmount& scaledValue, const CAmountScaleFactor& scaleFactor) {
-    return ((int256_t)scaledValue * (int256_t)BASE_FACTOR / ((int256_t)scaleFactor)).convert_to<CAmount>();
+    CAmount baseAmount = ((int256_t)scaledValue * (int256_t)BASE_FACTOR / ((int256_t)scaleFactor)).convert_to<CAmount>();
+    while (ScaleAmount(baseAmount, scaleFactor) < scaledValue) {
+        baseAmount++;
+    }
+    return baseAmount;
 }

@@ -155,6 +155,9 @@ SendCoinsRecipient SendCoinsEntry::getValue()
     recipient.label = ui->addAsLabel->text();
     recipient.amountType = ui->payAmount->type();
     recipient.amount = ui->payAmount->value();
+    if (model && model->getOptionsModel()->getShowScaledAmount(recipient.amountType)) {
+        recipient.amount = DescaleAmount(recipient.amount, model->getBestScaleFactor());
+    }
     recipient.message = ui->messageTextLabel->text();
     recipient.fSubtractFeeFromAmount = (ui->checkboxSubtractFeeFromAmount->checkState() == Qt::Checked);
 

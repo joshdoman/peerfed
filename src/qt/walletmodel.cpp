@@ -201,16 +201,11 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             setAddress.insert(rcp.address);
             ++nAddresses;
 
-            CAmount baseAmount = rcp.amount;
-            if (optionsModel->getShowScaledAmount(amountType)) {
-                baseAmount = DescaleAmount(baseAmount, m_client_model->getBestScaleFactor());
-            }
-
             CScript scriptPubKey = GetScriptForDestination(DecodeDestination(rcp.address.toStdString()));
-            CRecipient recipient = {scriptPubKey, amountType, baseAmount, rcp.fSubtractFeeFromAmount};
+            CRecipient recipient = {scriptPubKey, amountType, rcp.amount, rcp.fSubtractFeeFromAmount};
             vecSend.push_back(recipient);
 
-            total += baseAmount;
+            total += rcp.amount;
         }
     }
     if(setAddress.size() != nAddresses)
@@ -310,6 +305,10 @@ void WalletModel::sendCoins(WalletModelTransaction& transaction)
 
 WalletModel::ConvertCoinsReturn WalletModel::prepareTransaction(WalletModelConversionTransaction &transaction, const CCoinControl& coinControl)
 {
+    // If no coin was manually selected, use the cached balance
+    // Future: can merge this call with 'createConversionTransaction'.
+    CAmount inputBalance = getAvailableBalance(transaction.getInputType(), &coinControl);
+
     if(transaction.getMaxInput() <= 0)
     {
         return InvalidInputAmount;
@@ -320,21 +319,7 @@ WalletModel::ConvertCoinsReturn WalletModel::prepareTransaction(WalletModelConve
         return InvalidOutputAmount;
     }
 
-    // If no coin was manually selected, use the cached balance
-    // Future: can merge this call with 'createConversionTransaction'.
-    CAmount inputBalance = getAvailableBalance(transaction.getInputType(), &coinControl);
-
-    CAmount baseMaxInput = transaction.getMaxInput();
-    if (optionsModel->getShowScaledAmount(transaction.getInputType())) {
-        baseMaxInput = DescaleAmount(baseMaxInput, m_client_model->getBestScaleFactor());
-    }
-
-    CAmount baseMinOutput = transaction.getMinOutput();
-    if (optionsModel->getShowScaledAmount(transaction.getOutputType())) {
-        baseMinOutput = DescaleAmount(baseMinOutput, m_client_model->getBestScaleFactor());
-    }
-
-    if(baseMaxInput > inputBalance)
+    if(transaction.getMaxInput() > inputBalance)
     {
         return InputAmountExceedsBalance;
     }
@@ -345,18 +330,18 @@ WalletModel::ConvertCoinsReturn WalletModel::prepareTransaction(WalletModelConve
         int nChangePosRet = -1;
 
         auto& newTx = transaction.getWtx();
-        WalletConversionTxDetails txDetails = {baseMaxInput, baseMinOutput, transaction.getInputType(), transaction.getOutputType(), transaction.getRemainderType()};
+        WalletConversionTxDetails txDetails = {transaction.getMaxInput(), transaction.getMinOutput(), transaction.getInputType(), transaction.getOutputType(), transaction.getRemainderType()};
         const auto& res = m_wallet->createConversionTransaction(txDetails, coinControl, !wallet().privateKeysDisabled() /* sign */, nChangePosRet, nFeeRequired, nFeeTypeRequired);
         newTx = res ? *res : nullptr;
         transaction.setTransactionFee(nFeeRequired, nFeeTypeRequired);
 
         if(!newTx)
         {
-            if (nFeeTypeRequired == transaction.getOutputType() && nFeeRequired > baseMinOutput)
+            if (nFeeTypeRequired == transaction.getOutputType() && nFeeRequired > transaction.getMinOutput())
             {
                 return ConvertCoinsReturn(FeeExceedsOutputAmount);
             }
-            if (nFeeTypeRequired == transaction.getInputType() && (nFeeRequired + baseMaxInput) > inputBalance)
+            if (nFeeTypeRequired == transaction.getInputType() && (nFeeRequired + transaction.getMaxInput()) > inputBalance)
             {
                 return ConvertCoinsReturn(InputAmountWithFeeExceedsBalance);
             }
@@ -704,6 +689,11 @@ void WalletModel::refresh(bool pk_hash_only)
 uint256 WalletModel::getLastBlockProcessed() const
 {
     return m_client_model ? m_client_model->getBestBlockHash() : uint256{};
+}
+
+CAmountScaleFactor WalletModel::getBestScaleFactor() const
+{
+    return m_client_model ? m_client_model->getBestScaleFactor() : BASE_FACTOR;
 }
 
 CAmount WalletModel::estimateConversionOutputAmount(CAmount inputAmount, CAmountType inputType) const

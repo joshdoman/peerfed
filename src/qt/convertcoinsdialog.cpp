@@ -145,11 +145,25 @@ void ConvertCoinsDialog::recalculate()
 {
     if (inputIsExact && ui->reqAmountIn->value() != 0) {
         calculatingOutput = true;
-        CAmount outputAmount = this->model->estimateConversionOutputAmount(ui->reqAmountIn->value(), getInputType());
+        CAmount inputAmount = ui->reqAmountIn->value();
+        if (model && model->getOptionsModel()->getShowScaledAmount(getInputType())) {
+            inputAmount = DescaleAmount(inputAmount, clientModel->getBestScaleFactor());
+        }
+        CAmount outputAmount = this->model->estimateConversionOutputAmount(inputAmount, getInputType());
+        if (model && model->getOptionsModel()->getShowScaledAmount(getOutputType())) {
+            outputAmount = ScaleAmount(outputAmount, clientModel->getBestScaleFactor());
+        }
         ui->reqAmountOut->setValue(outputAmount);
     } else if (ui->reqAmountOut->value() != 0) {
         calculatingInput = true;
-        CAmount inputAmount = this->model->estimateConversionInputAmount(ui->reqAmountOut->value(), getOutputType());
+        CAmount outputAmount = ui->reqAmountOut->value();
+        if (model && model->getOptionsModel()->getShowScaledAmount(getOutputType())) {
+            outputAmount = DescaleAmount(outputAmount, clientModel->getBestScaleFactor());
+        }
+        CAmount inputAmount = this->model->estimateConversionInputAmount(outputAmount, getOutputType());
+        if (model && model->getOptionsModel()->getShowScaledAmount(getOutputType())) {
+            inputAmount = ScaleAmount(inputAmount, clientModel->getBestScaleFactor());
+        }
         ui->reqAmountIn->setValue(inputAmount);
     }
 }
@@ -158,6 +172,12 @@ void ConvertCoinsDialog::convertButtonClicked()
 {
     CAmount maxInput = ui->reqAmountIn->value();
     CAmount minOutput = ui->reqAmountOut->value();
+    if (model && model->getOptionsModel()->getShowScaledAmount(getInputType())) {
+        maxInput = DescaleAmount(maxInput, clientModel->getBestScaleFactor());
+    }
+    if (model && model->getOptionsModel()->getShowScaledAmount(getOutputType())) {
+        minOutput = DescaleAmount(minOutput, clientModel->getBestScaleFactor());
+    }
     if (inputIsExact) {
         // Apply slippage to output
         minOutput = minOutput * (10000 - int(ui->reqSlippage->value() * 100)) / 10000;

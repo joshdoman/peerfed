@@ -186,6 +186,7 @@ public:
     void refresh(bool pk_hash_only = false);
 
     uint256 getLastBlockProcessed() const;
+    CAmountScaleFactor getBestScaleFactor() const;
 
     // Return output amount if conversion transaction is executed immediately after the last block.
     CAmount estimateConversionOutputAmount(CAmount inputAmount, CAmountType inputType) const;
