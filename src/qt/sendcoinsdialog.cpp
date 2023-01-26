@@ -307,11 +307,19 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
     }
 
     CAmount txFee = m_current_transaction->getTransactionFee();
+    if (model->getOptionsModel()->getShowScaledAmount(amount_type)) {
+        txFee = ScaleAmount(txFee, model->getBestScaleFactor());
+    }
+
     QStringList formatted;
     for (const SendCoinsRecipient &rcp : m_current_transaction->getRecipients())
     {
         // generate amount string with wallet name in case of multiwallet
-        QString amount = BitcoinUnits::formatWithUnit(unit, rcp.amount);
+        CAmount displayAmount = rcp.amount;
+        if (model->getOptionsModel()->getShowScaledAmount(rcp.amountType)) {
+            displayAmount = ScaleAmount(displayAmount, model->getBestScaleFactor());
+        }
+        QString amount = BitcoinUnits::formatWithUnit(unit, displayAmount);
         if (model->isMultiwallet()) {
             amount.append(tr(" from wallet '%1'").arg(GUIUtil::HtmlEscape(model->getWalletName())));
         }
@@ -382,7 +390,11 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
 
     // add total amount in all subdivision units
     question_string.append("<hr />");
-    CAmount totalAmount = m_current_transaction->getTotalTransactionAmount() + txFee;
+    CAmount totalAmount = m_current_transaction->getTotalTransactionAmount() + m_current_transaction->getTransactionFee();
+    if (model->getOptionsModel()->getShowScaledAmount(amount_type)) {
+        totalAmount = ScaleAmount(totalAmount, model->getBestScaleFactor());
+    }
+
     QStringList alternativeUnits;
     for (const BitcoinUnit u : BitcoinUnits::availableUnits()) {
         if(u != unit && BitcoinUnits::type(u) == BitcoinUnits::type(unit)
