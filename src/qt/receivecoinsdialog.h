@@ -55,7 +55,8 @@ private:
     QMenu *contextMenu;
     QAction* copyLabelAction;
     QAction* copyMessageAction;
-    QAction* copyAmountAction;
+    QAction* copyCashAmountAction;
+    QAction* copyBondAmountAction;
     const PlatformStyle *platformStyle;
 
     QModelIndex selectedRow();
@@ -73,7 +74,8 @@ private Q_SLOTS:
     void copyAddress();
     void copyLabel();
     void copyMessage();
-    void copyAmount();
+    void copyCashAmount();
+    void copyBondAmount();
 };
 
 #endif // BITCOIN_QT_RECEIVECOINSDIALOG_H

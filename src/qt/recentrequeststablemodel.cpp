@@ -29,7 +29,7 @@ RecentRequestsTableModel::RecentRequestsTableModel(WalletModel *parent) :
     }
 
     /* These columns must match the indices in the ColumnIndex enumeration */
-    columns << tr("Date") << tr("Label") << tr("Message") << getAmountTitle();
+    columns << tr("Date") << tr("Label") << tr("Message") << getAmountTitle(CASH) << getAmountTitle(BOND);
 
     connect(walletModel->getOptionsModel(), &OptionsModel::displayUnitChanged, this, &RecentRequestsTableModel::updateDisplayUnit);
 }
@@ -82,18 +82,29 @@ QVariant RecentRequestsTableModel::data(const QModelIndex &index, int role) cons
             {
                 return rec->recipient.message;
             }
-        case Amount:
+        case CashAmount:
             if (rec->recipient.amount == 0 && role == Qt::DisplayRole)
                 return tr("(no amount requested)");
+            else if (rec->recipient.amountType != CASH)
+                return tr("");
             else if (role == Qt::EditRole)
-                return BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), rec->recipient.amount, false, BitcoinUnits::SeparatorStyle::NEVER);
+                return BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(CASH), rec->recipient.amount, false, BitcoinUnits::SeparatorStyle::NEVER);
             else
-                return BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), rec->recipient.amount);
+                return BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(CASH), rec->recipient.amount);
+        case BondAmount:
+            if (rec->recipient.amount == 0 && role == Qt::DisplayRole)
+                return tr("(no amount requested)");
+            else if (rec->recipient.amountType != BOND)
+                return tr("");
+            else if (role == Qt::EditRole)
+                return BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(BOND), rec->recipient.amount, false, BitcoinUnits::SeparatorStyle::NEVER);
+            else
+                return BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(BOND), rec->recipient.amount);
         }
     }
     else if (role == Qt::TextAlignmentRole)
     {
-        if (index.column() == Amount)
+        if (index.column() == CashAmount || index.column() == BondAmount)
             return (int)(Qt::AlignRight|Qt::AlignVCenter);
     }
     return QVariant();
@@ -119,17 +130,18 @@ QVariant RecentRequestsTableModel::headerData(int section, Qt::Orientation orien
 /** Updates the column title to "Amount (DisplayUnit)" and emits headerDataChanged() signal for table headers to react. */
 void RecentRequestsTableModel::updateAmountColumnTitle()
 {
-    columns[Amount] = getAmountTitle();
-    Q_EMIT headerDataChanged(Qt::Horizontal,Amount,Amount);
+    columns[CashAmount] = getAmountTitle(CASH);
+    columns[BondAmount] = getAmountTitle(BOND);
+    Q_EMIT headerDataChanged(Qt::Horizontal,CashAmount,BondAmount);
 }
 
 /** Gets title for amount column including current display unit if optionsModel reference available. */
-QString RecentRequestsTableModel::getAmountTitle()
+QString RecentRequestsTableModel::getAmountTitle(CAmountType amountType)
 {
     if (!walletModel->getOptionsModel()) return {};
     return tr("Requested") +
            QLatin1String(" (") +
-           BitcoinUnits::shortName(this->walletModel->getOptionsModel()->getDisplayUnit()) +
+           BitcoinUnits::shortName(this->walletModel->getOptionsModel()->getDisplayUnit(amountType)) +
            QLatin1Char(')');
 }
 
@@ -236,8 +248,18 @@ bool RecentRequestEntryLessThan::operator()(const RecentRequestEntry& left, cons
         return pLeft->recipient.label < pRight->recipient.label;
     case RecentRequestsTableModel::Message:
         return pLeft->recipient.message < pRight->recipient.message;
-    case RecentRequestsTableModel::Amount:
-        return pLeft->recipient.amount < pRight->recipient.amount;
+    case RecentRequestsTableModel::CashAmount:
+        {
+            CAmount leftCashAmount = pLeft->recipient.amountType == CASH ? pLeft->recipient.amount : 0;
+            CAmount rightCashAmount = pRight->recipient.amountType == CASH ? pRight->recipient.amount : 0;
+            return leftCashAmount < rightCashAmount;
+        }
+    case RecentRequestsTableModel::BondAmount:
+        {
+            CAmount leftBondAmount = pLeft->recipient.amountType == BOND ? pLeft->recipient.amount : 0;
+            CAmount rightBondAmount = pRight->recipient.amountType == BOND ? pRight->recipient.amount : 0;
+            return leftBondAmount < rightBondAmount;
+        }
     default:
         return pLeft->id < pRight->id;
     }

@@ -723,6 +723,7 @@ void SendCoinsDialog::pasteEntry(const SendCoinsRecipient &rv)
     }
 
     entry->setValue(rv);
+    ui->sendTypeSelector->setCurrentIndex(rv.amountType);
     updateTabsAndLabels();
 }
 
