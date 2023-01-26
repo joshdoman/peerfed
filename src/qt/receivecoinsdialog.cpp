@@ -69,6 +69,8 @@ ReceiveCoinsDialog::ReceiveCoinsDialog(const PlatformStyle *_platformStyle, QWid
         tableView->horizontalHeader()->setMinimumSectionSize(MINIMUM_COLUMN_WIDTH);
         tableView->horizontalHeader()->setStretchLastSection(true);
     }
+
+    ui->reqAmount->showBothUnitTypes(true);
 }
 
 void ReceiveCoinsDialog::setModel(WalletModel *_model)
@@ -161,7 +163,7 @@ void ReceiveCoinsDialog::on_receiveButton_clicked()
     {
     case AddressTableModel::EditStatus::OK: {
         // Success
-        SendCoinsRecipient info(address, label, CASH, // TODO: Implement amount type
+        SendCoinsRecipient info(address, label, ui->reqAmount->type(),
             ui->reqAmount->value(), ui->reqMessage->text());
         ReceiveRequestDialog *dialog = new ReceiveRequestDialog(this);
         dialog->setAttribute(Qt::WA_DeleteOnClose);

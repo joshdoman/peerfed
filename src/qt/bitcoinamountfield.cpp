@@ -247,6 +247,11 @@ BitcoinAmountField::BitcoinAmountField(QWidget *parent) :
     unitChanged(unit->currentIndex());
 }
 
+void BitcoinAmountField::showBothUnitTypes(bool shouldShowBothUnitTypes)
+{
+    unit->setModel(new BitcoinUnits(this, shouldShowBothUnitTypes));
+}
+
 void BitcoinAmountField::clear()
 {
     amount->clear();

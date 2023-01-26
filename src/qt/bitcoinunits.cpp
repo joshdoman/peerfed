@@ -13,9 +13,10 @@
 
 static constexpr auto MAX_DIGITS_BTC = 16;
 
-BitcoinUnits::BitcoinUnits(QObject *parent):
+BitcoinUnits::BitcoinUnits(QObject *parent, bool _displayBothUnits):
         QAbstractListModel(parent),
-        unitlist(availableUnits())
+        unitlist(availableUnits()),
+        displayBothUnits(_displayBothUnits)
 {
 }
 
@@ -324,20 +325,20 @@ QString BitcoinUnits::getAmountColumnTitle(Unit unit)
 int BitcoinUnits::rowCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-    return 4;
+    return displayBothUnits ? 8 : 4;
 }
 
 int BitcoinUnits::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-    return 4;
+    return displayBothUnits ? 2 : 4;
 }
 
 QVariant BitcoinUnits::data(const QModelIndex &index, int role) const
 {
     int row = index.row();
     int col = index.column();
-    if(row >= 0 && row < 4)
+    if(row >= 0 && row < (displayBothUnits ? 8 : 4))
     {
         Unit unit = unitlist.at(row + col * 4);
         switch(role)
