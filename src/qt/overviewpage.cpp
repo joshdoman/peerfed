@@ -373,7 +373,7 @@ void OverviewPage::updateDisplayUnit()
         ui->labelConversionRate->setText("1 " + BitcoinUnits::shortName(bondUnit) + " ≈ " + BitcoinUnits::formatWithUnit(cashUnit, conversionRate));
 
         const int64_t interestRate = walletModel->getBestInterestRate();
-        ui->labelInterestRate->setText(QString::number(interestRate / 100) + "." + QString::number(interestRate % 100) + "%");
+        ui->labelInterestRate->setText(QString::number(interestRate / 100) + "." + QString::number(interestRate % 100).rightJustified(2, '0') + "%");
     }
 }
 
