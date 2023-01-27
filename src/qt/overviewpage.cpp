@@ -362,7 +362,14 @@ void OverviewPage::updateDisplayUnit()
 
         ui->listTransactions->update();
 
-        CAmount conversionRate = walletModel->estimateConversionOutputAmount((CAmount)BitcoinUnits::factor(bondUnit), BOND);
+        CAmount amountIn = (CAmount)BitcoinUnits::factor(bondUnit);
+        if (walletModel->getOptionsModel()->getShowScaledAmount(BOND)) {
+            amountIn = DescaleAmount(amountIn, walletModel->getBestScaleFactor());
+        }
+        CAmount conversionRate = walletModel->estimateConversionOutputAmount(amountIn, BOND);
+        if (walletModel->getOptionsModel()->getShowScaledAmount(CASH)) {
+            conversionRate = ScaleAmount(conversionRate, walletModel->getBestScaleFactor());
+        }
         ui->labelConversionRate->setText("1 " + BitcoinUnits::shortName(bondUnit) + " ≈ " + BitcoinUnits::formatWithUnit(cashUnit, conversionRate));
     }
 }
