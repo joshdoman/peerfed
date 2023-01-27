@@ -174,6 +174,9 @@ public:
     //! Get best scale factor.
     virtual CAmountScaleFactor getBestScaleFactor() = 0;
 
+    //! Get best interest rate (in basis points).
+    virtual int64_t getBestInterestRate() = 0;
+
     //! Get last block time.
     virtual int64_t getLastBlockTime() = 0;
 
@@ -285,6 +288,7 @@ struct BlockTip {
     uint256 block_hash;
     CAmounts block_supply;
     CAmountScaleFactor block_scale_factor;
+    int64_t block_interest_rate;
 };
 
 } // namespace interfaces

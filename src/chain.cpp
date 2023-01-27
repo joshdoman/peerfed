@@ -147,6 +147,15 @@ void CBlockIndex::BuildScaleFactor(const Consensus::Params& consensus_params)
     }
 }
 
+int64_t CBlockIndex::GetInterestRate() const
+{
+    CAmounts totalSupply = GetTotalSupply();
+    uint128_t interest = (uint128_t)totalSupply[CASH];
+    interest *= 10000; // 100 basis points
+    interest /= (uint128_t)totalSupply[BOND];
+    return interest.convert_to<int64_t>();
+}
+
 arith_uint256 GetBlockProof(const CBlockIndex& block)
 {
     arith_uint256 bnTarget;

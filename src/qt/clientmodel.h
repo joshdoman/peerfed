@@ -73,6 +73,7 @@ public:
     uint256 getBestBlockHash() EXCLUSIVE_LOCKS_REQUIRED(!m_cached_tip_mutex);
     CAmounts getBestTotalSupply() EXCLUSIVE_LOCKS_REQUIRED(!m_cached_tip_mutex);
     CAmountScaleFactor getBestScaleFactor() const;
+    int64_t getBestInterestRate() const;
     int getHeaderTipHeight() const;
     int64_t getHeaderTipTime() const;
 
@@ -97,6 +98,7 @@ public:
     mutable std::atomic<int64_t> cachedBestHeaderTime;
     mutable std::atomic<int> m_cached_num_blocks{-1};
     mutable std::atomic<CAmountScaleFactor> m_cached_scale_factor{0};
+    mutable std::atomic<int64_t> m_cached_interest_rate{-1};
 
     Mutex m_cached_tip_mutex;
     uint256 m_cached_tip_blocks GUARDED_BY(m_cached_tip_mutex){};

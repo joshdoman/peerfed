@@ -696,6 +696,11 @@ CAmountScaleFactor WalletModel::getBestScaleFactor() const
     return m_client_model ? m_client_model->getBestScaleFactor() : BASE_FACTOR;
 }
 
+int64_t WalletModel::getBestInterestRate() const
+{
+    return m_client_model ? m_client_model->getBestInterestRate() : 0;
+}
+
 CAmount WalletModel::estimateConversionOutputAmount(CAmount inputAmount, CAmountType inputType) const
 {
     return m_client_model ? Consensus::CalculateOutputAmount(m_client_model->getBestTotalSupply(), inputAmount, inputType) : 0;

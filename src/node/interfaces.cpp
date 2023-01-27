@@ -287,6 +287,11 @@ public:
         const CBlockIndex* tip = WITH_LOCK(::cs_main, return chainman().ActiveChain().Tip());
         return tip ? tip->scaleFactor : BASE_FACTOR;
     }
+    int64_t getBestInterestRate() override
+    {
+        const CBlockIndex* tip = WITH_LOCK(::cs_main, return chainman().ActiveChain().Tip());
+        return tip ? tip->GetInterestRate() : 0;
+    }
     int64_t getLastBlockTime() override
     {
         LOCK(::cs_main);
@@ -380,7 +385,7 @@ public:
     std::unique_ptr<Handler> handleNotifyBlockTip(NotifyBlockTipFn fn) override
     {
         return MakeHandler(::uiInterface.NotifyBlockTip_connect([fn](SynchronizationState sync_state, const CBlockIndex* block) {
-            fn(sync_state, BlockTip{block->nHeight, block->GetBlockTime(), block->GetBlockHash(), block->GetTotalSupply(), block->scaleFactor},
+            fn(sync_state, BlockTip{block->nHeight, block->GetBlockTime(), block->GetBlockHash(), block->GetTotalSupply(), block->scaleFactor, block->GetInterestRate()},
                 GuessVerificationProgress(Params().TxData(), block));
         }));
     }
@@ -388,7 +393,7 @@ public:
     {
         return MakeHandler(
             ::uiInterface.NotifyHeaderTip_connect([fn](SynchronizationState sync_state, int64_t height, int64_t timestamp, bool presync) {
-                fn(sync_state, BlockTip{(int)height, timestamp, uint256{}, {0}, 0}, presync);
+                fn(sync_state, BlockTip{(int)height, timestamp, uint256{}, {0}, 0, 0}, presync);
             }));
     }
     NodeContext* context() override { return m_context; }

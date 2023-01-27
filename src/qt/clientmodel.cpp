@@ -179,6 +179,14 @@ CAmountScaleFactor ClientModel::getBestScaleFactor() const
     return m_cached_scale_factor;
 }
 
+int64_t ClientModel::getBestInterestRate() const
+{
+    if (m_cached_interest_rate == -1) {
+        m_cached_interest_rate = m_node.getBestInterestRate();
+    }
+    return m_cached_interest_rate;
+}
+
 enum BlockSource ClientModel::getBlockSource() const
 {
     if (m_node.getReindex())
@@ -265,6 +273,7 @@ void ClientModel::TipChanged(SynchronizationState sync_state, interfaces::BlockT
     } else if (synctype == SyncType::BLOCK_SYNC) {
         m_cached_num_blocks = tip.block_height;
         m_cached_scale_factor = tip.block_scale_factor;
+        m_cached_interest_rate = tip.block_interest_rate;
         WITH_LOCK(m_cached_tip_mutex, m_cached_tip_blocks = tip.block_hash;);
         WITH_LOCK(m_cached_tip_mutex, m_cached_tip_supply = tip.block_supply;);
     }

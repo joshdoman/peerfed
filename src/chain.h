@@ -372,6 +372,9 @@ public:
     //! Build the scale factor for this entry.
     void BuildScaleFactor(const Consensus::Params& consensus_params);
 
+    //! Return the current interest rate (in basis points)
+    int64_t GetInterestRate() const;
+
     //! Efficiently find an ancestor of this block.
     CBlockIndex* GetAncestor(int height);
     const CBlockIndex* GetAncestor(int height) const;

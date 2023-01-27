@@ -187,6 +187,7 @@ public:
 
     uint256 getLastBlockProcessed() const;
     CAmountScaleFactor getBestScaleFactor() const;
+    int64_t getBestInterestRate() const;
 
     // Return output amount if conversion transaction is executed immediately after the last block.
     CAmount estimateConversionOutputAmount(CAmount inputAmount, CAmountType inputType) const;
