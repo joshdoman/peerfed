@@ -355,11 +355,15 @@ void OverviewPage::updateDisplayUnit()
         }
 
         // Update txdelegate->unit with the current unit
-        BitcoinUnit displayUnit = walletModel->getOptionsModel()->getDisplayUnit();
-        txdelegate->cashUnit = walletModel->getOptionsModel()->getDisplayUnit(CASH);
-        txdelegate->bondUnit = walletModel->getOptionsModel()->getDisplayUnit(BOND);
+        BitcoinUnit cashUnit = walletModel->getOptionsModel()->getDisplayUnit(CASH);
+        BitcoinUnit bondUnit = walletModel->getOptionsModel()->getDisplayUnit(BOND);
+        txdelegate->cashUnit = cashUnit;
+        txdelegate->bondUnit = bondUnit;
 
         ui->listTransactions->update();
+
+        CAmount conversionRate = walletModel->estimateConversionOutputAmount((CAmount)BitcoinUnits::factor(bondUnit), BOND);
+        ui->labelConversionRate->setText("1 " + BitcoinUnits::shortName(bondUnit) + " ≈ " + BitcoinUnits::formatWithUnit(cashUnit, conversionRate));
     }
 }
 
@@ -397,4 +401,7 @@ void OverviewPage::setMonospacedFont(bool use_embedded_font)
     ui->labelWatchPending1->setFont(f);
     ui->labelWatchImmature1->setFont(f);
     ui->labelWatchTotal1->setFont(f);
+
+    ui->labelConversionRate->setFont(f);
+    ui->labelInterestRate->setFont(f);
 }
