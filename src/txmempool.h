@@ -105,7 +105,8 @@ private:
     const unsigned int entryHeight; //!< Chain height when entering the mempool
     const bool spendsCoinbase;      //!< keep track of transactions that spend a coinbase
     const int64_t sigOpCost;        //!< Total sigop cost
-    CAmount m_modified_fee;         //!< Used for determining the priority of the transaction for mining in a block
+    CAmounts m_all_modified_fees;       //!< Used for determining the priority of the transaction for mining in a block
+    CAmount m_modified_fee;         //!< Used for determining the priority of the transaction for mining in a block (normalized using current conversion rate)
     LockPoints lockPoints;     //!< Track the height and time at which tx was final
     const std::optional<CTxConversionInfo> conversionDest; //!< Cached to avoid expensive parent-transaction lookups
 
@@ -114,17 +115,19 @@ private:
     // descendants as well.
     uint64_t nCountWithDescendants{1}; //!< number of descendant transactions
     uint64_t nSizeWithDescendants;   //!< ... and size
-    CAmount nModFeesWithDescendants; //!< ... and total fees (all including us)
+    CAmounts nAllModFeesWithDescendants; //!< ... and total fees (all including us)
+    CAmount nModFeesWithDescendants; //!< ... normalized using current conversion rate
 
     // Analogous statistics for ancestor transactions
     uint64_t nCountWithAncestors{1};
     uint64_t nSizeWithAncestors;
+    CAmounts nAllModFeesWithAncestors;
     CAmount nModFeesWithAncestors;
     int64_t nSigOpCostWithAncestors;
 
 public:
     CTxMemPoolEntry(const CTransactionRef& tx, CAmountType fee_type, CAmount fee,
-                    int64_t time, unsigned int entry_height,
+                    CAmount normalized_fee, int64_t time, unsigned int entry_height,
                     bool spends_coinbase, int64_t sigops_cost,
                     LockPoints lp, std::optional<CTxConversionInfo> conversion_dest = std::nullopt);
 

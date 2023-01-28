@@ -680,7 +680,7 @@ public:
     {
         if (!m_node.mempool) return true;
         LockPoints lp;
-        CTxMemPoolEntry entry(tx, 0, 0, 0, 0, false, 0, lp);
+        CTxMemPoolEntry entry(tx, CASH, 0, 0, 0, 0, false, 0, lp);
         CTxMemPool::setEntries ancestors;
         const CTxMemPool::Limits& limits{m_node.mempool->m_limits};
         std::string unused_error_string;

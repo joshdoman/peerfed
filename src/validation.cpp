@@ -587,6 +587,8 @@ private:
         CAmountType m_fee_type;
         /** Fees paid by this transaction: total input amounts subtracted by total output amounts. */
         CAmount m_base_fees;
+        /** Base fees normalized using current conversion rate */
+        CAmount m_normalized_base_fees;
         /** Base fees + any fee delta set by the user with prioritisetransaction. */
         CAmount m_modified_fees;
         /** Total modified fees of all transactions being replaced. */
@@ -826,6 +828,8 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
 
     int64_t nSigOpsCost = GetTransactionSigOpCost(tx, m_view, STANDARD_SCRIPT_VERIFY_FLAGS);
 
+    CAmounts totalSupply = m_active_chainstate.m_chain.Tip()->GetTotalSupply();
+    ws.m_normalized_base_fees = ws.m_fee_type == CASH ? ws.m_base_fees : Consensus::CalculateOutputAmount(totalSupply, ws.m_base_fees, BOND);
     // ws.m_modified_fees includes any fee deltas from PrioritiseTransaction
     ws.m_modified_fees = ws.m_base_fees;
     m_pool.ApplyDelta(hash, ws.m_modified_fees);
@@ -841,8 +845,8 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         }
     }
 
-    entry.reset(new CTxMemPoolEntry(ptx, ws.m_fee_type, ws.m_base_fees, nAcceptTime, m_active_chainstate.m_chain.Height(),
-            fSpendsCoinbase, nSigOpsCost, lp, ws.m_conversion_dest));
+    entry.reset(new CTxMemPoolEntry(ptx, ws.m_fee_type, ws.m_base_fees, ws.m_normalized_base_fees, nAcceptTime,
+                m_active_chainstate.m_chain.Height(), fSpendsCoinbase, nSigOpsCost, lp, ws.m_conversion_dest));
     ws.m_vsize = entry->GetTxSize();
 
     if (nSigOpsCost > MAX_STANDARD_TX_SIGOPS_COST)

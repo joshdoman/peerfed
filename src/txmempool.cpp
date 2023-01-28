@@ -42,7 +42,7 @@ bool TestLockPointValidity(CChain& active_chain, const LockPoints& lp)
 }
 
 CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& tx, CAmountType fee_type, CAmount fee,
-                                 int64_t time, unsigned int entry_height, bool spends_coinbase,
+                                 CAmount normalized_fee, int64_t time, unsigned int entry_height, bool spends_coinbase,
                                  int64_t sigops_cost, LockPoints lp, std::optional<CTxConversionInfo> conversion_dest)
     : tx{tx},
       nFeeType{fee_type},
@@ -53,14 +53,22 @@ CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& tx, CAmountType fee_type
       entryHeight{entry_height},
       spendsCoinbase{spends_coinbase},
       sigOpCost{sigops_cost},
-      m_modified_fee{nFee},
+      m_all_modified_fees{{0}},
+      m_modified_fee{normalized_fee},
       lockPoints{lp},
       conversionDest{conversion_dest},
       nSizeWithDescendants{GetTxSize()},
-      nModFeesWithDescendants{nFee},
+      nAllModFeesWithDescendants{{0}},
+      nModFeesWithDescendants{normalized_fee},
       nSizeWithAncestors{GetTxSize()},
-      nModFeesWithAncestors{nFee},
-      nSigOpCostWithAncestors{sigOpCost} {}
+      nAllModFeesWithAncestors{{0}},
+      nModFeesWithAncestors{normalized_fee},
+      nSigOpCostWithAncestors{sigOpCost}
+{
+    m_all_modified_fees[nFeeType] = nFee;
+    nAllModFeesWithDescendants[nFeeType] = nFee;
+    nAllModFeesWithAncestors[nFeeType] = nFee;
+}
 
 void CTxMemPoolEntry::UpdateModifiedFee(CAmount fee_diff)
 {
