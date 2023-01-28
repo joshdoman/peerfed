@@ -345,6 +345,19 @@ void CTxMemPool::UpdateChildrenForRemoval(txiter it)
     }
 }
 
+void CTxMemPool::UpdateNormalizedFees()
+{
+    // Get all entries in mempool
+    std::vector<txiter> view;
+    for (auto mi = mapTx.get<ancestor_score>().begin(); mi != mapTx.get<ancestor_score>().end(); ++mi) {
+        view.push_back(mapTx.project<0>(mi));
+    }
+
+    for (txiter iter : view) {
+        mapTx.modify(iter, [=](CTxMemPoolEntry& e) { }); // TODO: Implement
+    }
+}
+
 void CTxMemPool::UpdateForRemoveFromMempool(const setEntries &entriesToRemove, bool updateDescendants)
 {
     // For each entry, walk back all ancestors and decrement size associated with this
@@ -675,6 +688,8 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     }
     lastRollingFeeUpdate = GetTime();
     blockSinceLastRollingFeeBump = true;
+    // Update the normalized tx fees with the new conversion rate
+    UpdateNormalizedFees();
 }
 
 void CTxMemPool::_clear()
