@@ -27,7 +27,7 @@ namespace Consensus {
  * @param[out] conversionDest Set if conversion output is present.
  * Preconditions: tx.IsCoinBase() is false.
  */
-[[nodiscard]] bool CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmountType& txfeeType, CAmount& txfee, std::optional<CTxConversionInfo>& conversionDest);
+[[nodiscard]] bool CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmounts& txfees, std::optional<CTxConversionInfo>& conversionDest);
 
 /**
  * Check if conversion is valid according to the sum-of-squares invariant and can

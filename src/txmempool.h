@@ -97,8 +97,7 @@ private:
     const CTransactionRef tx;
     mutable Parents m_parents;
     mutable Children m_children;
-    const CAmountType nFeeType;     //!< Cached to avoid expensive parent-transaction lookups
-    const CAmount nFee;             //!< Cached to avoid expensive parent-transaction lookups
+    const CAmounts nFees;             //!< Cached to avoid expensive parent-transaction lookups
     CAmount nNormalizedFee;         //!< Cached to avoid expensive parent-transaction lookups
     const size_t nTxWeight;         //!< ... and avoid recomputing tx weight (also used for GetTxSize())
     const size_t nUsageSize;        //!< ... and total memory usage
@@ -127,15 +126,14 @@ private:
     int64_t nSigOpCostWithAncestors;
 
 public:
-    CTxMemPoolEntry(const CTransactionRef& tx, CAmountType fee_type, CAmount fee,
-                    CAmount normalized_fee, int64_t time, unsigned int entry_height,
+    CTxMemPoolEntry(const CTransactionRef& tx, CAmounts fees, CAmount normalized_fee,
+                    int64_t time, unsigned int entry_height,
                     bool spends_coinbase, int64_t sigops_cost,
                     LockPoints lp, std::optional<CTxConversionInfo> conversion_dest = std::nullopt);
 
     const CTransaction& GetTx() const { return *this->tx; }
     CTransactionRef GetSharedTx() const { return this->tx; }
-    const CAmountType& GetFeeType() const { return nFeeType; }
-    const CAmount& GetFee() const { return nFee; }
+    const CAmounts& GetFees() const { return nFees; }
     const CAmount& GetNormalizedFee() const { return nNormalizedFee; }
     size_t GetTxSize() const;
     size_t GetTxWeight() const { return nTxWeight; }
@@ -257,7 +255,7 @@ public:
 /** \class CompareTxMemPoolEntryByScore
  *
  *  Sort by feerate of entry (normalized fee/size) in descending order
- *  This is only used for transaction relay, so we use GetFee()
+ *  This is only used for transaction relay, so we use GetNormalizedFee()
  *  instead of GetModifiedFee() to avoid leaking prioritization
  *  information via the sort order.
  */

@@ -41,12 +41,11 @@ bool TestLockPointValidity(CChain& active_chain, const LockPoints& lp)
     return true;
 }
 
-CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& tx, CAmountType fee_type, CAmount fee,
-                                 CAmount normalized_fee, int64_t time, unsigned int entry_height, bool spends_coinbase,
+CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& tx, CAmounts fees, CAmount normalized_fee,
+                                 int64_t time, unsigned int entry_height, bool spends_coinbase,
                                  int64_t sigops_cost, LockPoints lp, std::optional<CTxConversionInfo> conversion_dest)
     : tx{tx},
-      nFeeType{fee_type},
-      nFee{fee},
+      nFees{fees},
       nNormalizedFee{normalized_fee},
       nTxWeight(GetTransactionWeight(*tx)),
       nUsageSize{RecursiveDynamicUsage(tx)},
@@ -54,22 +53,17 @@ CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& tx, CAmountType fee_type
       entryHeight{entry_height},
       spendsCoinbase{spends_coinbase},
       sigOpCost{sigops_cost},
-      m_all_modified_fees{{0}},
+      m_all_modified_fees{nFees},
       m_modified_fee{nNormalizedFee},
       lockPoints{lp},
       conversionDest{conversion_dest},
       nSizeWithDescendants{GetTxSize()},
-      nModAllFeesWithDescendants{{0}},
+      nModAllFeesWithDescendants{nFees},
       nModFeesWithDescendants{nNormalizedFee},
       nSizeWithAncestors{GetTxSize()},
-      nModAllFeesWithAncestors{{0}},
+      nModAllFeesWithAncestors{nFees},
       nModFeesWithAncestors{nNormalizedFee},
-      nSigOpCostWithAncestors{sigOpCost}
-{
-    m_all_modified_fees[nFeeType] = nFee;
-    nModAllFeesWithDescendants[nFeeType] = nFee;
-    nModAllFeesWithAncestors[nFeeType] = nFee;
-}
+      nSigOpCostWithAncestors{sigOpCost} {}
 
 void CTxMemPoolEntry::UpdateModifiedFee(CAmount fee_diff, CAmounts totalSupply)
 {
@@ -83,19 +77,20 @@ void CTxMemPoolEntry::UpdateModifiedFee(CAmount fee_diff, CAmounts totalSupply)
 
 void CTxMemPoolEntry::UpdateNormalizedFee(CAmounts totalSupply)
 {
-    nNormalizedFee = nFeeType == CASH ? nFee : Consensus::CalculateOutputAmount(totalSupply, nFee, BOND);
+    CAmount normalizedBondFee = nFees[BOND] > 0 ? Consensus::CalculateOutputAmount(totalSupply, nFees[BOND], BOND) : 0;
+    nNormalizedFee = nFees[CASH] + normalizedBondFee;
 
     m_modified_fee = m_all_modified_fees[CASH];
     if (m_all_modified_fees[BOND] > 0) {
-        m_modified_fee = SaturatingAdd(m_modified_fee, m_all_modified_fees[BOND] == nFee ? nNormalizedFee : Consensus::CalculateOutputAmount(totalSupply, m_all_modified_fees[BOND], BOND));
+        m_modified_fee = SaturatingAdd(m_modified_fee, m_all_modified_fees[BOND] == nFees[BOND] ? normalizedBondFee : Consensus::CalculateOutputAmount(totalSupply, m_all_modified_fees[BOND], BOND));
     }
     nModFeesWithDescendants = nModAllFeesWithDescendants[CASH];
     if (nModAllFeesWithDescendants[BOND] > 0) {
-        nModFeesWithDescendants = SaturatingAdd(nModFeesWithDescendants, nModAllFeesWithDescendants[BOND] == nFee ? nNormalizedFee : Consensus::CalculateOutputAmount(totalSupply, nModAllFeesWithDescendants[BOND], BOND));
+        nModFeesWithDescendants = SaturatingAdd(nModFeesWithDescendants, nModAllFeesWithDescendants[BOND] == nFees[BOND] ? normalizedBondFee : Consensus::CalculateOutputAmount(totalSupply, nModAllFeesWithDescendants[BOND], BOND));
     }
     nModFeesWithAncestors = nModAllFeesWithAncestors[CASH];
     if (nModAllFeesWithAncestors[BOND] > 0) {
-        nModFeesWithAncestors = SaturatingAdd(nModFeesWithAncestors, nModAllFeesWithAncestors[BOND] == nFee ? nNormalizedFee : Consensus::CalculateOutputAmount(totalSupply, nModAllFeesWithAncestors[BOND], BOND));
+        nModFeesWithAncestors = SaturatingAdd(nModFeesWithAncestors, nModAllFeesWithAncestors[BOND] == nFees[BOND] ? normalizedBondFee : Consensus::CalculateOutputAmount(totalSupply, nModAllFeesWithAncestors[BOND], BOND));
     }
 }
 
@@ -561,7 +556,8 @@ void CTxMemPool::addUnchecked(const CTxMemPoolEntry &entry, setEntries &setAnces
 
     nTransactionsUpdated++;
     totalTxSize += entry.GetTxSize();
-    m_total_fees[entry.GetFeeType()] += entry.GetFee();
+    m_total_fees[CASH] += entry.GetFees()[CASH];
+    m_total_fees[BOND] += entry.GetFees()[BOND];
     if (minerPolicyEstimator) {
         minerPolicyEstimator->processTransaction(entry, validFeeEstimate);
     }
@@ -600,7 +596,8 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
         vTxHashes.clear();
 
     totalTxSize -= it->GetTxSize();
-    m_total_fees[it->GetFeeType()] -= it->GetFee();
+    m_total_fees[CASH] -= it->GetFees()[CASH];
+    m_total_fees[BOND] -= it->GetFees()[BOND];
     cachedInnerUsage -= it->DynamicMemoryUsage();
     cachedInnerUsage -= memusage::DynamicUsage(it->GetMemPoolParentsConst()) + memusage::DynamicUsage(it->GetMemPoolChildrenConst());
     mapTx.erase(it);
@@ -778,7 +775,8 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
 
     for (const auto& it : GetSortedDepthAndScore()) {
         checkTotal += it->GetTxSize();
-        check_total_fees[it->GetFeeType()] += it->GetFee();
+        check_total_fees[CASH] += it->GetFees()[CASH];
+        check_total_fees[BOND] += it->GetFees()[BOND];
         innerUsage += it->DynamicMemoryUsage();
         const CTransaction& tx = it->GetTx();
         innerUsage += memusage::DynamicUsage(it->GetMemPoolParentsConst()) + memusage::DynamicUsage(it->GetMemPoolChildrenConst());
@@ -850,11 +848,10 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
         assert(it->GetSizeWithDescendants() >= child_sizes + it->GetTxSize());
 
         TxValidationState dummy_state; // Not used. CheckTxInputs() should always pass
-        CAmount txfee = 0;
-        CAmountType txfeeType = 0;
+        CAmounts txfees = {0};
         std::optional<CTxConversionInfo> conversionDest;
         assert(!tx.IsCoinBase());
-        assert(Consensus::CheckTxInputs(tx, dummy_state, mempoolDuplicate, spendheight, txfeeType, txfee, conversionDest));
+        assert(Consensus::CheckTxInputs(tx, dummy_state, mempoolDuplicate, spendheight, txfees, conversionDest));
         for (const auto& input: tx.vin) mempoolDuplicate.SpendCoin(input.prevout);
         AddCoins(mempoolDuplicate, tx, std::numeric_limits<int>::max());
     }

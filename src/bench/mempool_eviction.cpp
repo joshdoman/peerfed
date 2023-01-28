@@ -12,12 +12,14 @@ static void AddTx(const CTransactionRef& tx, const CAmountType& nFeeType, const 
 {
     int64_t nTime = 0;
     unsigned int nHeight = 1;
+    CAmounts nFees = {0};
+    nFees[nFeeType] = nFee;
     CAmount normalizedNFee = nFee;
     bool spendsCoinbase = false;
     unsigned int sigOpCost = 4;
     LockPoints lp;
     pool.addUnchecked(CTxMemPoolEntry(
-        tx, nFeeType, nFee, normalizedNFee, nTime,
+        tx, nFees, normalizedNFee, nTime,
         nHeight, spendsCoinbase, sigOpCost, lp));
 }
 

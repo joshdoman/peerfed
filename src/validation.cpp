@@ -583,10 +583,8 @@ private:
         /** Virtual size of the transaction as used by the mempool, calculated using serialized size
          * of the transaction and sigops. */
         int64_t m_vsize;
-        /** Fee type paid by this transaction. */
-        CAmountType m_fee_type;
         /** Fees paid by this transaction: total input amounts subtracted by total output amounts. */
-        CAmount m_base_fees;
+        CAmounts m_base_fees;
         /** Base fees normalized using current conversion rate */
         CAmount m_normalized_base_fees;
         /** Base fees + any fee delta set by the user with prioritisetransaction. */
@@ -813,7 +811,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     }
 
     // The mempool holds txs for the next block, so pass height+1 to CheckTxInputs
-    if (!Consensus::CheckTxInputs(tx, state, m_view, m_active_chainstate.m_chain.Height() + 1, ws.m_fee_type, ws.m_base_fees, ws.m_conversion_dest)) {
+    if (!Consensus::CheckTxInputs(tx, state, m_view, m_active_chainstate.m_chain.Height() + 1, ws.m_base_fees, ws.m_conversion_dest)) {
         return false; // state filled in by CheckTxInputs
     }
 
@@ -829,9 +827,9 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     int64_t nSigOpsCost = GetTransactionSigOpCost(tx, m_view, STANDARD_SCRIPT_VERIFY_FLAGS);
 
     CAmounts totalSupply = m_active_chainstate.m_chain.Tip()->GetTotalSupply();
-    ws.m_normalized_base_fees = ws.m_fee_type == CASH ? ws.m_base_fees : Consensus::CalculateOutputAmount(totalSupply, ws.m_base_fees, BOND);
+    ws.m_normalized_base_fees = ws.m_base_fees[CASH] + Consensus::CalculateOutputAmount(totalSupply, ws.m_base_fees[BOND], BOND);
     // ws.m_modified_fees includes any fee deltas from PrioritiseTransaction
-    ws.m_modified_fees = ws.m_base_fees;
+    ws.m_modified_fees = ws.m_normalized_base_fees;
     m_pool.ApplyDelta(hash, ws.m_modified_fees);
 
     // Keep track of transactions that spend a coinbase, which we re-scan
@@ -845,7 +843,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         }
     }
 
-    entry.reset(new CTxMemPoolEntry(ptx, ws.m_fee_type, ws.m_base_fees, ws.m_normalized_base_fees, nAcceptTime,
+    entry.reset(new CTxMemPoolEntry(ptx, ws.m_base_fees, ws.m_normalized_base_fees, nAcceptTime,
                 m_active_chainstate.m_chain.Height(), fSpendsCoinbase, nSigOpsCost, lp, ws.m_conversion_dest));
     ws.m_vsize = entry->GetTxSize();
 
@@ -1168,7 +1166,7 @@ bool MemPoolAccept::SubmitPackage(const ATMPArgs& args, std::vector<Workspace>& 
     for (Workspace& ws : workspaces) {
         if (m_pool.exists(GenTxid::Wtxid(ws.m_ptx->GetWitnessHash()))) {
             results.emplace(ws.m_ptx->GetWitnessHash(),
-                MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize, ws.m_base_fees));
+                MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize, ws.m_normalized_base_fees));
             GetMainSignals().TransactionAddedToMempool(ws.m_ptx, m_pool.GetAndIncrementSequence());
         } else {
             all_submitted = false;
@@ -1198,14 +1196,14 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
 
     // Tx was accepted, but not added
     if (args.m_test_accept) {
-        return MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize, ws.m_base_fees);
+        return MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize, ws.m_normalized_base_fees);
     }
 
     if (!Finalize(args, ws)) return MempoolAcceptResult::Failure(ws.m_state);
 
     GetMainSignals().TransactionAddedToMempool(ptx, m_pool.GetAndIncrementSequence());
 
-    return MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize, ws.m_base_fees);
+    return MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize, ws.m_normalized_base_fees);
 }
 
 PackageMempoolAcceptResult MemPoolAccept::AcceptMultipleTransactions(const std::vector<CTransactionRef>& txns, ATMPArgs& args)
@@ -1275,7 +1273,7 @@ PackageMempoolAcceptResult MemPoolAccept::AcceptMultipleTransactions(const std::
             // no further mempool checks (passing PolicyScriptChecks implies passing ConsensusScriptChecks).
             results.emplace(ws.m_ptx->GetWitnessHash(),
                             MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions),
-                                                         ws.m_vsize, ws.m_base_fees));
+                                                         ws.m_vsize, ws.m_normalized_base_fees));
         }
     }
 
@@ -2214,18 +2212,18 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
         if (!tx.IsCoinBase())
         {
-            CAmount txfee = 0;
-            CAmountType txfee_type = 0;
+            CAmounts txfees = {0};
             std::optional<CTxConversionInfo> conversion_dest;
             TxValidationState tx_state;
-            if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfee_type, txfee, conversion_dest)) {
+            if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfees, conversion_dest)) {
                 // Any transaction validation failure in ConnectBlock is a block consensus failure
                 state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
                             tx_state.GetRejectReason(), tx_state.GetDebugMessage());
                 return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), state.ToString());
             }
-            nFees[txfee_type] += txfee;
-            if (!MoneyRange(nFees[txfee_type])) {
+            nFees[CASH] += txfees[CASH];
+            nFees[BOND] += txfees[BOND];
+            if (!MoneyRange(nFees[CASH]) || !MoneyRange(nFees[BOND])) {
                 LogPrintf("ERROR: %s: accumulated fee in the block out of range.\n", __func__);
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-accumulated-fee-outofrange");
             }

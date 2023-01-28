@@ -206,7 +206,6 @@ class CTxMemPoolEntry;
 struct TestMemPoolEntryHelper
 {
     // Default values
-    CAmountType nFeeType;
     CAmount nFee;
     int64_t nTime;
     unsigned int nHeight;
@@ -215,14 +214,13 @@ struct TestMemPoolEntryHelper
     LockPoints lp;
 
     TestMemPoolEntryHelper() :
-        nFeeType(CASH), nFee(0), nTime(0), nHeight(1),
+        nFee(0), nTime(0), nHeight(1),
         spendsCoinbase(false), sigOpCost(4) { }
 
     CTxMemPoolEntry FromTx(const CMutableTransaction& tx) const;
     CTxMemPoolEntry FromTx(const CTransactionRef& tx) const;
 
     // Change the default value
-    TestMemPoolEntryHelper &FeeType(CAmountType _feeType) { nFeeType = _feeType; return *this; }
     TestMemPoolEntryHelper &Fee(CAmount _fee) { nFee = _fee; return *this; }
     TestMemPoolEntryHelper &Time(int64_t _time) { nTime = _time; return *this; }
     TestMemPoolEntryHelper &Height(unsigned int _height) { nHeight = _height; return *this; }

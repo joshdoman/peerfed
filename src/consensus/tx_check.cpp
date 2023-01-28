@@ -64,9 +64,6 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
                     has_conversion_script = true;
                 }
             }
-            if (!has_conversion_script) {
-                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-different-types-missing-conversion-script");
-            }
         }
 
         for (const auto& txin : tx.vin)

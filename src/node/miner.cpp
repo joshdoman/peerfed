@@ -256,7 +256,8 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
     nBlockWeight += iter->GetTxWeight();
     ++nBlockTx;
     nBlockSigOpsCost += iter->GetSigOpCost();
-    nFees[iter->GetFeeType()] += iter->GetFee();
+    nFees[CASH] += iter->GetFees()[CASH];
+    nFees[BOND] += iter->GetFees()[BOND];
     inBlock.insert(iter);
 
     std::optional<CTxConversionInfo> conversionDest = iter->GetConversionDest();

@@ -169,7 +169,7 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
     return nSigOps;
 }
 
-bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmountType& txfeeType, CAmount& txfee, std::optional<CTxConversionInfo>& wrappedConversionDest)
+bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmounts& txfees, std::optional<CTxConversionInfo>& wrappedConversionDest)
 {
     // are the actual inputs available?
     if (!inputs.HaveInputs(tx)) {
@@ -177,8 +177,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                          strprintf("%s: inputs missing/spent", __func__));
     }
 
-    CAmount nValueIn = 0;
-    CAmountType nValueInType = 0;
+    CAmounts nValueIn = {0};
     for (unsigned int i = 0; i < tx.vin.size(); ++i) {
         const COutPoint &prevout = tx.vin[i].prevout;
         const Coin& coin = inputs.AccessCoin(prevout);
@@ -191,16 +190,10 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
 
         // Check for negative or overflow input values
-        nValueIn += coin.out.nValue;
-        if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn)) {
+        nValueIn[coin.out.amountType] += coin.out.nValue;
+        if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn[CASH]) || !MoneyRange(nValueIn[BOND])) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputvalues-outofrange");
         }
-
-        // Check for different input types
-        if (i > 0 && nValueInType != coin.out.amountType) {
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputvalues-different-types");
-        }
-        nValueInType = coin.out.amountType;
     }
 
     // Check for conversion output
@@ -211,9 +204,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     {
         CTxConversionInfo conversionDest;
         if (ExtractConversionInfo(txout.scriptPubKey, conversionDest)) {
-            CAmounts inputs = {0};
-            inputs[nValueInType] = nValueIn;
-            conversionDest.inputs = inputs;
+            conversionDest.inputs = nValueIn;
             conversionDest.minOutputs = tx.GetValuesOut();
             wrappedConversionDest = std::optional<CTxConversionInfo>{conversionDest};
             conversionFeeType = txout.amountType;
@@ -225,26 +216,27 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     }
 
     if (hasConversionOutput) {
-        txfee = conversionFee;
-        txfeeType = conversionFeeType;
+        txfees[conversionFeeType] = conversionFee;
+        txfees[!conversionFeeType] = 0;
     } else {
         CAmounts values_out = tx.GetValuesOut();
-        if (nValueIn < values_out[nValueInType]) {
+        if (nValueIn[CASH] < values_out[CASH]) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-in-belowout",
-                strprintf("value in (%s) < value out (%s)", FormatMoney(nValueIn), FormatMoney(values_out[nValueInType])));
-        } else if (values_out[!nValueInType] > 0) {
+                strprintf("cash value in (%s) < cash value out (%s)", FormatMoney(nValueIn[CASH]), FormatMoney(values_out[CASH])));
+        } else if (nValueIn[BOND] < values_out[BOND]) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-in-belowout",
-                strprintf("value in (%s) < value out (%s)", FormatMoney(0), FormatMoney(values_out[!nValueInType])));
+                strprintf("bond value in (%s) < bond value out (%s)", FormatMoney(nValueIn[BOND]), FormatMoney(values_out[BOND])));
         }
 
         // Tally transaction fees if input and output types are the same
-        const CAmount txfee_aux = nValueIn - values_out[nValueInType];
-        if (!MoneyRange(txfee_aux)) {
+        CAmounts txfees_aux = {0};
+        txfees_aux[CASH] = nValueIn[CASH] - values_out[CASH];
+        txfees_aux[BOND] = nValueIn[BOND] - values_out[BOND];
+        if (!MoneyRange(txfees_aux[CASH]) || !MoneyRange(txfees_aux[BOND])) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-fee-outofrange");
         }
 
-        txfee = txfee_aux;
-        txfeeType = nValueInType;
+        txfees = txfees_aux;
         wrappedConversionDest = std::optional<CTxConversionInfo>{};
     }
     return true;
