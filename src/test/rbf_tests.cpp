@@ -32,6 +32,7 @@ static inline CTransactionRef make_tx(const std::vector<CTransactionRef>& inputs
     for (size_t i = 0; i < output_values.size(); ++i) {
         tx.vout[i].scriptPubKey = CScript() << OP_11 << OP_EQUAL;
         tx.vout[i].nValue = output_values[i];
+        tx.vout[i].amountType = CASH;
     }
     return MakeTransactionRef(tx);
 }
@@ -97,14 +98,14 @@ BOOST_FIXTURE_TEST_CASE(rbf_helper_functions, TestChain100Setup)
     const auto entry7 = pool.GetIter(tx7->GetHash()).value();
     const auto entry8 = pool.GetIter(tx8->GetHash()).value();
 
-    BOOST_CHECK_EQUAL(entry1->GetFee(), normal_fee);
-    BOOST_CHECK_EQUAL(entry2->GetFee(), normal_fee);
-    BOOST_CHECK_EQUAL(entry3->GetFee(), low_fee);
-    BOOST_CHECK_EQUAL(entry4->GetFee(), high_fee);
-    BOOST_CHECK_EQUAL(entry5->GetFee(), low_fee);
-    BOOST_CHECK_EQUAL(entry6->GetFee(), low_fee);
-    BOOST_CHECK_EQUAL(entry7->GetFee(), high_fee);
-    BOOST_CHECK_EQUAL(entry8->GetFee(), high_fee);
+    BOOST_CHECK_EQUAL(entry1->GetNormalizedFee(), normal_fee);
+    BOOST_CHECK_EQUAL(entry2->GetNormalizedFee(), normal_fee);
+    BOOST_CHECK_EQUAL(entry3->GetNormalizedFee(), low_fee);
+    BOOST_CHECK_EQUAL(entry4->GetNormalizedFee(), high_fee);
+    BOOST_CHECK_EQUAL(entry5->GetNormalizedFee(), low_fee);
+    BOOST_CHECK_EQUAL(entry6->GetNormalizedFee(), low_fee);
+    BOOST_CHECK_EQUAL(entry7->GetNormalizedFee(), high_fee);
+    BOOST_CHECK_EQUAL(entry8->GetNormalizedFee(), high_fee);
 
     CTxMemPool::setEntries set_12_normal{entry1, entry2};
     CTxMemPool::setEntries set_34_cpfp{entry3, entry4};
@@ -124,7 +125,7 @@ BOOST_FIXTURE_TEST_CASE(rbf_helper_functions, TestChain100Setup)
     BOOST_CHECK(PaysMoreThanConflicts(set_12_normal, CFeeRate(entry1->GetModifiedFee() + 1, entry1->GetTxSize()), unused_txid) == std::nullopt);
     // These tests use modified fees (including prioritisation), not base fees.
     BOOST_CHECK(PaysMoreThanConflicts({entry5}, CFeeRate(entry5->GetModifiedFee() + 1, entry5->GetTxSize()), unused_txid) == std::nullopt);
-    BOOST_CHECK(PaysMoreThanConflicts({entry6}, CFeeRate(entry6->GetFee() + 1, entry6->GetTxSize()), unused_txid).has_value());
+    BOOST_CHECK(PaysMoreThanConflicts({entry6}, CFeeRate(entry6->GetNormalizedFee() + 1, entry6->GetTxSize()), unused_txid).has_value());
     BOOST_CHECK(PaysMoreThanConflicts({entry6}, CFeeRate(entry6->GetModifiedFee() + 1, entry6->GetTxSize()), unused_txid) == std::nullopt);
     // PaysMoreThanConflicts checks individual feerate, not ancestor feerate. This test compares
     // replacement_feerate and entry4's feerate, which are the same. The replacement_feerate is

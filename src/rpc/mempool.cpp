@@ -275,7 +275,7 @@ static void entryToJSON(const CTxMemPool& pool, UniValue& info, const CTxMemPool
     info.pushKV("wtxid", pool.vTxHashes[e.vTxHashesIdx].first.ToString());
 
     UniValue fees(UniValue::VOBJ);
-    fees.pushKV("base", ValueFromAmount(e.GetFee()));
+    fees.pushKV("base", ValueFromAmount(e.GetNormalizedFee()));
     fees.pushKV("modified", ValueFromAmount(e.GetModifiedFee()));
     fees.pushKV("ancestor", ValueFromAmount(e.GetModFeesWithAncestors()));
     fees.pushKV("descendant", ValueFromAmount(e.GetModFeesWithDescendants()));
@@ -664,7 +664,7 @@ UniValue MempoolInfoToJSON(const CTxMemPool& pool)
     ret.pushKV("size", (int64_t)pool.size());
     ret.pushKV("bytes", (int64_t)pool.GetTotalTxSize());
     ret.pushKV("usage", (int64_t)pool.DynamicMemoryUsage());
-    ret.pushKV("total_fee", ValueFromAmount(pool.GetTotalFee()));
+    ret.pushKV("total_fee", ValueFromAmount(pool.GetTotalNormalizedFee()));
     ret.pushKV("maxmempool", pool.m_max_size_bytes);
     ret.pushKV("mempoolminfee", ValueFromAmount(std::max(pool.GetMinFee(), pool.m_min_relay_feerate).GetFeePerK()));
     ret.pushKV("minrelaytxfee", ValueFromAmount(pool.m_min_relay_feerate.GetFeePerK()));
@@ -686,7 +686,7 @@ static RPCHelpMan getmempoolinfo()
                 {RPCResult::Type::NUM, "size", "Current tx count"},
                 {RPCResult::Type::NUM, "bytes", "Sum of all virtual transaction sizes as defined in BIP 141. Differs from actual serialized size because witness data is discounted"},
                 {RPCResult::Type::NUM, "usage", "Total memory usage for the mempool"},
-                {RPCResult::Type::STR_AMOUNT, "total_fee", "Total fees for the mempool in " + CURRENCY_UNIT + ", ignoring modified fees through prioritisetransaction"},
+                {RPCResult::Type::STR_AMOUNT, "total_fee", "Total normalized fees for the mempool in " + CURRENCY_UNIT + ", ignoring modified fees through prioritisetransaction"},
                 {RPCResult::Type::NUM, "maxmempool", "Maximum memory usage for the mempool"},
                 {RPCResult::Type::STR_AMOUNT, "mempoolminfee", "Minimum fee rate in " + CURRENCY_UNIT + "/kvB for tx to be accepted. Is the maximum of minrelaytxfee and minimum mempool fee"},
                 {RPCResult::Type::STR_AMOUNT, "minrelaytxfee", "Current minimum relay fee for transactions"},

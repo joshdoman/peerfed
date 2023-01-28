@@ -47,6 +47,7 @@ CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& tx, CAmountType fee_type
     : tx{tx},
       nFeeType{fee_type},
       nFee{fee},
+      nNormalizedFee{normalized_fee},
       nTxWeight(GetTransactionWeight(*tx)),
       nUsageSize{RecursiveDynamicUsage(tx)},
       nTime{time},
@@ -54,27 +55,48 @@ CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& tx, CAmountType fee_type
       spendsCoinbase{spends_coinbase},
       sigOpCost{sigops_cost},
       m_all_modified_fees{{0}},
-      m_modified_fee{normalized_fee},
+      m_modified_fee{nNormalizedFee},
       lockPoints{lp},
       conversionDest{conversion_dest},
       nSizeWithDescendants{GetTxSize()},
-      nAllModFeesWithDescendants{{0}},
-      nModFeesWithDescendants{normalized_fee},
+      nModAllFeesWithDescendants{{0}},
+      nModFeesWithDescendants{nNormalizedFee},
       nSizeWithAncestors{GetTxSize()},
-      nAllModFeesWithAncestors{{0}},
-      nModFeesWithAncestors{normalized_fee},
+      nModAllFeesWithAncestors{{0}},
+      nModFeesWithAncestors{nNormalizedFee},
       nSigOpCostWithAncestors{sigOpCost}
 {
     m_all_modified_fees[nFeeType] = nFee;
-    nAllModFeesWithDescendants[nFeeType] = nFee;
-    nAllModFeesWithAncestors[nFeeType] = nFee;
+    nModAllFeesWithDescendants[nFeeType] = nFee;
+    nModAllFeesWithAncestors[nFeeType] = nFee;
 }
 
-void CTxMemPoolEntry::UpdateModifiedFee(CAmount fee_diff)
+void CTxMemPoolEntry::UpdateModifiedFee(CAmount fee_diff, CAmounts totalSupply)
 {
-    nModFeesWithDescendants = SaturatingAdd(nModFeesWithDescendants, fee_diff);
-    nModFeesWithAncestors = SaturatingAdd(nModFeesWithAncestors, fee_diff);
-    m_modified_fee = SaturatingAdd(m_modified_fee, fee_diff);
+    nModAllFeesWithDescendants[CASH] = SaturatingAdd(nModAllFeesWithDescendants[CASH], fee_diff);
+    nModAllFeesWithAncestors[CASH] = SaturatingAdd(nModAllFeesWithAncestors[CASH], fee_diff);
+    m_all_modified_fees[CASH] = SaturatingAdd(m_all_modified_fees[CASH], fee_diff);
+
+    // Recalculate the normalized modified fees
+    UpdateNormalizedFee(totalSupply);
+}
+
+void CTxMemPoolEntry::UpdateNormalizedFee(CAmounts totalSupply)
+{
+    nNormalizedFee = nFeeType == CASH ? nFee : Consensus::CalculateOutputAmount(totalSupply, nFee, BOND);
+
+    m_modified_fee = m_all_modified_fees[CASH];
+    if (m_all_modified_fees[BOND] > 0) {
+        m_modified_fee = SaturatingAdd(m_modified_fee, m_all_modified_fees[BOND] == nFee ? nNormalizedFee : Consensus::CalculateOutputAmount(totalSupply, m_all_modified_fees[BOND], BOND));
+    }
+    nModFeesWithDescendants = nModAllFeesWithDescendants[CASH];
+    if (nModAllFeesWithDescendants[BOND] > 0) {
+        nModFeesWithDescendants = SaturatingAdd(nModFeesWithDescendants, nModAllFeesWithDescendants[BOND] == nFee ? nNormalizedFee : Consensus::CalculateOutputAmount(totalSupply, nModAllFeesWithDescendants[BOND], BOND));
+    }
+    nModFeesWithAncestors = nModAllFeesWithAncestors[CASH];
+    if (nModAllFeesWithAncestors[BOND] > 0) {
+        nModFeesWithAncestors = SaturatingAdd(nModFeesWithAncestors, nModAllFeesWithAncestors[BOND] == nFee ? nNormalizedFee : Consensus::CalculateOutputAmount(totalSupply, nModAllFeesWithAncestors[BOND], BOND));
+    }
 }
 
 void CTxMemPoolEntry::UpdateLockPoints(const LockPoints& lp)
@@ -115,17 +137,19 @@ void CTxMemPool::UpdateForDescendants(txiter updateIt, cacheMap& cachedDescendan
     // descendants now contains all in-mempool descendants of updateIt.
     // Update and add to cached descendant map
     int64_t modifySize = 0;
-    CAmount modifyFee = 0;
+    CAmounts modifyFees = {0};
     int64_t modifyCount = 0;
+    CAmounts totalSupply = total_supply;
     for (const CTxMemPoolEntry& descendant : descendants) {
         if (!setExclude.count(descendant.GetTx().GetHash())) {
             modifySize += descendant.GetTxSize();
-            modifyFee += descendant.GetModifiedFee();
+            modifyFees[CASH] += descendant.GetModifiedFees()[CASH];
+            modifyFees[BOND] += descendant.GetModifiedFees()[BOND];
             modifyCount++;
             cachedDescendants[updateIt].insert(mapTx.iterator_to(descendant));
             // Update ancestor state for each descendant
             mapTx.modify(mapTx.iterator_to(descendant), [=](CTxMemPoolEntry& e) {
-              e.UpdateAncestorState(updateIt->GetTxSize(), updateIt->GetModifiedFee(), 1, updateIt->GetSigOpCost());
+              e.UpdateAncestorState(updateIt->GetTxSize(), updateIt->GetModifiedFees(), 1, updateIt->GetSigOpCost(), totalSupply);
             });
             // Don't directly remove the transaction here -- doing so would
             // invalidate iterators in cachedDescendants. Mark it for removal
@@ -135,7 +159,7 @@ void CTxMemPool::UpdateForDescendants(txiter updateIt, cacheMap& cachedDescendan
             }
         }
     }
-    mapTx.modify(updateIt, [=](CTxMemPoolEntry& e) { e.UpdateDescendantState(modifySize, modifyFee, modifyCount); });
+    mapTx.modify(updateIt, [=](CTxMemPoolEntry& e) { e.UpdateDescendantState(modifySize, modifyFees, modifyCount, totalSupply); });
 }
 
 void CTxMemPool::UpdateTransactionsFromBlock(const std::vector<uint256>& vHashesToUpdate)
@@ -325,9 +349,12 @@ void CTxMemPool::UpdateAncestorsOf(bool add, txiter it, setEntries &setAncestors
     }
     const int64_t updateCount = (add ? 1 : -1);
     const int64_t updateSize = updateCount * it->GetTxSize();
-    const CAmount updateFee = updateCount * it->GetModifiedFee();
+    CAmounts updateFees = {0};
+    updateFees[CASH] = updateCount * it->GetModifiedFees()[CASH];
+    updateFees[BOND] = updateCount * it->GetModifiedFees()[BOND];
+    CAmounts totalSupply = total_supply;
     for (txiter ancestorIt : setAncestors) {
-        mapTx.modify(ancestorIt, [=](CTxMemPoolEntry& e) { e.UpdateDescendantState(updateSize, updateFee, updateCount); });
+        mapTx.modify(ancestorIt, [=](CTxMemPoolEntry& e) { e.UpdateDescendantState(updateSize, updateFees, updateCount, totalSupply); });
     }
 }
 
@@ -335,14 +362,16 @@ void CTxMemPool::UpdateEntryForAncestors(txiter it, const setEntries &setAncesto
 {
     int64_t updateCount = setAncestors.size();
     int64_t updateSize = 0;
-    CAmount updateFee = 0;
+    CAmounts updateFees = {0};
     int64_t updateSigOpsCost = 0;
+    CAmounts totalSupply = total_supply;
     for (txiter ancestorIt : setAncestors) {
         updateSize += ancestorIt->GetTxSize();
-        updateFee += ancestorIt->GetModifiedFee();
+        updateFees[CASH] += ancestorIt->GetModifiedFees()[CASH];
+        updateFees[BOND] += ancestorIt->GetModifiedFees()[BOND];
         updateSigOpsCost += ancestorIt->GetSigOpCost();
     }
-    mapTx.modify(it, [=](CTxMemPoolEntry& e){ e.UpdateAncestorState(updateSize, updateFee, updateCount, updateSigOpsCost); });
+    mapTx.modify(it, [=](CTxMemPoolEntry& e){ e.UpdateAncestorState(updateSize, updateFees, updateCount, updateSigOpsCost, totalSupply); });
 }
 
 void CTxMemPool::UpdateChildrenForRemoval(txiter it)
@@ -353,8 +382,10 @@ void CTxMemPool::UpdateChildrenForRemoval(txiter it)
     }
 }
 
-void CTxMemPool::UpdateNormalizedFees()
+void CTxMemPool::UpdateNormalizedFees(CAmounts totalSupply)
 {
+    // Update the local total supply reference
+    total_supply = totalSupply;
     // Get all entries in mempool
     std::vector<txiter> view;
     for (auto mi = mapTx.get<ancestor_score>().begin(); mi != mapTx.get<ancestor_score>().end(); ++mi) {
@@ -362,7 +393,7 @@ void CTxMemPool::UpdateNormalizedFees()
     }
 
     for (txiter iter : view) {
-        mapTx.modify(iter, [=](CTxMemPoolEntry& e) { }); // TODO: Implement
+        mapTx.modify(iter, [&totalSupply](CTxMemPoolEntry& e) { e.UpdateNormalizedFee(totalSupply); });
     }
 }
 
@@ -383,10 +414,13 @@ void CTxMemPool::UpdateForRemoveFromMempool(const setEntries &entriesToRemove, b
             CalculateDescendants(removeIt, setDescendants);
             setDescendants.erase(removeIt); // don't update state for self
             int64_t modifySize = -((int64_t)removeIt->GetTxSize());
-            CAmount modifyFee = -removeIt->GetModifiedFee();
+            CAmounts modifyFees = {0};
+            modifyFees[CASH] = -removeIt->GetModifiedFees()[CASH];
+            modifyFees[BOND] = -removeIt->GetModifiedFees()[BOND];
             int modifySigOps = -removeIt->GetSigOpCost();
+            CAmounts totalSupply = total_supply;
             for (txiter dit : setDescendants) {
-                mapTx.modify(dit, [=](CTxMemPoolEntry& e){ e.UpdateAncestorState(modifySize, modifyFee, -1, modifySigOps); });
+                mapTx.modify(dit, [=](CTxMemPoolEntry& e){ e.UpdateAncestorState(modifySize, modifyFees, -1, modifySigOps, totalSupply); });
             }
         }
     }
@@ -426,20 +460,24 @@ void CTxMemPool::UpdateForRemoveFromMempool(const setEntries &entriesToRemove, b
     }
 }
 
-void CTxMemPoolEntry::UpdateDescendantState(int64_t modifySize, CAmount modifyFee, int64_t modifyCount)
+void CTxMemPoolEntry::UpdateDescendantState(int64_t modifySize, CAmounts modifyFee, int64_t modifyCount, CAmounts totalSupply)
 {
     nSizeWithDescendants += modifySize;
     assert(int64_t(nSizeWithDescendants) > 0);
-    nModFeesWithDescendants = SaturatingAdd(nModFeesWithDescendants, modifyFee);
+    nModAllFeesWithDescendants[CASH] = SaturatingAdd(nModAllFeesWithDescendants[CASH], modifyFee[CASH]);
+    nModAllFeesWithDescendants[BOND] = SaturatingAdd(nModAllFeesWithDescendants[BOND], modifyFee[BOND]);
+    UpdateNormalizedFee(totalSupply);
     nCountWithDescendants += modifyCount;
     assert(int64_t(nCountWithDescendants) > 0);
 }
 
-void CTxMemPoolEntry::UpdateAncestorState(int64_t modifySize, CAmount modifyFee, int64_t modifyCount, int64_t modifySigOps)
+void CTxMemPoolEntry::UpdateAncestorState(int64_t modifySize, CAmounts modifyFee, int64_t modifyCount, int64_t modifySigOps, CAmounts totalSupply)
 {
     nSizeWithAncestors += modifySize;
     assert(int64_t(nSizeWithAncestors) > 0);
-    nModFeesWithAncestors = SaturatingAdd(nModFeesWithAncestors, modifyFee);
+    nModAllFeesWithAncestors[CASH] = SaturatingAdd(nModAllFeesWithAncestors[CASH], modifyFee[CASH]);
+    nModAllFeesWithAncestors[BOND] = SaturatingAdd(nModAllFeesWithAncestors[BOND], modifyFee[BOND]);
+    UpdateNormalizedFee(totalSupply);
     nCountWithAncestors += modifyCount;
     assert(int64_t(nCountWithAncestors) > 0);
     nSigOpCostWithAncestors += modifySigOps;
@@ -490,9 +528,10 @@ void CTxMemPool::addUnchecked(const CTxMemPoolEntry &entry, setEntries &setAnces
     CAmount delta{0};
     ApplyDelta(entry.GetTx().GetHash(), delta);
     // The following call to UpdateModifiedFee assumes no previous fee modifications
-    Assume(entry.GetFee() == entry.GetModifiedFee());
+    Assume(entry.GetNormalizedFee() == entry.GetModifiedFee());
     if (delta) {
-        mapTx.modify(newit, [&delta](CTxMemPoolEntry& e) { e.UpdateModifiedFee(delta); });
+        CAmounts totalSupply = total_supply;
+        mapTx.modify(newit, [&delta, &totalSupply](CTxMemPoolEntry& e) { e.UpdateModifiedFee(delta, totalSupply); });
     }
 
     // Update cachedInnerUsage to include contained transaction's usage.
@@ -522,7 +561,7 @@ void CTxMemPool::addUnchecked(const CTxMemPoolEntry &entry, setEntries &setAnces
 
     nTransactionsUpdated++;
     totalTxSize += entry.GetTxSize();
-    m_total_fee += entry.GetFee();
+    m_total_fees[entry.GetFeeType()] += entry.GetFee();
     if (minerPolicyEstimator) {
         minerPolicyEstimator->processTransaction(entry, validFeeEstimate);
     }
@@ -561,7 +600,7 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
         vTxHashes.clear();
 
     totalTxSize -= it->GetTxSize();
-    m_total_fee -= it->GetFee();
+    m_total_fees[it->GetFeeType()] -= it->GetFee();
     cachedInnerUsage -= it->DynamicMemoryUsage();
     cachedInnerUsage -= memusage::DynamicUsage(it->GetMemPoolParentsConst()) + memusage::DynamicUsage(it->GetMemPoolChildrenConst());
     mapTx.erase(it);
@@ -669,7 +708,7 @@ void CTxMemPool::removeConflicts(const CTransaction &tx)
 /**
  * Called when a block is connected. Removes from mempool and updates the miner fee estimator.
  */
-void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight)
+void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight, CAmounts totalSupply)
 {
     AssertLockHeld(cs);
     std::vector<const CTxMemPoolEntry*> entries;
@@ -697,7 +736,7 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     lastRollingFeeUpdate = GetTime();
     blockSinceLastRollingFeeBump = true;
     // Update the normalized tx fees with the new conversion rate
-    UpdateNormalizedFees();
+    UpdateNormalizedFees(totalSupply);
 }
 
 void CTxMemPool::_clear()
@@ -706,7 +745,7 @@ void CTxMemPool::_clear()
     mapTx.clear();
     mapNextTx.clear();
     totalTxSize = 0;
-    m_total_fee = 0;
+    m_total_fees = {0};
     cachedInnerUsage = 0;
     lastRollingFeeUpdate = GetTime();
     blockSinceLastRollingFeeBump = false;
@@ -731,7 +770,7 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
     LogPrint(BCLog::MEMPOOL, "Checking mempool with %u transactions and %u inputs\n", (unsigned int)mapTx.size(), (unsigned int)mapNextTx.size());
 
     uint64_t checkTotal = 0;
-    CAmount check_total_fee{0};
+    CAmounts check_total_fees = {0};
     uint64_t innerUsage = 0;
     uint64_t prev_ancestor_count{0};
 
@@ -739,7 +778,7 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
 
     for (const auto& it : GetSortedDepthAndScore()) {
         checkTotal += it->GetTxSize();
-        check_total_fee += it->GetFee();
+        check_total_fees[it->GetFeeType()] += it->GetFee();
         innerUsage += it->DynamicMemoryUsage();
         const CTransaction& tx = it->GetTx();
         innerUsage += memusage::DynamicUsage(it->GetMemPoolParentsConst()) + memusage::DynamicUsage(it->GetMemPoolChildrenConst());
@@ -774,19 +813,21 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
         CalculateMemPoolAncestors(*it, setAncestors, nNoLimit, nNoLimit, nNoLimit, nNoLimit, dummy);
         uint64_t nCountCheck = setAncestors.size() + 1;
         uint64_t nSizeCheck = it->GetTxSize();
-        CAmount nFeesCheck = it->GetModifiedFee();
+        CAmounts nFeesCheck = it->GetModifiedFees();
         int64_t nSigOpCheck = it->GetSigOpCost();
 
         for (txiter ancestorIt : setAncestors) {
             nSizeCheck += ancestorIt->GetTxSize();
-            nFeesCheck += ancestorIt->GetModifiedFee();
+            nFeesCheck[CASH] += ancestorIt->GetModifiedFees()[CASH];
+            nFeesCheck[BOND] += ancestorIt->GetModifiedFees()[BOND];
             nSigOpCheck += ancestorIt->GetSigOpCost();
         }
 
         assert(it->GetCountWithAncestors() == nCountCheck);
         assert(it->GetSizeWithAncestors() == nSizeCheck);
         assert(it->GetSigOpCostWithAncestors() == nSigOpCheck);
-        assert(it->GetModFeesWithAncestors() == nFeesCheck);
+        assert(it->GetModAllFeesWithAncestors()[CASH] == nFeesCheck[CASH]);
+        assert(it->GetModAllFeesWithAncestors()[BOND] == nFeesCheck[BOND]);
         // Sanity check: we are walking in ascending ancestor count order.
         assert(prev_ancestor_count <= it->GetCountWithAncestors());
         prev_ancestor_count = it->GetCountWithAncestors();
@@ -826,7 +867,8 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
     }
 
     assert(totalTxSize == checkTotal);
-    assert(m_total_fee == check_total_fee);
+    assert(m_total_fees[CASH] == check_total_fees[CASH]);
+    assert(m_total_fees[BOND] == check_total_fees[BOND]);
     assert(innerUsage == cachedInnerUsage);
 }
 
@@ -889,7 +931,7 @@ void CTxMemPool::queryHashes(std::vector<uint256>& vtxid) const
 }
 
 static TxMempoolInfo GetInfo(CTxMemPool::indexed_transaction_set::const_iterator it) {
-    return TxMempoolInfo{it->GetSharedTx(), it->GetTime(), it->GetFee(), it->GetTxSize(), it->GetModifiedFee() - it->GetFee()};
+    return TxMempoolInfo{it->GetSharedTx(), it->GetTime(), it->GetNormalizedFee(), it->GetTxSize(), it->GetModifiedFee() - it->GetNormalizedFee()};
 }
 
 std::vector<TxMempoolInfo> CTxMemPool::infoAll() const
@@ -930,23 +972,25 @@ void CTxMemPool::PrioritiseTransaction(const uint256& hash, const CAmount& nFeeD
         LOCK(cs);
         CAmount &delta = mapDeltas[hash];
         delta = SaturatingAdd(delta, nFeeDelta);
+        CAmounts nFeeDeltas = {nFeeDelta, 0};
+        CAmounts totalSupply = total_supply;
         txiter it = mapTx.find(hash);
         if (it != mapTx.end()) {
-            mapTx.modify(it, [&nFeeDelta](CTxMemPoolEntry& e) { e.UpdateModifiedFee(nFeeDelta); });
+            mapTx.modify(it, [&nFeeDelta, &totalSupply](CTxMemPoolEntry& e) { e.UpdateModifiedFee(nFeeDelta, totalSupply); });
             // Now update all ancestors' modified fees with descendants
             setEntries setAncestors;
             uint64_t nNoLimit = std::numeric_limits<uint64_t>::max();
             std::string dummy;
             CalculateMemPoolAncestors(*it, setAncestors, nNoLimit, nNoLimit, nNoLimit, nNoLimit, dummy, false);
             for (txiter ancestorIt : setAncestors) {
-                mapTx.modify(ancestorIt, [=](CTxMemPoolEntry& e){ e.UpdateDescendantState(0, nFeeDelta, 0);});
+                mapTx.modify(ancestorIt, [&nFeeDeltas, &totalSupply](CTxMemPoolEntry& e){ e.UpdateDescendantState(0, nFeeDeltas, 0, totalSupply);});
             }
             // Now update all descendants' modified fees with ancestors
             setEntries setDescendants;
             CalculateDescendants(it, setDescendants);
             setDescendants.erase(it);
             for (txiter descendantIt : setDescendants) {
-                mapTx.modify(descendantIt, [=](CTxMemPoolEntry& e){ e.UpdateAncestorState(0, nFeeDelta, 0, 0); });
+                mapTx.modify(descendantIt, [&nFeeDeltas, &totalSupply](CTxMemPoolEntry& e){ e.UpdateAncestorState(0, nFeeDeltas, 0, 0, totalSupply); });
             }
             ++nTransactionsUpdated;
         }
@@ -1223,4 +1267,10 @@ void CTxMemPool::SetLoadTried(bool load_tried)
 {
     LOCK(cs);
     m_load_tried = load_tried;
+}
+
+CAmount CTxMemPool::GetTotalNormalizedFee() const
+{
+    AssertLockHeld(cs);
+    return m_total_fees[CASH] + Consensus::CalculateOutputAmount(total_supply, m_total_fees[BOND], BOND);
 }

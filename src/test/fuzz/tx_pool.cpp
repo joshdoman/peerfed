@@ -163,16 +163,21 @@ FUZZ_TARGET_INIT(tx_pool_standard, initialize_tx_pool)
         Assert(amount_view.GetCoin(outpoint, c));
         return c.out.nValue;
     };
+    const auto GetAmountType = [&](const COutPoint& outpoint) {
+        Coin c;
+        Assert(amount_view.GetCoin(outpoint, c));
+        return c.out.amountType;
+    };
 
     LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 300)
     {
         {
             // Total supply is the mempool fee + all outpoints
-            CAmount supply_now{WITH_LOCK(tx_pool.cs, return tx_pool.GetTotalFee())};
+            CAmounts supply_now{WITH_LOCK(tx_pool.cs, return tx_pool.GetTotalFee())};
             for (const auto& op : outpoints_supply) {
-                supply_now += GetAmount(op);
+                supply_now[GetAmountType(op)] += GetAmount(op);
             }
-            Assert(supply_now == SUPPLY_TOTAL);
+            Assert(supply_now[CASH] + supply_now[BOND] == SUPPLY_TOTAL);
         }
         Assert(!outpoints_supply.empty());
 

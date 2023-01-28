@@ -99,6 +99,7 @@ private:
     mutable Children m_children;
     const CAmountType nFeeType;     //!< Cached to avoid expensive parent-transaction lookups
     const CAmount nFee;             //!< Cached to avoid expensive parent-transaction lookups
+    CAmount nNormalizedFee;         //!< Cached to avoid expensive parent-transaction lookups
     const size_t nTxWeight;         //!< ... and avoid recomputing tx weight (also used for GetTxSize())
     const size_t nUsageSize;        //!< ... and total memory usage
     const int64_t nTime;            //!< Local time when entering the mempool
@@ -115,13 +116,13 @@ private:
     // descendants as well.
     uint64_t nCountWithDescendants{1}; //!< number of descendant transactions
     uint64_t nSizeWithDescendants;   //!< ... and size
-    CAmounts nAllModFeesWithDescendants; //!< ... and total fees (all including us)
+    CAmounts nModAllFeesWithDescendants; //!< ... and total fees (all including us)
     CAmount nModFeesWithDescendants; //!< ... normalized using current conversion rate
 
     // Analogous statistics for ancestor transactions
     uint64_t nCountWithAncestors{1};
     uint64_t nSizeWithAncestors;
-    CAmounts nAllModFeesWithAncestors;
+    CAmounts nModAllFeesWithAncestors;
     CAmount nModFeesWithAncestors;
     int64_t nSigOpCostWithAncestors;
 
@@ -135,21 +136,25 @@ public:
     CTransactionRef GetSharedTx() const { return this->tx; }
     const CAmountType& GetFeeType() const { return nFeeType; }
     const CAmount& GetFee() const { return nFee; }
+    const CAmount& GetNormalizedFee() const { return nNormalizedFee; }
     size_t GetTxSize() const;
     size_t GetTxWeight() const { return nTxWeight; }
     std::chrono::seconds GetTime() const { return std::chrono::seconds{nTime}; }
     unsigned int GetHeight() const { return entryHeight; }
     int64_t GetSigOpCost() const { return sigOpCost; }
+    CAmounts GetModifiedFees() const { return m_all_modified_fees; }
     CAmount GetModifiedFee() const { return m_modified_fee; }
     size_t DynamicMemoryUsage() const { return nUsageSize; }
     const LockPoints& GetLockPoints() const { return lockPoints; }
 
     // Adjusts the descendant state.
-    void UpdateDescendantState(int64_t modifySize, CAmount modifyFee, int64_t modifyCount);
+    void UpdateDescendantState(int64_t modifySize, CAmounts modifyFee, int64_t modifyCount, CAmounts totalSupply);
     // Adjusts the ancestor state
-    void UpdateAncestorState(int64_t modifySize, CAmount modifyFee, int64_t modifyCount, int64_t modifySigOps);
+    void UpdateAncestorState(int64_t modifySize, CAmounts modifyFee, int64_t modifyCount, int64_t modifySigOps, CAmounts totalSupply);
     // Updates the modified fees with descendants/ancestors.
-    void UpdateModifiedFee(CAmount fee_diff);
+    void UpdateModifiedFee(CAmount fee_diff, CAmounts total_supply);
+    // Updates the normalized fee with the conversion rate implied by the total supply.
+    void UpdateNormalizedFee(CAmounts total_supply);
     // Update the LockPoints after a reorg
     void UpdateLockPoints(const LockPoints& lp);
 
@@ -163,6 +168,7 @@ public:
 
     uint64_t GetCountWithAncestors() const { return nCountWithAncestors; }
     uint64_t GetSizeWithAncestors() const { return nSizeWithAncestors; }
+    CAmounts GetModAllFeesWithAncestors() const { return nModAllFeesWithAncestors; }
     CAmount GetModFeesWithAncestors() const { return nModFeesWithAncestors; }
     int64_t GetSigOpCostWithAncestors() const { return nSigOpCostWithAncestors; }
 
@@ -250,7 +256,7 @@ public:
 
 /** \class CompareTxMemPoolEntryByScore
  *
- *  Sort by feerate of entry (fee/size) in descending order
+ *  Sort by feerate of entry (normalized fee/size) in descending order
  *  This is only used for transaction relay, so we use GetFee()
  *  instead of GetModifiedFee() to avoid leaking prioritization
  *  information via the sort order.
@@ -260,8 +266,8 @@ class CompareTxMemPoolEntryByScore
 public:
     bool operator()(const CTxMemPoolEntry& a, const CTxMemPoolEntry& b) const
     {
-        double f1 = (double)a.GetFee() * b.GetTxSize();
-        double f2 = (double)b.GetFee() * a.GetTxSize();
+        double f1 = (double)a.GetNormalizedFee() * b.GetTxSize();
+        double f2 = (double)b.GetNormalizedFee() * a.GetTxSize();
         if (f1 == f2) {
             return b.GetTx().GetHash() < a.GetTx().GetHash();
         }
@@ -331,7 +337,7 @@ struct index_by_wtxid {};
 class CBlockPolicyEstimator;
 
 /**
- * Information about a mempool transaction.
+ * Information about a mempool transaction. // TODO: Add multi-fee and normalized fee support
  */
 struct TxMempoolInfo
 {
@@ -443,9 +449,11 @@ protected:
     std::atomic<unsigned int> nTransactionsUpdated{0}; //!< Used by getblocktemplate to trigger CreateNewBlock() invocation
     CBlockPolicyEstimator* const minerPolicyEstimator;
 
-    uint64_t totalTxSize GUARDED_BY(cs);      //!< sum of all mempool tx's virtual sizes. Differs from serialized tx size since witness data is discounted. Defined in BIP 141.
-    CAmount m_total_fee GUARDED_BY(cs);       //!< sum of all mempool tx's fees (NOT modified fee)
-    uint64_t cachedInnerUsage GUARDED_BY(cs); //!< sum of dynamic memory usage of all the map elements (NOT the maps themselves)
+    uint64_t totalTxSize GUARDED_BY(cs);        //!< sum of all mempool tx's virtual sizes. Differs from serialized tx size since witness data is discounted. Defined in BIP 141.
+    CAmounts m_total_fees GUARDED_BY(cs){{0}};  //!< sum of all mempool tx's fees (NOT modified fee)
+    uint64_t cachedInnerUsage GUARDED_BY(cs);   //!< sum of dynamic memory usage of all the map elements (NOT the maps themselves)
+
+    CAmounts total_supply GUARDED_BY(cs);   //!< reference to latest total supply of cash and bonds (set each new block and reorg by UpdateNormalizedFees)
 
     mutable int64_t lastRollingFeeUpdate GUARDED_BY(cs);
     mutable bool blockSinceLastRollingFeeBump GUARDED_BY(cs);
@@ -623,7 +631,7 @@ public:
      * */
     void removeForReorg(CChain& chain, std::function<bool(txiter)> filter_final_and_mature) EXCLUSIVE_LOCKS_REQUIRED(cs, cs_main);
     void removeConflicts(const CTransaction& tx) EXCLUSIVE_LOCKS_REQUIRED(cs);
-    void removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight) EXCLUSIVE_LOCKS_REQUIRED(cs);
+    void removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight, CAmounts totalSupply) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
     void clear();
     void _clear() EXCLUSIVE_LOCKS_REQUIRED(cs); //lock free
@@ -766,11 +774,13 @@ public:
         return totalTxSize;
     }
 
-    CAmount GetTotalFee() const EXCLUSIVE_LOCKS_REQUIRED(cs)
+    CAmounts GetTotalFees() const EXCLUSIVE_LOCKS_REQUIRED(cs)
     {
         AssertLockHeld(cs);
-        return m_total_fee;
+        return m_total_fees;
     }
+
+    CAmount GetTotalNormalizedFee() const EXCLUSIVE_LOCKS_REQUIRED(cs);
 
     bool exists(const GenTxid& gtxid) const
     {
@@ -869,7 +879,7 @@ private:
     /** Sever link between specified transaction and direct children. */
     void UpdateChildrenForRemoval(txiter entry) EXCLUSIVE_LOCKS_REQUIRED(cs);
     /** Update normalized fee for current conversion rate. */
-    void UpdateNormalizedFees() EXCLUSIVE_LOCKS_REQUIRED(cs);
+    void UpdateNormalizedFees(CAmounts totalSupply) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
     /** Before calling removeUnchecked for a given transaction,
      *  UpdateForRemoveFromMempool must be called on the entire (dependent) set

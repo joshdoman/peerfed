@@ -251,7 +251,7 @@ bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& packa
 void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
 {
     pblocktemplate->block.vtx.emplace_back(iter->GetSharedTx());
-    pblocktemplate->vTxFees.push_back(iter->GetFee());
+    pblocktemplate->vTxFees.push_back(iter->GetNormalizedFee());
     pblocktemplate->vTxSigOpsCost.push_back(iter->GetSigOpCost());
     nBlockWeight += iter->GetTxWeight();
     ++nBlockTx;
