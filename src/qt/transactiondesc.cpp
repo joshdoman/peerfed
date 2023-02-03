@@ -350,7 +350,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
 
             if (nTxFee[CASH] > 0 || nTxFee[BOND] > 0) {
                 auto txFeeStr = nTxFee[CASH] > 0 ? BitcoinUnits::formatHtmlWithUnit(cashUnit, -nTxFee[CASH]) : BitcoinUnits::formatHtmlWithUnit(bondUnit, -nTxFee[BOND]);
-                if (nTxFee[CASH] > 0 && nTxFee[BOND] < 0) {
+                if (nTxFee[CASH] > 0 && nTxFee[BOND] > 0) {
                     txFeeStr += ", " + BitcoinUnits::formatHtmlWithUnit(bondUnit, -nTxFee[BOND]);
                 }
                 strHTML += "<b>" + tr("Transaction fee") + ":</b> " + txFeeStr + "<br>";
