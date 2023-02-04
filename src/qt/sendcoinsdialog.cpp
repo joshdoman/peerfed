@@ -936,9 +936,6 @@ void SendCoinsDialog::updateSmartFeeLabel()
     int returned_target;
     FeeReason reason;
     CFeeRate feeRate = CFeeRate(model->wallet().getMinimumFee(1000, *m_coin_control, &returned_target, &reason));
-    if (getSendAmountType() == BOND) {
-        feeRate = CFeeRate(model->wallet().estimateConversionOutputAmount(feeRate.GetFeePerK(), CASH)); // Convert normalized rate
-    }
     if (model->getOptionsModel()->getShowScaledAmount(getSendAmountType())) {
         feeRate = CFeeRate(ScaleAmount(feeRate.GetFeePerK(), model->getBestScaleFactor())); // Display fee rate scaled using latest scale factor
     }

@@ -74,6 +74,9 @@ CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_contr
 
     // prevent user from paying a fee below the required fee rate
     CFeeRate required_feerate = GetRequiredFeeRate(wallet);
+    // Convert normalized required fee rate to equivalent required bond fee rate if needed
+    if (coin_control.m_fee_type.value_or(wallet.m_pay_tx_fee_type) == BOND)
+        required_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(required_feerate.GetFeePerK(), CASH));
     if (required_feerate > feerate_needed) {
         feerate_needed = required_feerate;
         if (feeCalc) feeCalc->reason = FeeReason::REQUIRED;

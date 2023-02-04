@@ -1352,6 +1352,7 @@ RPCHelpMan sendall()
             }
 
             CCoinControl coin_control;
+            // TODO: set m_fee_type
 
             SetFeeEstimateMode(*pwallet, coin_control, options["conf_target"], options["estimate_mode"], options["fee_rate"], /*override_min_fee=*/false);
 
