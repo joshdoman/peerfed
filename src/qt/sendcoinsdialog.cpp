@@ -160,6 +160,7 @@ void SendCoinsDialog::setClientModel(ClientModel *_clientModel)
 
     if (_clientModel) {
         connect(_clientModel, &ClientModel::numBlocksChanged, this, &SendCoinsDialog::updateNumberOfBlocks);
+        updateSmartFeeLabel(); // Update smart fee with scale factor
     }
 }
 
@@ -933,9 +934,11 @@ void SendCoinsDialog::updateSmartFeeLabel()
     int returned_target;
     FeeReason reason;
     CFeeRate feeRate = CFeeRate(model->wallet().getMinimumFee(1000, *m_coin_control, &returned_target, &reason));
-
     if (getSendAmountType() == BOND) {
         feeRate = CFeeRate(model->wallet().estimateConversionOutputAmount(feeRate.GetFeePerK(), CASH)); // Convert normalized rate
+    }
+    if (clientModel && model->getOptionsModel()->getShowScaledAmount(getSendAmountType())) {
+        feeRate = CFeeRate(ScaleAmount(feeRate.GetFeePerK(), clientModel->getBestScaleFactor())); // Scale displayed fee rate using latest scale factor
     }
     BitcoinUnit unit = model->getOptionsModel()->getDisplayUnit(getSendAmountType());
     ui->labelSmartFee->setText(BitcoinUnits::formatWithUnit(unit, feeRate.GetFeePerK()) + "/kvB");
