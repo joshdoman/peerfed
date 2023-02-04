@@ -23,7 +23,7 @@ CAmount GetMinimumFee(const CWallet& wallet, unsigned int nTxBytes, const CCoinC
 
 CFeeRate GetRequiredFeeRate(const CWallet& wallet)
 {
-    return std::max(wallet.m_min_fee, wallet.chain().relayMinFee());
+    return std::max(wallet.m_min_fee.Descaled(wallet.chain().getLastScaleFactor()), wallet.chain().relayMinFee());
 }
 
 CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_control, FeeCalculation* feeCalc)
@@ -43,7 +43,7 @@ CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_contr
         if (coin_control.fOverrideFeeRate) return feerate_needed;
     }
     else if (!coin_control.m_confirm_target && wallet.m_pay_tx_fee != CFeeRate(0)) { // 3. TODO: remove magic value of 0 for wallet member m_pay_tx_fee
-        feerate_needed = wallet.m_pay_tx_fee;
+        feerate_needed = wallet.m_pay_tx_fee.Descaled(wallet.chain().getLastScaleFactor());
         if (feeCalc) feeCalc->reason = FeeReason::PAYTXFEE;
     }
     else { // 2. or 4.
@@ -58,7 +58,7 @@ CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_contr
         feerate_needed = wallet.chain().estimateSmartFee(target, conservative_estimate, feeCalc);
         if (feerate_needed == CFeeRate(0)) {
             // if we don't have enough data for estimateSmartFee, then use fallback fee
-            feerate_needed = wallet.m_fallback_fee;
+            feerate_needed = wallet.m_fallback_fee.Descaled(wallet.chain().getLastScaleFactor());
             if (feeCalc) feeCalc->reason = FeeReason::FALLBACK;
 
             // directly return if fallback fee is disabled (feerate 0 == disabled)

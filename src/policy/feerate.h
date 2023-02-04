@@ -53,6 +53,11 @@ public:
     CFeeRate(const CAmount& nFeePaid, uint32_t num_bytes);
 
     /**
+     * Return a descaled version of the fee rate.
+     */
+    CFeeRate Descaled(const CAmountScaleFactor& scaleFactor) const;
+
+    /**
      * Return the fee in satoshis for the given vsize in vbytes.
      * If the calculated fee would have fractional satoshis, then the
      * returned fee will always be rounded up to the nearest satoshi.
