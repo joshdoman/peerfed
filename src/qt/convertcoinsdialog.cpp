@@ -143,24 +143,24 @@ void ConvertCoinsDialog::onOutputChanged()
 
 void ConvertCoinsDialog::recalculate()
 {
-    if (inputIsExact && ui->reqAmountIn->value() != 0) {
+    if (model && inputIsExact && ui->reqAmountIn->value() != 0) {
         calculatingOutput = true;
         CAmount inputAmount = ui->reqAmountIn->value();
         if (model && model->getOptionsModel()->getShowScaledAmount(getInputType())) {
             inputAmount = DescaleAmount(inputAmount, clientModel->getBestScaleFactor());
         }
-        CAmount outputAmount = this->model->estimateConversionOutputAmount(inputAmount, getInputType());
+        CAmount outputAmount = model->wallet().estimateConversionOutputAmount(inputAmount, getInputType());
         if (model && model->getOptionsModel()->getShowScaledAmount(getOutputType())) {
             outputAmount = ScaleAmount(outputAmount, clientModel->getBestScaleFactor());
         }
         ui->reqAmountOut->setValue(outputAmount);
-    } else if (ui->reqAmountOut->value() != 0) {
+    } else if (model && ui->reqAmountOut->value() != 0) {
         calculatingInput = true;
         CAmount outputAmount = ui->reqAmountOut->value();
         if (model && model->getOptionsModel()->getShowScaledAmount(getOutputType())) {
             outputAmount = DescaleAmount(outputAmount, clientModel->getBestScaleFactor());
         }
-        CAmount inputAmount = this->model->estimateConversionInputAmount(outputAmount, getOutputType());
+        CAmount inputAmount = model->wallet().estimateConversionInputAmount(outputAmount, getOutputType());
         if (model && model->getOptionsModel()->getShowScaledAmount(getOutputType())) {
             inputAmount = ScaleAmount(inputAmount, clientModel->getBestScaleFactor());
         }

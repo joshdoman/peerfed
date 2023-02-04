@@ -189,12 +189,6 @@ public:
     CAmountScaleFactor getBestScaleFactor() const;
     int64_t getBestInterestRate() const;
 
-    // Return output amount if conversion transaction is executed immediately after the last block.
-    CAmount estimateConversionOutputAmount(CAmount inputAmount, CAmountType inputType) const;
-
-    // Return input amount if conversion transaction is executed immediately after the last block.
-    CAmount estimateConversionInputAmount(CAmount outputAmount, CAmountType outputType) const;
-
     // Retrieve the cached wallet balance
     interfaces::WalletBalances getCachedBalance() const;
 

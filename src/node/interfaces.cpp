@@ -639,6 +639,11 @@ public:
         auto it = m_node.mempool->GetIter(txid);
         return it && (*it)->GetCountWithDescendants() > 1;
     }
+    CAmounts getLastTotalSupply() override
+    {
+        const CBlockIndex* tip = WITH_LOCK(::cs_main, return chainman().ActiveChain().Tip());
+        return tip ? tip->GetTotalSupply() : chainman().GetParams().GenesisBlock().GetTotalSupply();
+    }
     CAmountScaleFactor getLastScaleFactor() override
     {
         const CBlockIndex* tip = WITH_LOCK(::cs_main, return chainman().ActiveChain().Tip());

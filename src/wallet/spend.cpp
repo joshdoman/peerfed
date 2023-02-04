@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <consensus/amount.h>
+#include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <interfaces/chain.h>
 #include <policy/policy.h>
@@ -885,6 +886,16 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
         return util::Error{_("Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.")};
     }
 
+    // If fee is in bonds, convert normalized long term and discard fee rates
+    if (nFeeTypeRet == BOND) {
+        coin_selection_params.m_long_term_feerate = CFeeRate(Consensus::CalculateOutputAmount(wallet.chain().getLastTotalSupply(), coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_discard_feerate = CFeeRate(Consensus::CalculateOutputAmount(wallet.chain().getLastTotalSupply(), coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
+    }
+
+    // If fee is in bonds and the fee rate is not explicitly set, convert normalized effective fee rate
+    if (!coin_control.m_feerate && nFeeTypeRet == BOND)
+        coin_selection_params.m_effective_feerate = CFeeRate(Consensus::CalculateOutputAmount(wallet.chain().getLastTotalSupply(), coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
+
     // Calculate the cost of change
     // Cost of change is the cost of creating the change output + cost of spending the change output in the future.
     // For creating the change output now, we use the effective feerate.
@@ -1178,6 +1189,16 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         // eventually allow a fallback fee
         return util::Error{_("Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.")};
     }
+
+    // If fee is in bonds, convert normalized discard fee rate
+    if (nFeeTypeRet == BOND) {
+        coin_selection_params.m_long_term_feerate = CFeeRate(Consensus::CalculateOutputAmount(wallet.chain().getLastTotalSupply(), coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_discard_feerate = CFeeRate(Consensus::CalculateOutputAmount(wallet.chain().getLastTotalSupply(), coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
+    }
+
+    // If fee is in bonds and the fee rate is not explicitly set, convert normalized effective fee rate
+    if (!coin_control.m_feerate && nFeeTypeRet == BOND)
+        coin_selection_params.m_effective_feerate = CFeeRate(Consensus::CalculateOutputAmount(wallet.chain().getLastTotalSupply(), coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
 
     // Calculate the cost of change
     // Cost of change is the cost of creating the change output + cost of spending the change output in the future.

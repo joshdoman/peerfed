@@ -260,6 +260,12 @@ public:
     //! Return wallet transaction output information.
     virtual std::vector<WalletTxOut> getCoins(const std::vector<COutPoint>& outputs) = 0;
 
+    //! Estimate expected output amount converting input amount at present conversion rate.
+    virtual CAmount estimateConversionOutputAmount(CAmount inputAmount, CAmountType inputType) = 0;
+
+    //! Estimate necessary input amount to obtain desired output amount at present conversion rate.
+    virtual CAmount estimateConversionInputAmount(CAmount outputAmount, CAmountType outputType) = 0;
+
     //! Get required fee.
     virtual CAmount getRequiredFee(unsigned int tx_bytes) = 0;
 

@@ -366,7 +366,7 @@ void OverviewPage::updateDisplayUnit()
         if (walletModel->getOptionsModel()->getShowScaledAmount(BOND)) {
             amountIn = DescaleAmount(amountIn, walletModel->getBestScaleFactor());
         }
-        CAmount conversionRate = walletModel->estimateConversionOutputAmount(amountIn, BOND);
+        CAmount conversionRate = walletModel->wallet().estimateConversionOutputAmount(amountIn, BOND);
         if (walletModel->getOptionsModel()->getShowScaledAmount(CASH)) {
             conversionRate = ScaleAmount(conversionRate, walletModel->getBestScaleFactor());
         }

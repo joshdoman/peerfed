@@ -194,6 +194,9 @@ public:
     //! Check if transaction has descendants in mempool.
     virtual bool hasDescendantsInMempool(const uint256& txid) = 0;
 
+    //! Get last total supply.
+    virtual CAmounts getLastTotalSupply() = 0;
+
     //! Get last scale factor.
     virtual CAmountScaleFactor getLastScaleFactor() = 0;
 

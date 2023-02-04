@@ -701,16 +701,6 @@ int64_t WalletModel::getBestInterestRate() const
     return m_client_model ? m_client_model->getBestInterestRate() : 0;
 }
 
-CAmount WalletModel::estimateConversionOutputAmount(CAmount inputAmount, CAmountType inputType) const
-{
-    return m_client_model ? Consensus::CalculateOutputAmount(m_client_model->getBestTotalSupply(), inputAmount, inputType) : 0;
-}
-
-CAmount WalletModel::estimateConversionInputAmount(CAmount outputAmount, CAmountType outputType) const
-{
-    return m_client_model ? Consensus::CalculateInputAmount(m_client_model->getBestTotalSupply(), outputAmount, outputType) : 0;
-}
-
 CAmount WalletModel::getAvailableBalance(CAmountType type, const CCoinControl* control)
 {
     return control && control->HasSelected() ? wallet().getAvailableBalance(type, *control) : getCachedBalance().forType(type).balance;
