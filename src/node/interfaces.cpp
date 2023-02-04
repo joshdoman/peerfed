@@ -6,6 +6,7 @@
 #include <banman.h>
 #include <chain.h>
 #include <chainparams.h>
+#include <consensus/tx_verify.h>
 #include <deploymentstatus.h>
 #include <external_signer.h>
 #include <init.h>
@@ -643,6 +644,12 @@ public:
     {
         const CBlockIndex* tip = WITH_LOCK(::cs_main, return chainman().ActiveChain().Tip());
         return tip ? tip->GetTotalSupply() : chainman().GetParams().GenesisBlock().GetTotalSupply();
+    }
+    CAmount estimateConversionOutputAmount(const CAmount& inputAmount, const CAmountType& inputType) override {
+        return Consensus::CalculateOutputAmount(getLastTotalSupply(), inputAmount, inputType);
+    }
+    CAmount estimateConversionInputAmount(const CAmount& outputAmount, const CAmountType& outputType) override {
+        return Consensus::CalculateInputAmount(getLastTotalSupply(), outputAmount, outputType);
     }
     CAmountScaleFactor getLastScaleFactor() override
     {

@@ -160,7 +160,6 @@ void SendCoinsDialog::setClientModel(ClientModel *_clientModel)
 
     if (_clientModel) {
         connect(_clientModel, &ClientModel::numBlocksChanged, this, &SendCoinsDialog::updateNumberOfBlocks);
-        updateSmartFeeLabel(); // Update smart fee with scale factor
     }
 }
 
@@ -823,7 +822,7 @@ void SendCoinsDialog::processSendCoinsReturn(const WalletModel::SendCoinsReturn 
         msgParams.second = CClientUIInterface::MSG_ERROR;
         break;
     case WalletModel::AbsurdFee:
-        msgParams.first = tr("A fee higher than %1 is considered an absurdly high fee.").arg(BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), model->wallet().getDefaultMaxTxFee()));
+        msgParams.first = tr("A normalized fee higher than %1 is considered an absurdly high fee.").arg(BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(CASH), model->wallet().getDefaultMaxTxFee()));
         break;
     // included to prevent a compiler warning.
     case WalletModel::OK:
@@ -940,8 +939,8 @@ void SendCoinsDialog::updateSmartFeeLabel()
     if (getSendAmountType() == BOND) {
         feeRate = CFeeRate(model->wallet().estimateConversionOutputAmount(feeRate.GetFeePerK(), CASH)); // Convert normalized rate
     }
-    if (clientModel && model->getOptionsModel()->getShowScaledAmount(getSendAmountType())) {
-        feeRate = CFeeRate(ScaleAmount(feeRate.GetFeePerK(), clientModel->getBestScaleFactor())); // Scale displayed fee rate using latest scale factor
+    if (model->getOptionsModel()->getShowScaledAmount(getSendAmountType())) {
+        feeRate = CFeeRate(ScaleAmount(feeRate.GetFeePerK(), model->getBestScaleFactor())); // Display fee rate scaled using latest scale factor
     }
     BitcoinUnit unit = model->getOptionsModel()->getDisplayUnit(getSendAmountType());
     ui->labelSmartFee->setText(BitcoinUnits::formatWithUnit(unit, feeRate.GetFeePerK()) + "/kvB");

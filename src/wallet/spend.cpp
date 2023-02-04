@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <consensus/amount.h>
-#include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <interfaces/chain.h>
 #include <policy/policy.h>
@@ -841,7 +840,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
     unsigned int outputs_to_subtract_fee_from = 0; // The number of outputs which we are subtracting the fee from
     for (const auto& recipient : vecSend) {
         if (recipients_sum > 0 && recipient.amountType != amount_type)
-            return util::Error{strprintf(_("Recipients receiving different types of outputs is not allowed."))};
+            return util::Error{strprintf(_("Recipients receiving different types of outputs is not currently allowed."))};
         amount_type = recipient.amountType;
         recipients_sum += recipient.nAmount;
 
@@ -888,13 +887,13 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
 
     // If fee is in bonds, convert normalized long term and discard fee rates
     if (nFeeTypeRet == BOND) {
-        coin_selection_params.m_long_term_feerate = CFeeRate(Consensus::CalculateOutputAmount(wallet.chain().getLastTotalSupply(), coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
-        coin_selection_params.m_discard_feerate = CFeeRate(Consensus::CalculateOutputAmount(wallet.chain().getLastTotalSupply(), coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_discard_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
     }
 
     // If fee is in bonds and the fee rate is not explicitly set, convert normalized effective fee rate
     if (!coin_control.m_feerate && nFeeTypeRet == BOND)
-        coin_selection_params.m_effective_feerate = CFeeRate(Consensus::CalculateOutputAmount(wallet.chain().getLastTotalSupply(), coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
 
     // Calculate the cost of change
     // Cost of change is the cost of creating the change output + cost of spending the change output in the future.
@@ -1061,7 +1060,8 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
         return util::Error{_("Transaction too large")};
     }
 
-    if (nFeeRet > wallet.m_default_max_tx_fee) {
+    CAmount normalizedFee = nFeeTypeRet == CASH ? nFeeRet : wallet.chain().estimateConversionOutputAmount(nFeeRet, BOND);
+    if (normalizedFee > wallet.GetDescaledDefaultMaxTxFee()) {
         return util::Error{TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED)};
     }
 
@@ -1192,13 +1192,13 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
 
     // If fee is in bonds, convert normalized discard fee rate
     if (nFeeTypeRet == BOND) {
-        coin_selection_params.m_long_term_feerate = CFeeRate(Consensus::CalculateOutputAmount(wallet.chain().getLastTotalSupply(), coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
-        coin_selection_params.m_discard_feerate = CFeeRate(Consensus::CalculateOutputAmount(wallet.chain().getLastTotalSupply(), coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_discard_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
     }
 
     // If fee is in bonds and the fee rate is not explicitly set, convert normalized effective fee rate
     if (!coin_control.m_feerate && nFeeTypeRet == BOND)
-        coin_selection_params.m_effective_feerate = CFeeRate(Consensus::CalculateOutputAmount(wallet.chain().getLastTotalSupply(), coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
 
     // Calculate the cost of change
     // Cost of change is the cost of creating the change output + cost of spending the change output in the future.
@@ -1388,8 +1388,8 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         return util::Error{_("Transaction too large")};
     }
 
-    // TODO: Implement default max tx fee by fee type
-    if (nFeeRet > wallet.m_default_max_tx_fee) {
+    CAmount normalizedFee = nFeeTypeRet == CASH ? nFeeRet : wallet.chain().estimateConversionOutputAmount(nFeeRet, BOND);
+    if (normalizedFee > wallet.GetDescaledDefaultMaxTxFee()) {
         return util::Error{TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED)};
     }
 

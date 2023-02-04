@@ -5,7 +5,6 @@
 #include <interfaces/wallet.h>
 
 #include <consensus/amount.h>
-#include <consensus/tx_verify.h>
 #include <interfaces/chain.h>
 #include <interfaces/handler.h>
 #include <policy/fees.h>
@@ -489,10 +488,10 @@ public:
         return result;
     }
     CAmount estimateConversionOutputAmount(CAmount inputAmount, CAmountType inputType) override {
-        return Consensus::CalculateOutputAmount(m_wallet->chain().getLastTotalSupply(), inputAmount, inputType);
+        return m_wallet->chain().estimateConversionOutputAmount(inputAmount, inputType);
     }
     CAmount estimateConversionInputAmount(CAmount outputAmount, CAmountType outputType) override {
-        return Consensus::CalculateInputAmount(m_wallet->chain().getLastTotalSupply(), outputAmount, outputType);
+        return m_wallet->chain().estimateConversionInputAmount(outputAmount, outputType);
     }
     CAmount getRequiredFee(unsigned int tx_bytes) override { return GetRequiredFee(*m_wallet, tx_bytes); }
     CAmount getMinimumFee(unsigned int tx_bytes,

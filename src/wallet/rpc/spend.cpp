@@ -1406,7 +1406,7 @@ RPCHelpMan sendall()
             const CAmount fee_from_size{fee_rate.GetFee(tx_size.vsize)};
             const CAmount effective_value{total_input_value - fee_from_size};
 
-            if (fee_from_size > pwallet->m_default_max_tx_fee) {
+            if (fee_from_size > pwallet->GetDescaledDefaultMaxTxFee()) {
                 throw JSONRPCError(RPC_WALLET_ERROR, TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED).original);
             }
 

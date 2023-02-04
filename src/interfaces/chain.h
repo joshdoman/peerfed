@@ -197,6 +197,12 @@ public:
     //! Get last total supply.
     virtual CAmounts getLastTotalSupply() = 0;
 
+    //! Estimate output amount converting input at present conversion rate.
+    virtual CAmount estimateConversionOutputAmount(const CAmount& inputAmount, const CAmountType& inputType) = 0;
+
+    //! Estimate necessary input to obtain desired output converting at present conversion rate.
+    virtual CAmount estimateConversionInputAmount(const CAmount& outputAmount, const CAmountType& outputType) = 0;
+
     //! Get last scale factor.
     virtual CAmountScaleFactor getLastScaleFactor() = 0;
 
