@@ -270,10 +270,11 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
         CAmountType amountType = conversionDest.value().slippageType;
         CAmount nAmount;
         if (Consensus::IsValidConversion(totalSupply, conversionDest.value().inputs, conversionDest.value().minOutputs, amountType, nAmount)) {
-            LogPrintf("Extra conversion amount: %d\n", nAmount);
-            conversionOutputs.push_back(CTxOut(amountType, nAmount, scriptPubKey));
             pblock->cashSupply = totalSupply[CASH];
             pblock->bondSupply = totalSupply[BOND];
+            if (nAmount > 0)
+                // Include remainder output amount if non-zero
+                conversionOutputs.push_back(CTxOut(amountType, nAmount, scriptPubKey));
         }
     }
 
