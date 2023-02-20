@@ -45,6 +45,9 @@ CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_contr
     else if (!coin_control.m_confirm_target && wallet.m_pay_tx_fee != CFeeRate(0)) { // 3. TODO: remove magic value of 0 for wallet member m_pay_tx_fee
         feerate_needed = wallet.m_pay_tx_fee.Descaled(wallet.chain().getLastScaleFactor());
         if (feeCalc) feeCalc->reason = FeeReason::PAYTXFEE;
+        // Convert normalized fee rate to equivalant bond fee rate if fee is in bonds
+        if (coin_control.m_fee_type.value_or(wallet.m_pay_tx_fee_type) == BOND)
+            feerate_needed = CFeeRate(wallet.chain().estimateConversionOutputAmount(feerate_needed.GetFeePerK(), CASH));
     }
     else { // 2. or 4.
         // We will use smart fee estimation
@@ -60,7 +63,6 @@ CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_contr
             // if we don't have enough data for estimateSmartFee, then use fallback fee
             feerate_needed = wallet.m_fallback_fee.Descaled(wallet.chain().getLastScaleFactor());
             if (feeCalc) feeCalc->reason = FeeReason::FALLBACK;
-
             // directly return if fallback fee is disabled (feerate 0 == disabled)
             if (wallet.m_fallback_fee == CFeeRate(0)) return feerate_needed;
         }
@@ -70,13 +72,17 @@ CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_contr
             feerate_needed = min_mempool_feerate;
             if (feeCalc) feeCalc->reason = FeeReason::MEMPOOL_MIN;
         }
+        // Convert normalized fee rate to equivalant bond fee rate if fee is in bonds
+        if (coin_control.m_fee_type.value_or(wallet.m_pay_tx_fee_type) == BOND)
+            feerate_needed = CFeeRate(wallet.chain().estimateConversionOutputAmount(feerate_needed.GetFeePerK(), CASH));
     }
 
     // prevent user from paying a fee below the required fee rate
     CFeeRate required_feerate = GetRequiredFeeRate(wallet);
-    // Convert normalized required fee rate to equivalent required bond fee rate if needed
+    // Convert normalized required fee rate to equivalent required bond fee rate if fee is in bonds
     if (coin_control.m_fee_type.value_or(wallet.m_pay_tx_fee_type) == BOND)
         required_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(required_feerate.GetFeePerK(), CASH));
+    // Verify that fee rate exceeds the required fee rate
     if (required_feerate > feerate_needed) {
         feerate_needed = required_feerate;
         if (feeCalc) feeCalc->reason = FeeReason::REQUIRED;

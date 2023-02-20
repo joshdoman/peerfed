@@ -604,8 +604,6 @@ void SendCoinsDialog::onSendAmountTypeChanged()
             entry->setAmountType(getSendAmountType());
         }
     }
-    // Update smart fee label
-    updateSmartFeeLabel();
     // Save current custom fee then update custom fee label and fee rate to new type
     QSettings settings;
     if (getSendAmountType() == CASH)
@@ -622,6 +620,8 @@ void SendCoinsDialog::onSendAmountTypeChanged()
         ui->customFee->SetMinValue(requiredFee);
         ui->customFee->setSingleStep(requiredFee);
     }
+    // Update smart fee label
+    updateSmartFeeLabel();
 }
 
 void SendCoinsDialog::clear()

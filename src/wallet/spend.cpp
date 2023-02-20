@@ -891,10 +891,6 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
         coin_selection_params.m_discard_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
     }
 
-    // If fee is in bonds and the fee rate is not explicitly set, convert normalized effective fee rate
-    if (!coin_control.m_feerate && nFeeTypeRet == BOND)
-        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
-
     // Calculate the cost of change
     // Cost of change is the cost of creating the change output + cost of spending the change output in the future.
     // For creating the change output now, we use the effective feerate.
@@ -1195,10 +1191,6 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
         coin_selection_params.m_discard_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
     }
-
-    // If fee is in bonds and the fee rate is not explicitly set, convert normalized effective fee rate
-    if (!coin_control.m_feerate && nFeeTypeRet == BOND)
-        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
 
     // Calculate the cost of change
     // Cost of change is the cost of creating the change output + cost of spending the change output in the future.
