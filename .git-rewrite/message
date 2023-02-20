@@ -1,0 +1,4 @@
+Merge pull request #5719
+
+9fddced Avoid storing a reference passed to SignatureChecker constructors (Pieter Wuille)
+858809a Use separate SignatureChecker for CMutableTransaction (Pieter Wuille)

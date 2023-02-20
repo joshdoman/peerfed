@@ -1,0 +1,21 @@
+tree e5fbeb4aa5f3fcc6109911b61156e1b1adbcfff2
+parent a62649731fb1babaedff10b7c0baec4c50c90d60
+parent 9fddceda44fb5592be179d783f0e5ac616c51c0d
+author Wladimir J. van der Laan <laanwj@gmail.com> 1422947751 +0100
+committer Wladimir J. van der Laan <laanwj@gmail.com> 1422948368 +0100
+gpgsig -----BEGIN PGP SIGNATURE-----
+ Version: GnuPG v1
+ 
+ iQEcBAABCgAGBQJU0HgQAAoJEHSBCwEjRsmm88kH/jhKlmQXFb+xOpa4Amio8e2d
+ l7gYyGTQlzEkgELgw956WZckkD5y7thq9yDmCqhjlxt4XdDkzb+h8MNGk1QGOfOa
+ uq7E5qXNIRXoweBubksx03KDhmtU/28KPLlbAIcW/BCaVD2OXcEgnM4Ea/Gn/Ybt
+ uppsfNr478YGMHgW/VjBAMz4AMV2SSdeaNbBKjc8VGO1vEDk5hu9+9M5L6pizYyo
+ zoklVSRSMIAgtDtIMvZKB2A6rb9etFGyvDQ8DLWVR8ZFptgXeO0iwOSQX1uCblyS
+ KHGxkpFLQUZ1C+McklVT/NMP1WQ01M2M2gTPZ0oscH06gDK8Hn2/7cHyHad3OM8=
+ =xFKm
+ -----END PGP SIGNATURE-----
+
+Merge pull request #5719
+
+9fddced Avoid storing a reference passed to SignatureChecker constructors (Pieter Wuille)
+858809a Use separate SignatureChecker for CMutableTransaction (Pieter Wuille)
