@@ -4,6 +4,7 @@
 
 #include <policy/fees.h>
 #include <policy/policy.h>
+#include <interfaces/chain.h>
 #include <txmempool.h>
 #include <uint256.h>
 #include <util/time.h>
@@ -74,7 +75,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
                 txHashes[9-h].pop_back();
             }
         }
-        mpool.removeForBlock(block, ++blocknum);
+        mpool.removeForBlock(block, ++blocknum, m_node.chain->getLastTotalSupply());
         block.clear();
         // Check after just a few txs that combining buckets works as expected
         if (blocknum == 3) {
@@ -113,7 +114,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
     // Mine 50 more blocks with no transactions happening, estimates shouldn't change
     // We haven't decayed the moving average enough so we still have enough data points in every bucket
     while (blocknum < 250)
-        mpool.removeForBlock(block, ++blocknum);
+        mpool.removeForBlock(block, ++blocknum, m_node.chain->getLastTotalSupply());
 
     BOOST_CHECK(feeEst.estimateFee(1) == CFeeRate(0));
     for (int i = 2; i < 10;i++) {
@@ -133,7 +134,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
                 txHashes[j].push_back(hash);
             }
         }
-        mpool.removeForBlock(block, ++blocknum);
+        mpool.removeForBlock(block, ++blocknum, m_node.chain->getLastTotalSupply());
     }
 
     for (int i = 1; i < 10;i++) {
@@ -150,7 +151,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
             txHashes[j].pop_back();
         }
     }
-    mpool.removeForBlock(block, 266);
+    mpool.removeForBlock(block, 266, m_node.chain->getLastTotalSupply());
     block.clear();
     BOOST_CHECK(feeEst.estimateFee(1) == CFeeRate(0));
     for (int i = 2; i < 10;i++) {
@@ -171,7 +172,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
 
             }
         }
-        mpool.removeForBlock(block, ++blocknum);
+        mpool.removeForBlock(block, ++blocknum, m_node.chain->getLastTotalSupply());
         block.clear();
     }
     BOOST_CHECK(feeEst.estimateFee(1) == CFeeRate(0));

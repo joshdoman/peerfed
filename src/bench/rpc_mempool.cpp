@@ -35,7 +35,7 @@ static void RpcMempool(benchmark::Bench& bench)
         tx.vout[0].nValue = i;
         tx.vout[0].amountType = CASH;
         const CTransactionRef tx_r{MakeTransactionRef(tx)};
-        AddTx(tx_r, /*feeType=*/, CASH, /*fee=*/i, pool);
+        AddTx(tx_r, /*feeType=*/ CASH, /*fee=*/i, pool);
     }
 
     bench.run([&] {

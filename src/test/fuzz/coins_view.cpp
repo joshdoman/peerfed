@@ -238,7 +238,8 @@ FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
                     return;
                 }
                 if (Consensus::CheckTxInputs(transaction, state, coins_view_cache, fuzzed_data_provider.ConsumeIntegralInRange<int>(0, std::numeric_limits<int>::max()), tx_fees_out, conversion_dest)) {
-                    assert(MoneyRange(tx_fee_out));
+                    assert(MoneyRange(tx_fees_out[CASH]));
+                    assert(MoneyRange(tx_fees_out[BOND]));
                 }
             },
             [&] {
