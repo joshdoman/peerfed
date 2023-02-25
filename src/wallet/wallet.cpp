@@ -544,6 +544,14 @@ void CWallet::chainStateFlushed(const CBlockLocator& loc)
     batch.WriteBestBlock(loc);
 }
 
+void CWallet::reserveDestinationForMining(std::shared_ptr<CReserveDestination>& reserveDest)
+{
+    LOCK(cs_wallet);
+    std::shared_ptr<ReserveDestination> rDest(new ReserveDestination(this, m_default_address_type));
+    rDest->GetReservedDestination(true);
+    reserveDest = rDest;
+}
+
 void CWallet::SetMinVersion(enum WalletFeature nVersion, WalletBatch* batch_in)
 {
     LOCK(cs_wallet);

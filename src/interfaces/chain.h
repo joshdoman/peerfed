@@ -7,6 +7,7 @@
 
 #include <primitives/transaction.h> // For CTransactionRef
 #include <util/settings.h>          // For util::SettingsValue
+#include <script/standard.h>        // For CReserveDestination
 
 #include <functional>
 #include <memory>
@@ -281,6 +282,7 @@ public:
         virtual void blockDisconnected(const BlockInfo& block) {}
         virtual void updatedBlockTip() {}
         virtual void chainStateFlushed(const CBlockLocator& locator) {}
+        virtual void reserveDestinationForMining(std::shared_ptr<CReserveDestination>& reserveDest) {}
     };
 
     //! Register handler for notifications.

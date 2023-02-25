@@ -13,6 +13,7 @@
 #include <outputtype.h>
 #include <policy/feerate.h>
 #include <psbt.h>
+#include <script/standard.h>
 #include <tinyformat.h>
 #include <util/hasher.h>
 #include <util/message.h>
@@ -163,7 +164,7 @@ extern const std::map<uint64_t,std::string> WALLET_FLAG_CAVEATS;
  * If an address is reserved and KeepDestination() is not called, then the address will be
  * returned when the ReserveDestination goes out of scope.
  */
-class ReserveDestination
+class ReserveDestination : public CReserveDestination
 {
 protected:
     //! The wallet to reserve from
@@ -194,11 +195,11 @@ public:
     }
 
     //! Reserve an address
-    util::Result<CTxDestination> GetReservedDestination(bool internal);
+    util::Result<CTxDestination> GetReservedDestination(bool internal) override;
     //! Return reserved address
-    void ReturnDestination();
+    void ReturnDestination() override;
     //! Keep the address. Do not return it's key to the keypool when this object goes out of scope
-    void KeepDestination();
+    void KeepDestination() override;
 };
 
 /** Address book data */
@@ -704,6 +705,7 @@ public:
     bool IsFromMe(const CTransaction& tx) const;
     CAmount GetDebit(const CTransaction& tx, CAmountType amountType, const isminefilter& filter) const;
     void chainStateFlushed(const CBlockLocator& loc) override;
+    void reserveDestinationForMining(std::shared_ptr<CReserveDestination>& reserveDest) override;
 
     DBErrors LoadWallet();
     DBErrors ZapSelectTx(std::vector<uint256>& vHashIn, std::vector<uint256>& vHashOut) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);

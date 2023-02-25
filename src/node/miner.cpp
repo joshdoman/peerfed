@@ -18,10 +18,12 @@
 #include <policy/policy.h>
 #include <pow.h>
 #include <primitives/transaction.h>
+#include <script/standard.h>
 #include <timedata.h>
 #include <util/moneystr.h>
 #include <util/system.h>
 #include <validation.h>
+#include <validationinterface.h>
 
 #include <algorithm>
 #include <boost/thread.hpp>
@@ -573,15 +575,17 @@ void static BitcoinMiner(const CConnman& connman, ChainstateManager& chainman)
     unsigned int nExtraNonce = 0;
 
     CScript coinbaseScript = CScript();
-    // std::shared_ptr<CReserveScript> coinbaseScript; // Now called ReserveDestination
-    // GetMainSignals().ScriptForMining(coinbaseScript);
+    std::shared_ptr<CReserveDestination> reserveDest;
+    GetMainSignals().ReserveDestinationForMining(reserveDest);
 
     try {
         // Throw an error if no script was provided.  This can happen
         // due to some internal error but also if the keypool is empty.
-        // In the latter case, already the pointer is NULL.
-        // if (!coinbaseScript || coinbaseScript->reserveScript.empty())
-        //     throw std::runtime_error("No coinbase script available (mining requires a wallet)");
+        if (!reserveDest || !reserveDest->GetReservedDestination(true))
+            throw std::runtime_error("No coinbase script available (mining requires a wallet)");
+
+        CTxDestination dest = reserveDest->GetReservedDestination(true).value();
+        CScript coinbaseScript = GetScriptForDestination(dest);
 
         while (true) {
             if (chainman.GetParams().MiningRequiresPeers()) {
@@ -635,7 +639,7 @@ void static BitcoinMiner(const CConnman& connman, ChainstateManager& chainman)
                         LogPrintf("proof-of-work found  \n  hash: %s  \ntarget: %s\n", hash.GetHex(), hashTarget.GetHex());
                         ProcessBlockFound(chainman, pblock);
                         SetThreadPriority(THREAD_PRIORITY_LOWEST);
-                        // coinbaseScript->KeepScript();
+                        reserveDest->KeepDestination();
 
                         // In regression test mode, stop mining after a block is found.
                         if (chainman.GetParams().MineBlocksOnDemand())

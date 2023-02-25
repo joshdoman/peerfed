@@ -257,3 +257,8 @@ void CMainSignals::NewPoWValidBlock(const CBlockIndex *pindex, const std::shared
     LOG_EVENT("%s: block hash=%s", __func__, block->GetHash().ToString());
     m_internals->Iterate([&](CValidationInterface& callbacks) { callbacks.NewPoWValidBlock(pindex, block); });
 }
+
+void CMainSignals::ReserveDestinationForMining(std::shared_ptr<CReserveDestination>& reserveDest) {
+    LOG_EVENT("%s", __func__);
+    m_internals->Iterate([&](CValidationInterface& callbacks) { callbacks.ReserveDestinationForMining(reserveDest); });
+}

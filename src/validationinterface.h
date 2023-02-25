@@ -7,6 +7,7 @@
 #define BITCOIN_VALIDATIONINTERFACE_H
 
 #include <primitives/transaction.h> // CTransaction(Ref)
+#include <script/standard.h>        // CReserveDestination
 #include <sync.h>
 
 #include <functional>
@@ -170,7 +171,10 @@ protected:
     /**
      * Notifies listeners that a block which builds directly on our current tip
      * has been received and connected to the headers tree, though not validated yet */
-    virtual void NewPoWValidBlock(const CBlockIndex *pindex, const std::shared_ptr<const CBlock>& block) {};
+    virtual void NewPoWValidBlock(const CBlockIndex *pindex, const std::shared_ptr<const CBlock>& block) {}
+    /**
+     * Notifies listeners that a key for mining is required (coinbase) */
+    virtual void ReserveDestinationForMining(std::shared_ptr<CReserveDestination>& reserveDest) {};
     friend class CMainSignals;
     friend class ValidationInterfaceTest;
 };
@@ -204,6 +208,7 @@ public:
     void ChainStateFlushed(const CBlockLocator &);
     void BlockChecked(const CBlock&, const BlockValidationState&);
     void NewPoWValidBlock(const CBlockIndex *, const std::shared_ptr<const CBlock>&);
+    void ReserveDestinationForMining(std::shared_ptr<CReserveDestination>&);
 };
 
 CMainSignals& GetMainSignals();

@@ -11,6 +11,7 @@
 #include <script/interpreter.h>
 #include <uint256.h>
 #include <util/hash_type.h>
+#include <util/result.h>
 
 #include <map>
 #include <string>
@@ -150,6 +151,19 @@ using CTxDestination = std::variant<CNoDestination, PKHash, ScriptHash, WitnessV
 
 /** Check whether a CTxDestination is a CNoDestination. */
 bool IsValidDestination(const CTxDestination& dest);
+
+class CReserveDestination
+{
+public:
+    CReserveDestination() {}
+    virtual ~CReserveDestination() {}
+    //! Reserve an address
+    virtual util::Result<CTxDestination> GetReservedDestination(bool internal) = 0;
+    //! Return reserved address
+    virtual void ReturnDestination() = 0;
+    //! Keep the address. Do not return it's key to the keypool when this object goes out of scope
+    virtual void KeepDestination() = 0;
+};
 
 /** Get the name of a TxoutType as a string */
 std::string GetTxnOutputType(TxoutType t);

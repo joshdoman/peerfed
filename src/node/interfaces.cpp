@@ -37,6 +37,7 @@
 #include <shutdown.h>
 #include <support/allocators/secure.h>
 #include <sync.h>
+#include <script/standard.h>
 #include <txmempool.h>
 #include <uint256.h>
 #include <univalue.h>
@@ -452,6 +453,10 @@ public:
         m_notifications->updatedBlockTip();
     }
     void ChainStateFlushed(const CBlockLocator& locator) override { m_notifications->chainStateFlushed(locator); }
+    void ReserveDestinationForMining(std::shared_ptr<CReserveDestination>& reserveDest) override
+    {
+        m_notifications->reserveDestinationForMining(reserveDest);
+    }
     std::shared_ptr<Chain::Notifications> m_notifications;
 };
 
