@@ -473,6 +473,8 @@ static RPCHelpMan getmininginfo()
                         {RPCResult::Type::NUM, "currentblockweight", /*optional=*/true, "The block weight of the last assembled block (only present if a block was ever assembled)"},
                         {RPCResult::Type::NUM, "currentblocktx", /*optional=*/true, "The number of block transactions of the last assembled block (only present if a block was ever assembled)"},
                         {RPCResult::Type::NUM, "difficulty", "The current difficulty"},
+                        {RPCResult::Type::BOOL, "generate", "If the generation is on or off (see getgenerate or setgenerate calls)"},
+                        {RPCResult::Type::NUM, "genproclimit", "The processor limit for generation. -1 if no generation. (see getgenerate or setgenerate calls)"},
                         {RPCResult::Type::NUM, "networkhashps", "The network hashes per second"},
                         {RPCResult::Type::NUM, "pooledtx", "The size of the mempool"},
                         {RPCResult::Type::STR, "chain", "current network name (main, test, signet, regtest)"},
@@ -484,6 +486,7 @@ static RPCHelpMan getmininginfo()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    const ArgsManager& args{EnsureAnyArgsman(request.context)};
     NodeContext& node = EnsureAnyNodeContext(request.context);
     const CTxMemPool& mempool = EnsureMemPool(node);
     ChainstateManager& chainman = EnsureChainman(node);
@@ -495,6 +498,8 @@ static RPCHelpMan getmininginfo()
     if (BlockAssembler::m_last_block_weight) obj.pushKV("currentblockweight", *BlockAssembler::m_last_block_weight);
     if (BlockAssembler::m_last_block_num_txs) obj.pushKV("currentblocktx", *BlockAssembler::m_last_block_num_txs);
     obj.pushKV("difficulty",       (double)GetDifficulty(active_chain.Tip()));
+    obj.pushKV("generate",         args.GetBoolArg("-gen", DEFAULT_GENERATE));
+    obj.pushKV("genproclimit",         args.GetIntArg("-genproclimit", DEFAULT_GENERATE_THREADS));
     obj.pushKV("networkhashps",    getnetworkhashps().HandleRequest(request));
     obj.pushKV("pooledtx",         (uint64_t)mempool.size());
     obj.pushKV("chain", chainman.GetParams().NetworkIDString());
