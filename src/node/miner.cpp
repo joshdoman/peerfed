@@ -565,9 +565,6 @@ static bool ProcessBlockFound(ChainstateManager* chainman, const CBlock* pblock)
             return error("BitcoinMiner: generated block is stale");
     }
 
-    // Inform about the new block
-    // GetMainSignals().BlockFound(pblock->GetHash()); // TODO: Re-implement
-
     // Process this block the same as if we had received it from another node
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
     if (!chainman->ProcessNewBlock(shared_pblock, /*force_processing=*/true, /*min_pow_checked=*/true, nullptr))
