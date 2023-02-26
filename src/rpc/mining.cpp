@@ -41,10 +41,14 @@
 #include <memory>
 #include <stdint.h>
 
+using node::DEFAULT_GENERATE;
+using node::DEFAULT_GENERATE_THREADS;
 using node::BlockAssembler;
 using node::CBlockTemplate;
 using node::NodeContext;
 using node::RegenerateCommitments;
+using node::StartMining;
+using node::StopMining;
 using node::UpdateTime;
 
 /**
@@ -386,6 +390,73 @@ static RPCHelpMan generateblock()
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("hash", block_hash.GetHex());
     return obj;
+},
+    };
+}
+
+static RPCHelpMan getgenerate()
+{
+    return RPCHelpMan{"getgenerate",
+                "Return if the server is set to generate coins or not. The default is false.\n"
+                "It is set with the command line argument -gen (or " + std::string(BITCOIN_CONF_FILENAME) + " setting gen)\n"
+                "It can also be set with the setgenerate call.\n",
+                {},
+                RPCResult{
+                    RPCResult::Type::BOOL, "", "Returns true if the server is set to generate coins"},
+                RPCExamples{
+                    HelpExampleCli("getgenerate", "")
+            + HelpExampleRpc("getgenerate", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const ArgsManager& args{EnsureAnyArgsman(request.context)};
+    return args.GetBoolArg("-gen", DEFAULT_GENERATE);
+},
+    };
+}
+
+static RPCHelpMan setgenerate()
+{
+    return RPCHelpMan{"setgenerate",
+        "Set 'generate' true or false to turn generation on or off.\n"
+        "Generation is limited to 'genproclimit' processors, -1 is unlimited.\n"
+        "See the getgenerate call for the current setting.\n",
+         {
+             {"generate", RPCArg::Type::BOOL, RPCArg::Optional::NO, "Set to true to turn on generation, false to turn off."},
+             {"genproclimit", RPCArg::Type::NUM, RPCArg::Default{DEFAULT_GENERATE_THREADS}, "Set the processor limit for when generation is on. Can be -1 for unlimited."},
+         },
+         RPCResult{RPCResult::Type::NONE, "", ""},
+         RPCExamples{
+            "\nSet the generation on with a limit of one processor\n"
+            + HelpExampleCli("setgenerate", "true 1")
+            + "\nTurn off generation\n"
+            + HelpExampleCli("setgenerate", "false")
+            + "Using json rpc"
+            + HelpExampleRpc("setgenerate", "true, 1")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    NodeContext& node = EnsureAnyNodeContext(request.context);
+    ChainstateManager& chainman = EnsureChainman(node);
+    if (chainman.GetParams().MineBlocksOnDemand())
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Use -generate instead of setgenerate on this network");
+
+    ArgsManager& args{EnsureAnyArgsman(request.context)};
+    bool generate = request.params[0].get_bool();
+    args.ForceSetBoolArg("-gen", generate);
+
+
+    int64_t nThreads = args.GetIntArg("-genproclimit", DEFAULT_GENERATE_THREADS);
+    if (!request.params[1].isNull()) {
+        nThreads = request.params[1].getInt<int64_t>();
+        args.ForceSetArg("-genproclimit", std::to_string(nThreads));
+    }
+
+    if (generate)
+        StartMining(node, nThreads);
+    else
+        StopMining();
+    return UniValue::VNULL;
 },
     };
 }
@@ -1037,6 +1108,8 @@ void RegisterMiningRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
         {"mining", &getnetworkhashps},
+        {"mining", &getgenerate},
+        {"mining", &setgenerate},
         {"mining", &getmininginfo},
         {"mining", &prioritisetransaction},
         {"mining", &getblocktemplate},

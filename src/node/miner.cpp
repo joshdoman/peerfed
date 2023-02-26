@@ -528,8 +528,8 @@ bool static ScanHash(const CBlockHeader *pblock, uint32_t& nNonce, uint256& phas
     CHash256 hasher;
     CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
     ss << *pblock;
-    assert(ss.size() == 80);
-    hasher.Write(Span((unsigned char*)&ss[0], 76));
+    assert(ss.size() == 96); // TODO: Reduce back to 80 by moving total supply to block body
+    hasher.Write(Span((unsigned char*)&ss[0], 92)); // TODO: Reduce back to 76 by moving total supply to block body
 
     while (true) {
         nNonce++;
@@ -546,6 +546,10 @@ bool static ScanHash(const CBlockHeader *pblock, uint32_t& nNonce, uint256& phas
         // If nothing found after trying for a while, return -1
         if ((nNonce & 0xfff) == 0)
             return false;
+
+        // Check for shutdown or stop request
+        if (ShutdownRequested() || fRequestStopMining)
+            return false;
     }
 }
 
@@ -557,7 +561,7 @@ static bool ProcessBlockFound(ChainstateManager* chainman, const CBlock* pblock)
     // Found a solution
     {
         LOCK(cs_main);
-        if (pblock->hashPrevBlock != chainman->ActiveChain().Tip()->GetBlockHash())
+        if (pblock->hashPrevBlock != chainman->ActiveTip()->GetBlockHash())
             return error("BitcoinMiner: generated block is stale");
     }
 
@@ -608,7 +612,7 @@ void static BitcoinMiner(ChainstateManager* chainman, CConnman* connman)
             // Create new block
             //
             LOCK(cs_main);
-            CBlockIndex* pindexPrev = chainman->ActiveChain().Tip();
+            CBlockIndex* pindexPrev = chainman->ActiveTip();
             CTxMemPool* mempool = chainman->ActiveChainstate().GetMempool();
             unsigned int nTransactionsUpdatedLast = mempool->GetTransactionsUpdated();
 
@@ -656,9 +660,8 @@ void static BitcoinMiner(ChainstateManager* chainman, CConnman* connman)
                     }
                 }
 
-                // Check for stop or if block needs to be rebuilt
+                // Check for shutdown or stop request or if block needs to be rebuilt
                 if (ShutdownRequested() || fRequestStopMining)
-                    // boost::this_thread::interruption_point();
                     return;
                 // Regtest mode doesn't require peers
                 if (connman->GetNodeCount(ConnectionDirection::Both) == 0 && chainman->GetParams().MiningRequiresPeers())
@@ -667,7 +670,7 @@ void static BitcoinMiner(ChainstateManager* chainman, CConnman* connman)
                     break;
                 if (mempool->GetTransactionsUpdated() != nTransactionsUpdatedLast && GetTime() - nStart > 60)
                     break;
-                if (pindexPrev != chainman->ActiveChain().Tip())
+                if (pindexPrev != chainman->ActiveTip())
                     break;
 
                 // Update nTime every few seconds
