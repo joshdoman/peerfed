@@ -112,6 +112,8 @@ using kernel::ValidationCacheSizes;
 using node::ApplyArgsManOptions;
 using node::CacheSizes;
 using node::CalculateCacheSizes;
+using node::DEFAULT_GENERATE;
+using node::DEFAULT_GENERATE_THREADS;
 using node::DEFAULT_PERSIST_MEMPOOL;
 using node::DEFAULT_PRINTPRIORITY;
 using node::DEFAULT_STOPAFTERBLOCKIMPORT;
@@ -1777,6 +1779,10 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     if (!node.connman->Start(*node.scheduler, connOptions)) {
         return false;
     }
+
+    // Start mining in the background if flag is set
+    if (args.GetBoolArg("-gen", DEFAULT_GENERATE))
+        StartMining(node, args.GetIntArg("-genproclimit", DEFAULT_GENERATE_THREADS));
 
     // ********************************************************* Step 13: finished
 
