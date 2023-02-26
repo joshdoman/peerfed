@@ -19,15 +19,18 @@
 #include <pow.h>
 #include <primitives/transaction.h>
 #include <script/standard.h>
+#include <shutdown.h>
 #include <timedata.h>
 #include <util/moneystr.h>
 #include <util/system.h>
+#include <util/threadnames.h>
 #include <validation.h>
 #include <validationinterface.h>
 
 #include <algorithm>
-#include <boost/thread.hpp>
+#include <thread>
 #include <utility>
+#include <vector>
 
 namespace node {
 void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce)
@@ -510,6 +513,9 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
 // Internal miner
 //
 
+static std::vector<std::thread> minerThreads;
+static std::atomic<bool> fRequestStopMining(false);
+
 //
 // ScanHash scans nonces looking for a hash with at least some zero bits.
 // The nonce is usually preserved between calls, but periodically or if the
@@ -543,7 +549,7 @@ bool static ScanHash(const CBlockHeader *pblock, uint32_t& nNonce, uint256& phas
     }
 }
 
-static bool ProcessBlockFound(ChainstateManager& chainman, const CBlock* pblock)
+static bool ProcessBlockFound(ChainstateManager* chainman, const CBlock* pblock)
 {
     LogPrintf("%s\n", pblock->ToString());
     LogPrintf("generated %s\n", FormatMoney(pblock->vtx[0]->vout[0].nValue));
@@ -551,7 +557,7 @@ static bool ProcessBlockFound(ChainstateManager& chainman, const CBlock* pblock)
     // Found a solution
     {
         LOCK(cs_main);
-        if (pblock->hashPrevBlock != chainman.ActiveChain().Tip()->GetBlockHash())
+        if (pblock->hashPrevBlock != chainman->ActiveChain().Tip()->GetBlockHash())
             return error("BitcoinMiner: generated block is stale");
     }
 
@@ -560,17 +566,17 @@ static bool ProcessBlockFound(ChainstateManager& chainman, const CBlock* pblock)
 
     // Process this block the same as if we had received it from another node
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
-    if (!chainman.ProcessNewBlock(shared_pblock, /*force_processing=*/true, /*min_pow_checked=*/true, nullptr))
+    if (!chainman->ProcessNewBlock(shared_pblock, /*force_processing=*/true, /*min_pow_checked=*/true, nullptr))
         return error("BitcoinMiner: ProcessNewBlock, block not accepted");
 
     return true;
 }
 
-void static BitcoinMiner(const CConnman& connman, ChainstateManager& chainman)
+void static BitcoinMiner(ChainstateManager* chainman, CConnman* connman)
 {
     LogPrintf("BitcoinMiner started\n");
     SetThreadPriority(THREAD_PRIORITY_LOWEST);
-    RenameThread("bitcoin-miner");
+    util::ThreadRename("bitcoin-miner");
 
     unsigned int nExtraNonce = 0;
 
@@ -588,11 +594,11 @@ void static BitcoinMiner(const CConnman& connman, ChainstateManager& chainman)
         CScript coinbaseScript = GetScriptForDestination(dest);
 
         while (true) {
-            if (chainman.GetParams().MiningRequiresPeers()) {
+            if (chainman->GetParams().MiningRequiresPeers()) {
                 // Busy-wait for the network to come online so we don't waste time mining
                 // on an obsolete chain. In regtest mode we expect to fly solo.
                 do {
-                    if (connman.GetNodeCount(ConnectionDirection::Both) > 0 && !chainman.ActiveChainstate().IsInitialBlockDownload())
+                    if (connman->GetNodeCount(ConnectionDirection::Both) > 0 && !chainman->ActiveChainstate().IsInitialBlockDownload())
                         break;
                     UninterruptibleSleep(std::chrono::milliseconds{1000});
                 } while (true);
@@ -601,11 +607,12 @@ void static BitcoinMiner(const CConnman& connman, ChainstateManager& chainman)
             //
             // Create new block
             //
-            CTxMemPool* mempool = chainman.ActiveChainstate().GetMempool();
+            LOCK(cs_main);
+            CBlockIndex* pindexPrev = chainman->ActiveChain().Tip();
+            CTxMemPool* mempool = chainman->ActiveChainstate().GetMempool();
             unsigned int nTransactionsUpdatedLast = mempool->GetTransactionsUpdated();
-            CBlockIndex* pindexPrev = chainman.ActiveChain().Tip();
 
-            std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler{chainman.ActiveChainstate(), mempool}.CreateNewBlock(coinbaseScript));
+            std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler{chainman->ActiveChainstate(), mempool}.CreateNewBlock(coinbaseScript));
             if (!pblocktemplate.get())
             {
                 LogPrintf("Error in BitcoinMiner: Keypool ran out, please call keypoolrefill before restarting the mining thread\n");
@@ -642,41 +649,38 @@ void static BitcoinMiner(const CConnman& connman, ChainstateManager& chainman)
                         reserveDest->KeepDestination();
 
                         // In regression test mode, stop mining after a block is found.
-                        if (chainman.GetParams().MineBlocksOnDemand())
-                            throw boost::thread_interrupted();
+                        if (chainman->GetParams().MineBlocksOnDemand())
+                            return;
 
                         break;
                     }
                 }
 
                 // Check for stop or if block needs to be rebuilt
-                boost::this_thread::interruption_point();
+                if (ShutdownRequested() || fRequestStopMining)
+                    // boost::this_thread::interruption_point();
+                    return;
                 // Regtest mode doesn't require peers
-                if (connman.GetNodeCount(ConnectionDirection::Both) == 0 && chainman.GetParams().MiningRequiresPeers())
+                if (connman->GetNodeCount(ConnectionDirection::Both) == 0 && chainman->GetParams().MiningRequiresPeers())
                     break;
                 if (nNonce >= 0xffff0000)
                     break;
                 if (mempool->GetTransactionsUpdated() != nTransactionsUpdatedLast && GetTime() - nStart > 60)
                     break;
-                if (pindexPrev != chainman.ActiveChain().Tip())
+                if (pindexPrev != chainman->ActiveChain().Tip())
                     break;
 
                 // Update nTime every few seconds
-                if (UpdateTime(pblock, chainman.GetParams().GetConsensus(), pindexPrev) < 0)
+                if (UpdateTime(pblock, chainman->GetParams().GetConsensus(), pindexPrev) < 0)
                     break; // Recreate the block if the clock has run backwards,
                            // so that we can use the correct time.
-                if (chainman.GetParams().GetConsensus().fPowAllowMinDifficultyBlocks)
+                if (chainman->GetParams().GetConsensus().fPowAllowMinDifficultyBlocks)
                 {
                     // Changing pblock->nTime can change work required on testnet:
                     hashTarget.SetCompact(pblock->nBits);
                 }
             }
         }
-    }
-    catch (const boost::thread_interrupted&)
-    {
-        LogPrintf("BitcoinMiner terminated\n");
-        throw;
     }
     catch (const std::runtime_error &e)
     {
@@ -685,26 +689,34 @@ void static BitcoinMiner(const CConnman& connman, ChainstateManager& chainman)
     }
 }
 
-void GenerateBitcoins(CConnman& connman, ChainstateManager& chainman, bool fGenerate, int nThreads)
+void StartMining(NodeContext& context, int nThreads)
 {
-    static boost::thread_group* minerThreads = NULL;
+    static std::vector<std::thread> minerThreads;
 
     if (nThreads < 0)
         nThreads = GetNumCores();
 
-    if (minerThreads != NULL)
-    {
-        minerThreads->interrupt_all();
-        delete minerThreads;
-        minerThreads = NULL;
-    }
+    StopMining();
 
-    if (nThreads == 0 || !fGenerate)
+    if (nThreads == 0)
         return;
 
-    minerThreads = new boost::thread_group();
+    if (!context.chainman || !context.connman)
+        return;
+
+    ChainstateManager& chainman = *context.chainman;
+    CConnman& connman = *context.connman;
+    fRequestStopMining = false;
+
     for (int i = 0; i < nThreads; i++)
-        minerThreads->create_thread(boost::bind(&BitcoinMiner, boost::cref(connman), boost::ref(chainman)));
+        minerThreads.push_back(std::thread(&BitcoinMiner, &chainman, &connman));
+}
+
+void StopMining() {
+    fRequestStopMining = true;
+    for (auto& t: minerThreads)
+        t.join();
+    minerThreads.clear();
 }
 
 } // namespace node

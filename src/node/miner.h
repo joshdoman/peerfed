@@ -7,6 +7,7 @@
 #define BITCOIN_NODE_MINER_H
 
 #include <net.h>
+#include <node/context.h>
 #include <primitives/block.h>
 #include <txmempool.h>
 
@@ -203,7 +204,8 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev);
 
 /** Run the miner threads */
-void GenerateBitcoins(CConnman& connman, ChainstateManager& chainman, bool fGenerate, int nThreads);
+void StartMining(NodeContext& context, int nThreads);
+void StopMining();
 
 /** Update an old GenerateCoinbaseCommitment from CreateNewBlock after the block txs have changed */
 void RegenerateCommitments(CBlock& block, ChainstateManager& chainman);
