@@ -118,6 +118,7 @@ using node::DEFAULT_STOPAFTERBLOCKIMPORT;
 using node::LoadChainstate;
 using node::MempoolPath;
 using node::ShouldPersistMempool;
+using node::StopMining;
 using node::NodeContext;
 using node::ThreadImport;
 using node::VerifyLoadedChainstate;
@@ -231,6 +232,7 @@ void Shutdown(NodeContext& node)
         client->flush();
     }
     StopMapPort();
+    StopMining();
 
     // Because these depend on each-other, we make sure that neither can be
     // using the other before destroying them.
