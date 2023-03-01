@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2010 Josh Doman
+// Copyright (c) 2023 Josh Doman
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
