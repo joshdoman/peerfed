@@ -175,7 +175,7 @@ constexpr bool IsPushdataOp(opcodetype opcode)
 
 struct CTxConversionInfo {
     CAmountType slippageType;
-    CScript scriptPubKey;
+    CTxDestination destination; // CNoDestination if remainder sent to miner
     CAmounts inputs;
     CAmounts minOutputs;
 };

@@ -2236,9 +2236,15 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 if (Consensus::IsValidConversion(totalSupply, inputs, minOutputs, amountType, nAmount)) {
                     if (nAmount > 0) {
                         // Include remainder output amount if non-zero
-                        CScript scriptPubKey = conversion_dest.value().scriptPubKey;
-                        conversionOutputs.push_back(CTxOut(amountType, nAmount, scriptPubKey));
-                        conversionOutputAmount[amountType] += nAmount;
+                        if (IsValidDestination(conversion_dest.value().destination)) {
+                            // Send remainder to provided destination
+                            CScript scriptPubKey = GetScriptForDestination(conversion_dest.value().destination);
+                            conversionOutputs.push_back(CTxOut(amountType, nAmount, scriptPubKey));
+                            conversionOutputAmount[amountType] += nAmount;
+                        } else {
+                            // No destination provided. Add remainder to miner fees.
+                            nFees[amountType] += nAmount;
+                        }
                     }
                 } else {
                     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-conversion-out-of-range");

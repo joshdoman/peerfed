@@ -291,15 +291,23 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
         CAmounts totalSupply = {0};
         totalSupply[CASH] = pblock->cashSupply;
         totalSupply[BOND] = pblock->bondSupply;
-        CScript scriptPubKey = conversionDest.value().scriptPubKey;
         CAmountType amountType = conversionDest.value().slippageType;
         CAmount nAmount;
         if (Consensus::IsValidConversion(totalSupply, conversionDest.value().inputs, conversionDest.value().minOutputs, amountType, nAmount)) {
+            // Update cash and bond supply of block we are building
             pblock->cashSupply = totalSupply[CASH];
             pblock->bondSupply = totalSupply[BOND];
-            if (nAmount > 0)
+            if (nAmount > 0) {
                 // Include remainder output amount if non-zero
-                conversionOutputs.push_back(CTxOut(amountType, nAmount, scriptPubKey));
+                if (IsValidDestination(conversionDest.value().destination)) {
+                    // Send remainder to provided destination
+                    CScript scriptPubKey = GetScriptForDestination(conversionDest.value().destination);
+                    conversionOutputs.push_back(CTxOut(amountType, nAmount, scriptPubKey));
+                } else {
+                    // No destination provided. Add remainder to miner fees.
+                    nFees[amountType] += nAmount;
+                }
+            }
         }
     }
 

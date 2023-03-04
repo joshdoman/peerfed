@@ -296,10 +296,16 @@ bool ExtractConversionInfo(const CScript& script, CTxConversionInfo& conversionI
     if (script.size() > 3 && script[0] == OP_CONVERT) {
         conversionInfoRet.slippageType = script[1];
         int scriptLength = script[2];
-        if (script.size() == 3 + scriptLength) {
-            CScript scriptPubKey(script.begin() + 3, script.begin() + 3 + scriptLength);
-            conversionInfoRet.scriptPubKey = scriptPubKey;
+        if (scriptLength == 0) {
+            conversionInfoRet.destination = CNoDestination();
             return true;
+        } else if (script.size() == 3 + scriptLength) {
+            CScript scriptPubKey(script.begin() + 3, script.begin() + 3 + scriptLength);
+            CTxDestination destination;
+            if (ExtractDestination(scriptPubKey, destination)) {
+                conversionInfoRet.destination = destination;
+                return true;
+            }
         }
     }
     return false;
