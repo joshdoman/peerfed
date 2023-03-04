@@ -487,11 +487,14 @@ public:
         }
         return result;
     }
-    CAmount estimateConversionOutputAmount(CAmount inputAmount, CAmountType inputType) override {
+    CAmount estimateConversionOutputAmount(const CAmount& inputAmount, const CAmountType& inputType) override {
         return m_wallet->chain().estimateConversionOutputAmount(inputAmount, inputType);
     }
-    CAmount estimateConversionInputAmount(CAmount outputAmount, CAmountType outputType) override {
+    CAmount estimateConversionInputAmount(const CAmount& outputAmount, const CAmountType& outputType) override {
         return m_wallet->chain().estimateConversionInputAmount(outputAmount, outputType);
+    }
+    CAmount safelyEstimateConvertedAmount(const CAmount& amount, const CAmountType& amountType) override {
+        return m_wallet->chain().safelyEstimateConvertedAmount(amount, amountType);
     }
     CAmount getRequiredFee(unsigned int tx_bytes) override { return GetRequiredFee(*m_wallet, tx_bytes); }
     CAmount getMinimumFee(unsigned int tx_bytes,

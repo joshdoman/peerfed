@@ -261,10 +261,14 @@ public:
     virtual std::vector<WalletTxOut> getCoins(const std::vector<COutPoint>& outputs) = 0;
 
     //! Estimate expected output amount converting input amount at present conversion rate.
-    virtual CAmount estimateConversionOutputAmount(CAmount inputAmount, CAmountType inputType) = 0;
+    virtual CAmount estimateConversionOutputAmount(const CAmount& inputAmount, const CAmountType& inputType) = 0;
 
     //! Estimate necessary input amount to obtain desired output amount at present conversion rate.
-    virtual CAmount estimateConversionInputAmount(CAmount outputAmount, CAmountType outputType) = 0;
+    virtual CAmount estimateConversionInputAmount(const CAmount& outputAmount, const CAmountType& outputType) = 0;
+
+    //! Estimate output amount if valid result. If amount exceeds total supply, estimate input amount.
+    //! Required at chain start when supply of cash is zero.
+    virtual CAmount safelyEstimateConvertedAmount(const CAmount& amount, const CAmountType& amountType) = 0;
 
     //! Get required fee.
     virtual CAmount getRequiredFee(unsigned int tx_bytes) = 0;

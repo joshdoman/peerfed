@@ -656,6 +656,10 @@ public:
     CAmount estimateConversionInputAmount(const CAmount& outputAmount, const CAmountType& outputType) override {
         return Consensus::CalculateInputAmount(getLastTotalSupply(), outputAmount, outputType);
     }
+    CAmount safelyEstimateConvertedAmount(const CAmount& amount, const CAmountType& amountType) override {
+        CAmount estimatedOutput = estimateConversionOutputAmount(amount, amountType);
+        return estimatedOutput > 0 ? estimatedOutput : estimateConversionInputAmount(amount, amountType);
+    }
     CAmountScaleFactor getLastScaleFactor() override
     {
         const CBlockIndex* tip = WITH_LOCK(::cs_main, return chainman().ActiveChain().Tip());

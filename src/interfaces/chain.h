@@ -204,6 +204,10 @@ public:
     //! Estimate necessary input to obtain desired output converting at present conversion rate.
     virtual CAmount estimateConversionInputAmount(const CAmount& outputAmount, const CAmountType& outputType) = 0;
 
+    //! Estimate output amount if valid result. If amount exceeds total supply, estimate input amount.
+    //! Required at chain start when supply of cash is zero.
+    virtual CAmount safelyEstimateConvertedAmount(const CAmount& amount, const CAmountType& amountType) = 0;
+
     //! Get last scale factor.
     virtual CAmountScaleFactor getLastScaleFactor() = 0;
 

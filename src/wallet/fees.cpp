@@ -47,7 +47,7 @@ CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_contr
         if (feeCalc) feeCalc->reason = FeeReason::PAYTXFEE;
         // Convert normalized fee rate to equivalant bond fee rate if fee is in bonds
         if (coin_control.m_fee_type.value_or(wallet.m_pay_tx_fee_type) == BOND)
-            feerate_needed = CFeeRate(wallet.chain().estimateConversionOutputAmount(feerate_needed.GetFeePerK(), CASH));
+            feerate_needed = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(feerate_needed.GetFeePerK(), CASH));
     }
     else { // 2. or 4.
         // We will use smart fee estimation
@@ -74,14 +74,14 @@ CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_contr
         }
         // Convert normalized fee rate to equivalant bond fee rate if fee is in bonds
         if (coin_control.m_fee_type.value_or(wallet.m_pay_tx_fee_type) == BOND)
-            feerate_needed = CFeeRate(wallet.chain().estimateConversionOutputAmount(feerate_needed.GetFeePerK(), CASH));
+            feerate_needed = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(feerate_needed.GetFeePerK(), CASH));
     }
 
     // prevent user from paying a fee below the required fee rate
     CFeeRate required_feerate = GetRequiredFeeRate(wallet);
     // Convert normalized required fee rate to equivalent required bond fee rate if fee is in bonds
     if (coin_control.m_fee_type.value_or(wallet.m_pay_tx_fee_type) == BOND)
-        required_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(required_feerate.GetFeePerK(), CASH));
+        required_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(required_feerate.GetFeePerK(), CASH));
     // Verify that fee rate exceeds the required fee rate
     if (required_feerate > feerate_needed) {
         feerate_needed = required_feerate;

@@ -887,8 +887,8 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
 
     // If fee is in bonds, convert normalized long term and discard fee rates
     if (nFeeTypeRet == BOND) {
-        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
-        coin_selection_params.m_discard_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_discard_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
     }
 
     // Calculate the cost of change
@@ -1188,8 +1188,8 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
 
     // If fee is in bonds, convert normalized discard fee rate
     if (nFeeTypeRet == BOND) {
-        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
-        coin_selection_params.m_discard_feerate = CFeeRate(wallet.chain().estimateConversionOutputAmount(coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_discard_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
     }
 
     // Calculate the cost of change

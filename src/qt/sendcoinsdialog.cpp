@@ -208,7 +208,9 @@ void SendCoinsDialog::setModel(WalletModel *_model)
         connect(ui->optInRBF, &QCheckBox::stateChanged, this, &SendCoinsDialog::coinControlUpdateLabels);
         CAmount requiredFee = model->wallet().getRequiredFee(1000);
         if (getSendAmountType() == BOND)
-            requiredFee = _model->wallet().estimateConversionOutputAmount(requiredFee, CASH);
+            requiredFee = _model->wallet().safelyEstimateConvertedAmount(requiredFee, CASH);
+        if (_model->getOptionsModel()->getShowScaledAmount(getSendAmountType()))
+            requiredFee = ScaleAmount(requiredFee, model->getBestScaleFactor());
         ui->customFee->SetMinValue(requiredFee);
         if (ui->customFee->value() < requiredFee) {
             ui->customFee->setValue(requiredFee);
@@ -616,7 +618,9 @@ void SendCoinsDialog::onSendAmountTypeChanged()
     if (model) {
         CAmount requiredFee = model->wallet().getRequiredFee(1000);
         if (getSendAmountType() == BOND)
-            requiredFee = model->wallet().estimateConversionOutputAmount(requiredFee, CASH);
+            requiredFee = model->wallet().safelyEstimateConvertedAmount(requiredFee, CASH);
+        if (model->getOptionsModel()->getShowScaledAmount(getSendAmountType()))
+            requiredFee = ScaleAmount(requiredFee, model->getBestScaleFactor());
         ui->customFee->SetMinValue(requiredFee);
         ui->customFee->setSingleStep(requiredFee);
     }

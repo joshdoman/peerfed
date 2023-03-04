@@ -170,12 +170,14 @@ void ConvertCoinsDialog::recalculate()
 
 void ConvertCoinsDialog::convertButtonClicked()
 {
+    if (!model || !model->getOptionsModel())
+        return;
     CAmount maxInput = ui->reqAmountIn->value();
     CAmount minOutput = ui->reqAmountOut->value();
-    if (model && model->getOptionsModel()->getShowScaledAmount(getInputType())) {
+    if (model->getOptionsModel()->getShowScaledAmount(getInputType())) {
         maxInput = DescaleAmount(maxInput, clientModel->getBestScaleFactor());
     }
-    if (model && model->getOptionsModel()->getShowScaledAmount(getOutputType())) {
+    if (model->getOptionsModel()->getShowScaledAmount(getOutputType())) {
         minOutput = DescaleAmount(minOutput, clientModel->getBestScaleFactor());
     }
     if (inputIsExact) {
@@ -189,7 +191,10 @@ void ConvertCoinsDialog::convertButtonClicked()
     m_current_transaction = std::make_unique<WalletModelConversionTransaction>(maxInput, minOutput, getInputType(), getOutputType(), remainderType);
 
     m_coin_control = std::make_unique<CCoinControl>(); // TODO: Implement coin control
-    m_coin_control->m_feerate = CFeeRate(100000); // TODO: Implement fee rate (currently 0.001)
+    CAmount requiredFee = model->wallet().getRequiredFee(1000);
+    if (getInputType() == BOND)
+        requiredFee = model->wallet().safelyEstimateConvertedAmount(requiredFee, CASH);
+    m_coin_control->m_feerate = CFeeRate(requiredFee); // TODO: Implement fee rate estimation / fee panel UI
     m_coin_control->m_fee_type = getInputType(); // TODO: Allow user to choose fee type (input or output / cash or bond)
 
     WalletModel::ConvertCoinsReturn prepareStatus = model->prepareTransaction(*m_current_transaction, *m_coin_control);
