@@ -1219,10 +1219,15 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
     {
         CScript remainderScript;
         GetChangeScript(reservedest, coin_control, remainderScript, error); // Send remainder to self
+        uint32_t nDeadline = 0;
+        if (coin_control.m_conversion_deadline && coin_control.m_conversion_deadline.value() > 0)
+            nDeadline = wallet.GetLastBlockHeight() + coin_control.m_conversion_deadline.value();
+        else if (wallet.m_conversion_deadline)
+            nDeadline = wallet.GetLastBlockHeight() + wallet.m_conversion_deadline;
         CScript conversionScript = GetConversionScript(
             tx_details.remainderType, // remainderType
             remainderScript, // scriptPubKey
-            wallet.GetLastBlockHeight() + 6 // nDeadline                    // TODO: Implement default and user-set value
+            nDeadline // nDeadline
         );
 
         CTxOut txout(nFeeTypeRet, 0, conversionScript); // Set fee later

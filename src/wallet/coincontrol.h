@@ -48,6 +48,8 @@ public:
     std::optional<CAmountType> m_fee_type;
     //! Override the default confirmation target if set
     std::optional<unsigned int> m_confirm_target;
+    //! Override the default conversion deadline if set
+    std::optional<unsigned int> m_conversion_deadline;
     //! Override the wallet's m_signal_rbf if set
     std::optional<bool> m_signal_bip125_rbf;
     //! Avoid partial use of funds sent to a given address

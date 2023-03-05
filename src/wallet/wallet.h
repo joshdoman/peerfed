@@ -104,6 +104,8 @@ static const bool DEFAULT_SPEND_ZEROCONF_CHANGE = true;
 static const bool DEFAULT_WALLET_REJECT_LONG_CHAINS{true};
 //! -txconfirmtarget default
 static const unsigned int DEFAULT_TX_CONFIRM_TARGET = 6;
+//! -txconversiondeadline default
+static const unsigned int DEFAULT_CONVERSION_DEADLINE = 6;
 //! -walletrbf default
 static const bool DEFAULT_WALLET_RBF = true;
 static const bool DEFAULT_WALLETBROADCAST = true;
@@ -611,6 +613,7 @@ public:
     CFeeRate m_pay_tx_fee{DEFAULT_PAY_TX_FEE};
     CAmount m_pay_tx_fee_type{DEFAULT_PAY_TX_FEE_TYPE};
     unsigned int m_confirm_target{DEFAULT_TX_CONFIRM_TARGET};
+    unsigned int m_conversion_deadline{DEFAULT_CONVERSION_DEADLINE};
     /** Allow Coin Selection to pick unconfirmed UTXOs that were sent from our own wallet if it
      * cannot fund the transaction otherwise. */
     bool m_spend_zero_conf_change{DEFAULT_SPEND_ZEROCONF_CHANGE};
