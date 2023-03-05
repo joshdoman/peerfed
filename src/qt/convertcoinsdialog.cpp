@@ -27,6 +27,25 @@
 
 using wallet::CCoinControl;
 
+static constexpr std::array deadlines{1, 2, 3, 4, 6, 9, 12, 24, 48, 144, 504, 1008, 0};
+int getDeadlineForIndex(int index) {
+    if (index+1 > static_cast<int>(deadlines.size())) {
+        return deadlines.back();
+    }
+    if (index < 0) {
+        return deadlines[0];
+    }
+    return deadlines[index];
+}
+int getIndexForDeadline(int target) {
+    for (unsigned int i = 0; i < deadlines.size(); i++) {
+        if (deadlines[i] >= target && target != 0) {
+            return i;
+        }
+    }
+    return deadlines.size() - 1;
+}
+
 ConvertCoinsDialog::ConvertCoinsDialog(const PlatformStyle *_platformStyle, QWidget *parent) :
     QDialog(parent, GUIUtil::dialog_flags),
     ui(new Ui::ConvertCoinsDialog),
@@ -45,6 +64,14 @@ ConvertCoinsDialog::ConvertCoinsDialog(const PlatformStyle *_platformStyle, QWid
 
     ui->reqSlippage->setValue(DEFAULT_SLIPPAGE);
     ui->reqSlippage->setSingleStep(0.01);
+
+    // fee section
+    for (const int n : deadlines) {
+        if (n > 0)
+            ui->expirySelector->addItem(tr("%1 (%2 blocks)").arg(GUIUtil::formatNiceTimeOffset(n*Params().GetConsensus().nPowTargetSpacing)).arg(n));
+        else
+            ui->expirySelector->addItem(tr("No expiry"));
+    }
 
     #if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
         connect(ui->groupType, &QButtonGroup::idClicked, this, &ConvertCoinsDialog::updateConversionType);
@@ -77,11 +104,19 @@ void ConvertCoinsDialog::setModel(WalletModel *_model)
     {
         connect(_model->getOptionsModel(), &OptionsModel::displayUnitChanged, this, &ConvertCoinsDialog::updateDisplayUnit);
         updateDisplayUnit();
+
+        QSettings settings;
+        if (settings.value("nExpiry").toInt() == 0)
+            ui->expirySelector->setCurrentIndex(getIndexForDeadline(model->wallet().getConversionDeadline()));
+        else
+            ui->expirySelector->setCurrentIndex(getIndexForDeadline(settings.value("nExpiry").toInt() - 1));
     }
 }
 
 ConvertCoinsDialog::~ConvertCoinsDialog()
 {
+    QSettings settings;
+    settings.setValue("nExpiry", getDeadlineForIndex(ui->expirySelector->currentIndex()) + 1); // Offset by one so that zero means not yet set
     delete ui;
 }
 
@@ -196,6 +231,7 @@ void ConvertCoinsDialog::convertButtonClicked()
         requiredFee = model->wallet().safelyEstimateConvertedAmount(requiredFee, CASH);
     m_coin_control->m_feerate = CFeeRate(requiredFee); // TODO: Implement fee rate estimation / fee panel UI
     m_coin_control->m_fee_type = getInputType(); // TODO: Allow user to choose fee type (input or output / cash or bond)
+    m_coin_control->m_conversion_deadline = getDeadlineForIndex(ui->expirySelector->currentIndex());
 
     WalletModel::ConvertCoinsReturn prepareStatus = model->prepareTransaction(*m_current_transaction, *m_coin_control);
     BitcoinUnit unit = model->getOptionsModel()->getDisplayUnit(m_current_transaction->getTransactionFeeType());

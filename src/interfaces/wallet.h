@@ -282,6 +282,9 @@ public:
     //! Get tx confirm target.
     virtual unsigned int getConfirmTarget() = 0;
 
+    //! Get tx conversion deadline.
+    virtual unsigned int getConversionDeadline() = 0;
+
     // Return whether HD enabled.
     virtual bool hdEnabled() = 0;
 
