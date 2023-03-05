@@ -232,7 +232,7 @@
              </size>
             </property>
             <property name="toolTip">
-             <string>An optional amount to request. Leave this empty or zero to not request a specific amount.</string>
+             <string>The desired or expected input amount. Required.</string>
             </property>
            </widget>
           </item>
@@ -274,7 +274,7 @@
              </size>
             </property>
             <property name="toolTip">
-             <string>An optional amount to request. Leave this empty or zero to not request a specific amount.</string>
+             <string>The desired or expected output amount. Required.</string>
             </property>
            </widget>
           </item>
