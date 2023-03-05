@@ -395,10 +395,17 @@ BOOST_AUTO_TEST_CASE(MempoolAncestorIndexingTest)
     sortedOrder.insert(sortedOrder.begin()+1, tx7.GetHash().ToString());
     CheckSort<ancestor_score>(pool, sortedOrder);
 
+    // TODO: Test for expired transactions
+    const auto dummy_filter_expired = [](CTxMemPool::txiter it)
+        EXCLUSIVE_LOCKS_REQUIRED(pool.cs, ::cs_main) {
+        // Transaction is not a conversion or conversion has not expired
+        return false;
+    };
+
     /* after tx6 is mined, tx7 should move up in the sort */
     std::vector<CTransactionRef> vtx;
     vtx.push_back(MakeTransactionRef(tx6));
-    pool.removeForBlock(vtx, 1, m_node.chain->getLastTotalSupply());
+    pool.removeForBlock(vtx, 1, m_node.chain->getLastTotalSupply(), dummy_filter_expired);
 
     sortedOrder.erase(sortedOrder.begin()+1);
     // Ties are broken by hash
@@ -553,12 +560,19 @@ BOOST_AUTO_TEST_CASE(MempoolSizeLimitTest)
     pool.addUnchecked(entry.Fee(1000LL).FromTx(tx5));
     pool.addUnchecked(entry.Fee(9000LL).FromTx(tx7));
 
+    // TODO: Test for expired transactions
+    const auto dummy_filter_expired = [](CTxMemPool::txiter it)
+        EXCLUSIVE_LOCKS_REQUIRED(pool.cs, ::cs_main) {
+        // Transaction is not a conversion or conversion has not expired
+        return false;
+    };
+
     std::vector<CTransactionRef> vtx;
     SetMockTime(42);
     SetMockTime(42 + CTxMemPool::ROLLING_FEE_HALFLIFE);
     BOOST_CHECK_EQUAL(pool.GetMinFee(1).GetFeePerK(), maxFeeRateRemoved.GetFeePerK() + 1000);
     // ... we should keep the same min fee until we get a block
-    pool.removeForBlock(vtx, 1, m_node.chain->getLastTotalSupply());
+    pool.removeForBlock(vtx, 1, m_node.chain->getLastTotalSupply(), dummy_filter_expired);
     SetMockTime(42 + 2*CTxMemPool::ROLLING_FEE_HALFLIFE);
     BOOST_CHECK_EQUAL(pool.GetMinFee(1).GetFeePerK(), llround((maxFeeRateRemoved.GetFeePerK() + 1000)/2.0));
     // ... then feerate should drop 1/2 each halflife

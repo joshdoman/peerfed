@@ -176,6 +176,7 @@ constexpr bool IsPushdataOp(opcodetype opcode)
 struct CTxConversionInfo {
     CAmountType slippageType;
     CTxDestination destination; // CNoDestination if remainder sent to miner
+    uint32_t nDeadline;         // Zero if deadline not present
     CAmounts inputs;
     CAmounts minOutputs;
 };
@@ -216,7 +217,7 @@ CScript GetScriptForDestination(const CTxDestination& dest);
 CScript GetScriptForRawPubKey(const CPubKey& pubkey);
 
 /** Generate a scriptPubKey for the given CTxConversionInfo. */
-CScript GetConversionScript(const bool& remainderType, const CScript& remainderScript);
+CScript GetConversionScript(const bool& remainderType, const CScript& remainderScript, const uint32_t& nDeadline);
 
 /** Determine if script is a "multi_a" script. Returns (threshold, keyspans) if so, and nullopt otherwise.
  *  The keyspans refer to bytes in the passed script. */

@@ -365,6 +365,7 @@ enum class MemPoolRemovalReason {
     BLOCK,       //!< Removed for block
     CONFLICT,    //!< Removed for conflict with in-block transaction
     REPLACED,    //!< Removed for replacement
+    TXEXPIRED,    //!< Expired transaction deadline
 };
 
 /**
@@ -624,12 +625,12 @@ public:
      * the entries' cached LockPoints if needed.  The mempool does not have any knowledge of
      * consensus rules. It just appplies the callable function and removes the ones for which it
      * returns true.
-     * @param[in]   filter_final_and_mature   Predicate that checks the relevant validation rules
-     *                                        and updates an entry's LockPoints.
+     * @param[in]   filter_final_not_expired_and_mature     Predicate that checks the relevant validation rules
+     *                                                      and updates an entry's LockPoints.
      * */
-    void removeForReorg(CChain& chain, std::function<bool(txiter)> filter_final_and_mature) EXCLUSIVE_LOCKS_REQUIRED(cs, cs_main);
+    void removeForReorg(CChain& chain, std::function<bool(txiter)> filter_final_not_expired_and_mature) EXCLUSIVE_LOCKS_REQUIRED(cs, cs_main);
     void removeConflicts(const CTransaction& tx) EXCLUSIVE_LOCKS_REQUIRED(cs);
-    void removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight, CAmounts totalSupply) EXCLUSIVE_LOCKS_REQUIRED(cs);
+    void removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight, CAmounts totalSupply, std::function<bool(txiter)> filtered_expired) EXCLUSIVE_LOCKS_REQUIRED(cs, cs_main);
 
     void clear();
     void _clear() EXCLUSIVE_LOCKS_REQUIRED(cs); //lock free

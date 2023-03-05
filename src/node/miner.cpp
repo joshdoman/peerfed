@@ -263,6 +263,9 @@ bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& packa
 
         std::optional<CTxConversionInfo> conversionDest = it->GetConversionDest();
         if (conversionDest) {
+            if (conversionDest.value().nDeadline && conversionDest.value().nDeadline < (uint32_t)nHeight) {
+                return false;
+            }
             CAmountType amountType = 0;
             CAmount nAmount = 0;
             if (!Consensus::IsValidConversion(totalSupply, conversionDest.value().inputs, conversionDest.value().minOutputs, amountType, nAmount)) {
@@ -487,7 +490,7 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
         onlyUnconfirmed(ancestors);
         ancestors.insert(iter);
 
-        // Test if all tx's are Final
+        // Test if all tx's are Final, conversions are valid, and conversion deadlines haven't expired
         if (!TestPackageTransactions(ancestors)) {
             if (fUsingModified) {
                 mapModifiedTx.get<ancestor_score>().erase(modit);

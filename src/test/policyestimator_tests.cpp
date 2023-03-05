@@ -51,6 +51,13 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
     std::vector<CTransactionRef> block;
     int blocknum = 0;
 
+    // TODO: Test for expired transactions
+    const auto dummy_filter_expired = [](CTxMemPool::txiter it)
+        EXCLUSIVE_LOCKS_REQUIRED(mpool.cs, ::cs_main) {
+        // Transaction is not a conversion or conversion has not expired
+        return false;
+    };
+
     // Loop through 200 blocks
     // At a decay .9952 and 4 fee transactions per block
     // This makes the tx count about 2.5 per bucket, well above the 0.1 threshold
@@ -75,7 +82,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
                 txHashes[9-h].pop_back();
             }
         }
-        mpool.removeForBlock(block, ++blocknum, m_node.chain->getLastTotalSupply());
+        mpool.removeForBlock(block, ++blocknum, m_node.chain->getLastTotalSupply(), dummy_filter_expired);
         block.clear();
         // Check after just a few txs that combining buckets works as expected
         if (blocknum == 3) {
@@ -114,7 +121,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
     // Mine 50 more blocks with no transactions happening, estimates shouldn't change
     // We haven't decayed the moving average enough so we still have enough data points in every bucket
     while (blocknum < 250)
-        mpool.removeForBlock(block, ++blocknum, m_node.chain->getLastTotalSupply());
+        mpool.removeForBlock(block, ++blocknum, m_node.chain->getLastTotalSupply(), dummy_filter_expired);
 
     BOOST_CHECK(feeEst.estimateFee(1) == CFeeRate(0));
     for (int i = 2; i < 10;i++) {
@@ -134,7 +141,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
                 txHashes[j].push_back(hash);
             }
         }
-        mpool.removeForBlock(block, ++blocknum, m_node.chain->getLastTotalSupply());
+        mpool.removeForBlock(block, ++blocknum, m_node.chain->getLastTotalSupply(), dummy_filter_expired);
     }
 
     for (int i = 1; i < 10;i++) {
@@ -151,7 +158,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
             txHashes[j].pop_back();
         }
     }
-    mpool.removeForBlock(block, 266, m_node.chain->getLastTotalSupply());
+    mpool.removeForBlock(block, 266, m_node.chain->getLastTotalSupply(), dummy_filter_expired);
     block.clear();
     BOOST_CHECK(feeEst.estimateFee(1) == CFeeRate(0));
     for (int i = 2; i < 10;i++) {
@@ -172,7 +179,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
 
             }
         }
-        mpool.removeForBlock(block, ++blocknum, m_node.chain->getLastTotalSupply());
+        mpool.removeForBlock(block, ++blocknum, m_node.chain->getLastTotalSupply(), dummy_filter_expired);
         block.clear();
     }
     BOOST_CHECK(feeEst.estimateFee(1) == CFeeRate(0));

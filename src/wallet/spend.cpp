@@ -1221,7 +1221,8 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         GetChangeScript(reservedest, coin_control, remainderScript, error); // Send remainder to self
         CScript conversionScript = GetConversionScript(
             tx_details.remainderType, // remainderType
-            remainderScript // scriptPubKey
+            remainderScript, // scriptPubKey
+            wallet.GetLastBlockHeight() + 6 // nDeadline                    // TODO: Implement default and user-set value
         );
 
         CTxOut txout(nFeeTypeRet, 0, conversionScript); // Set fee later

@@ -40,6 +40,19 @@ bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
     return true;
 }
 
+bool IsExpiredConversion(const CTransaction &tx, int nBlockHeight)
+{
+    for (const auto& txout : tx.vout) {
+        CTxConversionInfo conversionDest;
+        if (ExtractConversionInfo(txout.scriptPubKey, conversionDest)) {
+            if (conversionDest.nDeadline && conversionDest.nDeadline < (uint32_t)nBlockHeight)
+                return true;
+            return false;
+        }
+    }
+    return false;
+}
+
 std::pair<int, int64_t> CalculateSequenceLocks(const CTransaction &tx, int flags, std::vector<int>& prevHeights, const CBlockIndex& block)
 {
     assert(prevHeights.size() == tx.vin.size());

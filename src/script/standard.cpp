@@ -293,19 +293,34 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
 
 bool ExtractConversionInfo(const CScript& script, CTxConversionInfo& conversionInfoRet)
 {
-    if (script.size() > 3 && script[0] == OP_CONVERT) {
+    if (script.size() >= 3 && script[0] == OP_CONVERT) {
         conversionInfoRet.slippageType = script[1];
-        int scriptLength = script[2];
+        // Get scriptPubKey
+        uint scriptLength = script[2];
         if (scriptLength == 0) {
             conversionInfoRet.destination = CNoDestination();
-            return true;
-        } else if (script.size() == 3 + scriptLength) {
+        } else if (script.size() >= 3 + scriptLength) {
             CScript scriptPubKey(script.begin() + 3, script.begin() + 3 + scriptLength);
             CTxDestination destination;
             if (ExtractDestination(scriptPubKey, destination)) {
                 conversionInfoRet.destination = destination;
-                return true;
             }
+        }
+        // Get deadline
+        if (script.size() > 4 + scriptLength) {
+            std::vector<unsigned char> deadlineBytes(script.begin()+scriptLength+4, script.end());
+            try {
+                CScriptNum deadlineScriptNum = CScriptNum(deadlineBytes, /** fRequireMinimal **/ true);
+                conversionInfoRet.nDeadline = (uint32_t)deadlineScriptNum.GetInt64();
+                return true;
+            } catch (...) {
+                // Script number overflow (too many bytes) or not minimally encoded
+                return false;
+            }
+        } else {
+            // No deadline provided
+            conversionInfoRet.nDeadline = 0;
+            return true;
         }
     }
     return false;
@@ -362,9 +377,12 @@ CScript GetScriptForRawPubKey(const CPubKey& pubKey)
     return CScript() << std::vector<unsigned char>(pubKey.begin(), pubKey.end()) << OP_CHECKSIG;
 }
 
-CScript GetConversionScript(const bool& remainderType, const CScript& remainderScript)
+CScript GetConversionScript(const bool& remainderType, const CScript& remainderScript, const uint32_t& nDeadline)
 {
-    return CScript() << OP_CONVERT << remainderType << std::vector<unsigned char>(remainderScript.begin(), remainderScript.end());
+    CScript script = CScript() << OP_CONVERT << remainderType << std::vector<unsigned char>(remainderScript.begin(), remainderScript.end());
+    if (nDeadline)
+        script << CScriptNum((int64_t)nDeadline);
+    return script;
 }
 
 CScript GetScriptForMultisig(int nRequired, const std::vector<CPubKey>& keys)

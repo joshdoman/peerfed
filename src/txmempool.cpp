@@ -665,15 +665,15 @@ void CTxMemPool::removeRecursive(const CTransaction &origTx, MemPoolRemovalReaso
         RemoveStaged(setAllRemoves, false, reason);
 }
 
-void CTxMemPool::removeForReorg(CChain& chain, std::function<bool(txiter)> check_final_and_mature)
+void CTxMemPool::removeForReorg(CChain& chain, std::function<bool(txiter)> check_final_not_expired_and_mature)
 {
-    // Remove transactions spending a coinbase which are now immature and no-longer-final transactions
+    // Remove transactions spending a coinbase which are now immature, have an expired conversion deadline, or are no-longer-final transactions
     AssertLockHeld(cs);
     AssertLockHeld(::cs_main);
 
     setEntries txToRemove;
     for (indexed_transaction_set::const_iterator it = mapTx.begin(); it != mapTx.end(); it++) {
-        if (check_final_and_mature(it)) txToRemove.insert(it);
+        if (check_final_not_expired_and_mature(it)) txToRemove.insert(it);
     }
     setEntries setAllRemoves;
     for (txiter it : txToRemove) {
@@ -705,9 +705,10 @@ void CTxMemPool::removeConflicts(const CTransaction &tx)
 /**
  * Called when a block is connected. Removes from mempool and updates the miner fee estimator.
  */
-void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight, CAmounts totalSupply)
+void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight, CAmounts totalSupply, std::function<bool(txiter)> check_expired)
 {
     AssertLockHeld(cs);
+    AssertLockHeld(::cs_main);
     std::vector<const CTxMemPoolEntry*> entries;
     for (const auto& tx : vtx)
     {
@@ -732,6 +733,18 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     }
     lastRollingFeeUpdate = GetTime();
     blockSinceLastRollingFeeBump = true;
+
+    // Remove all expired transactions and their descendants
+    setEntries expiredTxsToRemove;
+    for (indexed_transaction_set::const_iterator it = mapTx.begin(); it != mapTx.end(); it++) {
+        if (check_expired(it)) expiredTxsToRemove.insert(it);
+    }
+    setEntries setAllExpiredRemoves;
+    for (txiter it : expiredTxsToRemove) {
+        CalculateDescendants(it, setAllExpiredRemoves);
+    }
+    RemoveStaged(setAllExpiredRemoves, false, MemPoolRemovalReason::TXEXPIRED);
+
     // Update the normalized tx fees with the new conversion rate
     UpdateNormalizedFees(totalSupply);
 }

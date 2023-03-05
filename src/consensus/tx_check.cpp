@@ -44,6 +44,18 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputs-duplicate");
     }
 
+    // Check for multiple outputs with a conversion script
+    bool has_conversion_script{false};
+    for (const auto& txout : tx.vout)
+    {
+        if (txout.scriptPubKey.IsConversionScript()) {
+            if (has_conversion_script) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-duplicate-conversion-vouts");
+            }
+            has_conversion_script = true;
+        }
+    }
+
     if (tx.IsCoinBase())
     {
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
@@ -51,21 +63,6 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
     }
     else
     {
-        // Check for different output amount types with no conversion script
-        if (nValueOut[CASH] > 0 && nValueOut[BOND] > 0) {
-            // Check for output with a conversion script
-            bool has_conversion_script{false};
-            for (const auto& txout : tx.vout)
-            {
-                if (txout.scriptPubKey.IsConversionScript()) {
-                    if (has_conversion_script) {
-                        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-duplicate-conversion-script");
-                    }
-                    has_conversion_script = true;
-                }
-            }
-        }
-
         for (const auto& txin : tx.vin)
             if (txin.prevout.IsNull())
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-prevout-null");

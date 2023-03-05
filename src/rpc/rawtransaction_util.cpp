@@ -96,7 +96,7 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
     std::set<CTxDestination> cashDestinations;
     std::set<CTxDestination> bondDestinations;
     bool has_data{false};
-    bool has_conversion_fee{false};
+    bool has_conversion_info_output{false};
 
     for (size_t i = 0; i < outputs.size(); ++i) {
         const UniValue& output = outputs[i];
@@ -117,31 +117,45 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
             CTxOut out(0, 0, CScript() << OP_RETURN << data);
             rawTx.vout.push_back(out);
         } else if (!output["conversionFee"].isNull()) {
-            if (output.size() != 4) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, key-value pair must contain exactly three keys");
+            if (output.size() < 3) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, key-value pair must contain at least three keys");
+            } else if (output.size() > 5) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, key-value pair may not contain more than five keys");
             } else if (output["feeType"].isNull()) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Missing parameter: feeType"));
             } else if (output["slippageType"].isNull()) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Missing parameter: slippageType"));
-            } else if (output["slippageAddress"].isNull()) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Missing parameter: slippageAddress"));
             }
-            if (has_conversion_fee) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, duplicate object: conversionFee");
+            if (has_conversion_info_output) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, duplicate object: conversion output");
             }
-            has_conversion_fee = true;
+            has_conversion_info_output = true;
 
             CAmount nAmount = AmountFromValue(output["conversionFee"]);
             CAmountType feeAmountType = AmountTypeFromValue(output["feeType"]);
 
-            CTxDestination destination = DecodeDestination(output["slippageAddress"].get_str());
-            if (!IsValidDestination(destination)) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Bitcoin address: ") + output["slippageAddress"].get_str());
+            CTxDestination destination;
+            if (!output["slippageAddress"].isNull()) {
+                destination = DecodeDestination(output["slippageAddress"].get_str());
+                if (!IsValidDestination(destination)) {
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid address: ") + output["slippageAddress"].get_str());
+                }
+            } else {
+                destination = CNoDestination();
+            }
+
+            uint32_t nDeadline = 0;
+            if (!output["deadline"].isNull()) {
+                int64_t deadline = output["deadline"].getInt<int64_t>();
+                if (deadline < 0 || deadline > LOCKTIME_MAX)
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, deadline out of range");
+                nDeadline = deadline;
             }
 
             CScript script = GetConversionScript(
                 AmountTypeFromValue(output["slippageType"]), // slippageType
-                GetScriptForDestination(destination) // scriptPubKey
+                GetScriptForDestination(destination), // scriptPubKey
+                nDeadline
             );
 
             CTxOut out(feeAmountType, nAmount, script);

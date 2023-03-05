@@ -182,6 +182,28 @@ bool CheckFinalTxAtTip(const CBlockIndex& active_chain_tip, const CTransaction& 
     return IsFinalTx(tx, nBlockHeight, nBlockTime);
 }
 
+bool CheckExpiredTxAtTip(const CBlockIndex& active_chain_tip, const CTransaction& tx)
+{
+    AssertLockHeld(cs_main);
+
+    // CheckExpiredTxAtTip() uses active_chain_tip.Height()+1 to evaluate
+    // nLockTime because when IsExpiredConversion() is called within
+    // AcceptBlock(), the height of the block *being*
+    // evaluated is what is used. Thus if we want to know if a
+    // transaction can be part of the *next* block, we need to call
+    // IsExpiredConversion() with one more than active_chain_tip.Height().
+    const int nBlockHeight = active_chain_tip.nHeight + 1;
+
+    return IsExpiredConversion(tx, nBlockHeight);
+}
+
+bool CheckExpiredTxAtTip(const CBlockIndex& active_chain_tip, const CTxConversionInfo& info)
+{
+    AssertLockHeld(cs_main);
+    const int nBlockHeight = active_chain_tip.nHeight + 1;
+    return info.nDeadline && info.nDeadline < (uint32_t)nBlockHeight;
+}
+
 bool CheckSequenceLocksAtTip(CBlockIndex* tip,
                         const CCoinsView& coins_view,
                         const CTransaction& tx,
@@ -328,11 +350,11 @@ void Chainstate::MaybeUpdateMempoolForReorg(
     m_mempool->UpdateTransactionsFromBlock(vHashUpdate);
 
     // Predicate to use for filtering transactions in removeForReorg.
-    // Checks whether the transaction is still final and, if it spends a coinbase output, mature.
+    // Checks whether the transaction is still final, has not expired, and, if it spends a coinbase output, mature.
     // Also updates valid entries' cached LockPoints if needed.
     // If false, the tx is still valid and its lockpoints are updated.
     // If true, the tx would be invalid in the next block; remove this entry and all of its descendants.
-    const auto filter_final_and_mature = [this](CTxMemPool::txiter it)
+    const auto filter_final_not_expired_and_mature = [this](CTxMemPool::txiter it)
         EXCLUSIVE_LOCKS_REQUIRED(m_mempool->cs, ::cs_main) {
         AssertLockHeld(m_mempool->cs);
         AssertLockHeld(::cs_main);
@@ -340,6 +362,8 @@ void Chainstate::MaybeUpdateMempoolForReorg(
 
         // The transaction must be final.
         if (!CheckFinalTxAtTip(*Assert(m_chain.Tip()), tx)) return true;
+        // The transaction must not be expired
+        if (it->GetConversionDest() && CheckExpiredTxAtTip(*Assert(m_chain.Tip()), it->GetConversionDest().value())) return true;
         LockPoints lp = it->GetLockPoints();
         const bool validLP{TestLockPointValidity(m_chain, lp)};
         CCoinsViewMemPool view_mempool(&CoinsTip(), *m_mempool);
@@ -375,7 +399,7 @@ void Chainstate::MaybeUpdateMempoolForReorg(
     };
 
     // We also need to remove any now-immature transactions
-    m_mempool->removeForReorg(m_chain, filter_final_and_mature);
+    m_mempool->removeForReorg(m_chain, filter_final_not_expired_and_mature);
     // Re-limit mempool size, in case we added any transactions
     LimitMempoolSize(*m_mempool, this->CoinsTip());
 }
@@ -723,6 +747,11 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     // be mined yet.
     if (!CheckFinalTxAtTip(*Assert(m_active_chainstate.m_chain.Tip()), tx)) {
         return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "non-final");
+    }
+
+    // Do not accept conversion transactions with a deadline that has expired by the next block
+    if (CheckExpiredTxAtTip(*Assert(m_active_chainstate.m_chain.Tip()), tx)) {
+        return state.Invalid(TxValidationResult::TX_EXPIRED_CONVERSION, "tx-expired");
     }
 
     if (m_pool.exists(GenTxid::Wtxid(tx.GetWitnessHash()))) {
@@ -2818,9 +2847,22 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
     }
     int64_t nTime5 = GetTimeMicros(); nTimeChainState += nTime5 - nTime4;
     LogPrint(BCLog::BENCH, "  - Writing chainstate: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime5 - nTime4) * MILLI, nTimeChainState * MICRO, nTimeChainState * MILLI / nBlocksTotal);
-    // Remove conflicting transactions from the mempool.;
+    // Remove conflicting transactions from the mempool and remove expired conversion transactions and all descendants
     if (m_mempool) {
-        m_mempool->removeForBlock(blockConnecting.vtx, pindexNew->nHeight, pindexNew->GetTotalSupply());
+        // Predicate to use for filtering transactions in removeForBlock.
+        // Checks whether the conversion transaction deadline has expired.
+        // If false, the tx is still valid.
+        // If true, the tx would be invalid in the next block; remove this entry and all of its descendants.
+        const auto filter_expired = [this](CTxMemPool::txiter it)
+            EXCLUSIVE_LOCKS_REQUIRED(m_mempool->cs, ::cs_main) {
+            AssertLockHeld(m_mempool->cs);
+            AssertLockHeld(::cs_main);
+            // The transaction must not have expired
+            if (it->GetConversionDest() && CheckExpiredTxAtTip(*Assert(m_chain.Tip()), it->GetConversionDest().value())) return true;
+            // Transaction is not a conversion or conversion has not expired
+            return false;
+        };
+        m_mempool->removeForBlock(blockConnecting.vtx, pindexNew->nHeight, pindexNew->GetTotalSupply(), filter_expired);
         disconnectpool.removeForBlock(blockConnecting.vtx);
     }
     // Update m_chain & related variables.
@@ -3605,6 +3647,13 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
     for (const auto& tx : block.vtx) {
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-nonfinal", "non-final transaction");
+        }
+    }
+
+    // Check for expired transactions
+    for (const auto& tx : block.vtx) {
+        if (IsExpiredConversion(*tx, nHeight)) {
+            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-expired", "expired conversion transaction");
         }
     }
 

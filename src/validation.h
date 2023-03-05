@@ -266,6 +266,16 @@ PackageMempoolAcceptResult ProcessNewPackage(Chainstate& active_chainstate, CTxM
 bool CheckFinalTxAtTip(const CBlockIndex& active_chain_tip, const CTransaction& tx) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
 /**
+ * Check if transaction will be expired in the next block to be created.
+ */
+bool CheckExpiredTxAtTip(const CBlockIndex& active_chain_tip, const CTransaction& tx) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+
+/**
+ * Check if conversion deadline will be expired in the next block to be created.
+ */
+bool CheckExpiredTxAtTip(const CBlockIndex& active_chain_tip, const CTxConversionInfo& info) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+
+/**
  * Check if transaction will be BIP68 final in the next block to be created on top of tip.
  * @param[in]   tip             Chain tip to check tx sequence locks against. For example,
  *                              the tip of the current active chain.
