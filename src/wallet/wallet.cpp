@@ -668,7 +668,7 @@ bool CWallet::IsSpent(const COutPoint& outpoint) const
         const auto mit = mapWallet.find(wtxid);
         if (mit != mapWallet.end()) {
             int depth = GetTxDepthInMainChain(mit->second);
-            if (depth > 0  || (depth == 0 && !mit->second.isAbandoned()))
+            if (depth > 0  || (depth == 0 && !mit->second.isAbandoned() && !mit->second.isExpired()))
                 return true; // Spent
         }
     }
@@ -1175,7 +1175,7 @@ bool CWallet::TransactionCanBeAbandoned(const uint256& hashTx) const
 {
     LOCK(cs_wallet);
     const CWalletTx* wtx = GetWalletTx(hashTx);
-    return wtx && !wtx->isAbandoned() && GetTxDepthInMainChain(*wtx) == 0 && !wtx->InMempool();
+    return wtx && !wtx->isAbandoned() && !wtx->isExpired() && GetTxDepthInMainChain(*wtx) == 0 && !wtx->InMempool();
 }
 
 void CWallet::MarkInputsDirty(const CTransactionRef& tx)
@@ -1197,11 +1197,11 @@ bool CWallet::AbandonTransaction(const uint256& hashTx)
     std::set<uint256> todo;
     std::set<uint256> done;
 
-    // Can't mark abandoned if confirmed or in mempool
+    // Can't mark abandoned if confirmed, expired, or in mempool
     auto it = mapWallet.find(hashTx);
     assert(it != mapWallet.end());
     const CWalletTx& origtx = it->second;
-    if (GetTxDepthInMainChain(origtx) != 0 || origtx.InMempool()) {
+    if (GetTxDepthInMainChain(origtx) != 0 || origtx.InMempool() || origtx.isExpired()) {
         return false;
     }
 
@@ -1219,7 +1219,7 @@ bool CWallet::AbandonTransaction(const uint256& hashTx)
         assert(currentconfirm <= 0);
         // if (currentconfirm < 0) {Tx and spends are already conflicted, no need to abandon}
         if (currentconfirm == 0 && !wtx.isAbandoned()) {
-            // If the orig tx was not in block/mempool, none of its spends can be in mempool
+            // If the orig tx was not in block/mempool or expired, none of its spends can be in mempool
             assert(!wtx.InMempool());
             wtx.m_state = TxStateInactive{/*abandoned=*/true};
             wtx.MarkDirty();
@@ -1349,6 +1349,11 @@ void CWallet::transactionRemovedFromMempool(const CTransactionRef& tx, MemPoolRe
         // https://github.com/bitcoin-core/bitcoin-devwiki/wiki/Wallet-Transaction-Conflict-Tracking
         SyncTransaction(tx, TxStateInactive{});
     }
+    // Handle transactions that were removed from the mempool because they
+    // expired after adding a new block.
+    if (reason == MemPoolRemovalReason::TXEXPIRED) {
+        SyncTransaction(tx, TxStateExpired{});
+    }
 }
 
 void CWallet::blockConnected(const interfaces::BlockInfo& block)
@@ -1361,6 +1366,22 @@ void CWallet::blockConnected(const interfaces::BlockInfo& block)
     for (size_t index = 0; index < block.data->vtx.size(); index++) {
         SyncTransaction(block.data->vtx[index], TxStateConfirmed{block.hash, block.height, static_cast<int>(index)});
         transactionRemovedFromMempool(block.data->vtx[index], MemPoolRemovalReason::BLOCK, 0 /* mempool_sequence */);
+    }
+
+    // Mark all conversion transactions beyond their deadline as expired
+    for (auto& [txid, wtx] : mapWallet) {
+        // Do not mark as expired transactions that are already confirmed, conflicted, or expired
+        if (wtx.isConfirmed() || wtx.isConflicted() || wtx.isExpired()) continue;
+        // Only conversion transactions have an expiration deadline
+        if (wtx.IsConversion()) {
+            CScript script = wtx.tx->vout[wtx.GetConversionOutputN()].scriptPubKey;
+            CTxConversionInfo conversionInfo;
+            if (ExtractConversionInfo(script, conversionInfo)) {
+                if (conversionInfo.nDeadline && conversionInfo.nDeadline <= block.height) {
+                    SyncTransaction(wtx.tx, TxStateExpired{});
+                }
+            }
+        }
     }
 }
 
@@ -1900,6 +1921,8 @@ bool CWallet::SubmitTxMemoryPoolAndRelay(CWalletTx& wtx, std::string& err_string
     if (!GetBroadcastTransactions()) return false;
     // Don't relay abandoned transactions
     if (wtx.isAbandoned()) return false;
+    // Don't relay expired transactions
+    if (wtx.isExpired()) return false;
     // Don't try to submit coinbase transactions. These would fail anyway but would
     // cause log spam.
     if (wtx.IsCoinBase()) return false;

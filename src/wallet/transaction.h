@@ -51,6 +51,10 @@ struct TxStateInactive {
     explicit TxStateInactive(bool abandoned = false) : abandoned(abandoned) {}
 };
 
+//! State of expired transaction.
+struct TxStateExpired {
+};
+
 //! State of transaction loaded in an unrecognized state with unexpected hash or
 //! index values. Treated as inactive (with serialized hash and index values
 //! preserved) by default, but may enter another state if transaction is added
@@ -63,16 +67,17 @@ struct TxStateUnrecognized {
 };
 
 //! All possible CWalletTx states
-using TxState = std::variant<TxStateConfirmed, TxStateInMempool, TxStateConflicted, TxStateInactive, TxStateUnrecognized>;
+using TxState = std::variant<TxStateConfirmed, TxStateInMempool, TxStateConflicted, TxStateInactive, TxStateExpired, TxStateUnrecognized>;
 
 //! Subset of states transaction sync logic is implemented to handle.
-using SyncTxState = std::variant<TxStateConfirmed, TxStateInMempool, TxStateInactive>;
+using SyncTxState = std::variant<TxStateConfirmed, TxStateInMempool, TxStateInactive, TxStateExpired>;
 
 //! Try to interpret deserialized TxStateUnrecognized data as a recognized state.
 static inline TxState TxStateInterpretSerialized(TxStateUnrecognized data)
 {
     if (data.block_hash == uint256::ZERO) {
         if (data.index == 0) return TxStateInactive{};
+        if (data.index == -1) return TxStateExpired{};
     } else if (data.block_hash == uint256::ONE) {
         if (data.index == -1) return TxStateInactive{/*abandoned=*/true};
     } else if (data.index >= 0) {
@@ -87,6 +92,7 @@ static inline TxState TxStateInterpretSerialized(TxStateUnrecognized data)
 static inline uint256 TxStateSerializedBlockHash(const TxState& state)
 {
     return std::visit(util::Overloaded{
+        [](const TxStateExpired& expired) { return uint256::ZERO; },
         [](const TxStateInactive& inactive) { return inactive.abandoned ? uint256::ONE : uint256::ZERO; },
         [](const TxStateInMempool& in_mempool) { return uint256::ZERO; },
         [](const TxStateConfirmed& confirmed) { return confirmed.confirmed_block_hash; },
@@ -99,6 +105,7 @@ static inline uint256 TxStateSerializedBlockHash(const TxState& state)
 static inline int TxStateSerializedIndex(const TxState& state)
 {
     return std::visit(util::Overloaded{
+        [](const TxStateExpired& expired) { return -1; },
         [](const TxStateInactive& inactive) { return inactive.abandoned ? -1 : 0; },
         [](const TxStateInMempool& in_mempool) { return 0; },
         [](const TxStateConfirmed& confirmed) { return confirmed.position_in_block; },
@@ -297,14 +304,15 @@ public:
     template<typename T> T* state() { return std::get_if<T>(&m_state); }
 
     bool isAbandoned() const { return state<TxStateInactive>() && state<TxStateInactive>()->abandoned; }
+    bool isExpired() const { return state<TxStateExpired>(); }
     bool isConflicted() const { return state<TxStateConflicted>(); }
-    bool isUnconfirmed() const { return !isAbandoned() && !isConflicted() && !isConfirmed(); }
+    bool isUnconfirmed() const { return !isAbandoned() && !isExpired() && !isConflicted() && !isConfirmed(); }
     bool isConfirmed() const { return state<TxStateConfirmed>(); }
     const uint256& GetHash() const { return tx->GetHash(); }
     const uint256& GetWitnessHash() const { return tx->GetWitnessHash(); }
     bool IsCoinBase() const { return tx->IsCoinBase(); }
     bool IsConversion() const { return tx->IsConversion(); }
-    bool GetConversionOutputN() const { return tx->GetConversionOutputN(); }
+    int GetConversionOutputN() const { return tx->GetConversionOutputN(); }
 
     // Disable copying of CWalletTx objects to prevent bugs where instances get
     // copied in and out of the mapWallet map, and fields are updated in the

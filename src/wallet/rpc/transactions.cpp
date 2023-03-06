@@ -364,6 +364,7 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
         if (fLong)
             WalletTxToJSON(wallet, wtx, entry);
         entry.pushKV("abandoned", wtx.isAbandoned());
+        entry.pushKV("expired", wtx.isExpired());
         ret.push_back(entry);
     }
 
