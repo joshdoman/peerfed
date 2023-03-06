@@ -485,6 +485,7 @@ struct WalletTxStatus
     CAmountScaleFactor scale_factor;
     bool is_trusted;
     bool is_abandoned;
+    bool is_expired;
     bool is_coinbase;
     bool is_in_main_chain;
 };

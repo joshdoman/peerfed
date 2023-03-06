@@ -327,6 +327,9 @@ QString TransactionTableModel::formatTxStatus(const TransactionRecord *wtx) cons
     case TransactionStatus::Abandoned:
         status = tr("Abandoned");
         break;
+    case TransactionStatus::Expired:
+        status = tr("Expired");
+        break;
     case TransactionStatus::Confirming:
         status = tr("Confirming (%1 of %2 recommended confirmations)").arg(wtx->status.depth).arg(TransactionRecord::RecommendedNumConfirmations);
         break;
@@ -485,6 +488,8 @@ QVariant TransactionTableModel::txStatusDecoration(const TransactionRecord *wtx)
         return QIcon(":/icons/transaction_0");
     case TransactionStatus::Abandoned:
         return QIcon(":/icons/transaction_abandoned");
+    case TransactionStatus::Expired:
+        return QIcon(":/icons/transaction_abandoned"); // TODO: Replace with expired icon
     case TransactionStatus::Confirming:
         switch(wtx->status.depth)
         {
@@ -598,8 +603,8 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
     case Qt::TextAlignmentRole:
         return column_alignments[index.column()];
     case Qt::ForegroundRole:
-        // Use the "danger" color for abandoned transactions
-        if(rec->status.status == TransactionStatus::Abandoned)
+        // Use the "danger" color for abandoned and expired transactions
+        if(rec->status.status == TransactionStatus::Abandoned || rec->status.status == TransactionStatus::Expired)
         {
             return COLOR_TX_STATUS_DANGER;
         }

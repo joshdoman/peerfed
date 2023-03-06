@@ -148,6 +148,7 @@ bool TransactionCanBeBumped(const CWallet& wallet, const uint256& txid)
     LOCK(wallet.cs_wallet);
     const CWalletTx* wtx = wallet.GetWalletTx(txid);
     if (wtx == nullptr) return false;
+    if (wtx->isExpired()) return false;
 
     std::vector<bilingual_str> errors_dummy;
     feebumper::Result res = PreconditionChecks(wallet, *wtx, /* require_mine=*/ true, errors_dummy);

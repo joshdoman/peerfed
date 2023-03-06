@@ -43,7 +43,9 @@ QString TransactionDesc::FormatTxStatus(const interfaces::WalletTxStatus& status
         return tr("conflicted with a transaction with %1 confirmations").arg(-depth);
     } else if (depth == 0) {
         QString s;
-        if (inMempool) {
+        if (status.is_expired) {
+            s = tr("Expired");
+        } else if (inMempool) {
             /*: Text explaining the current status of a transaction, shown in the
                 status field of the details window for this transaction. This status
                 represents an unconfirmed transaction that is in the memory pool. */

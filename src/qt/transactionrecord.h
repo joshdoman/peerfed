@@ -28,6 +28,7 @@ struct TransactionStatus {
         Confirming,         /**< Confirmed, but waiting for the recommended number of confirmations **/
         Conflicted,         /**< Conflicts with other transaction or mempool **/
         Abandoned,          /**< Abandoned from the wallet **/
+        Expired,            /**< Expired conversion **/
         /// Generated (mined) transactions
         Immature,           /**< Mined but waiting for maturity */
         NotAccepted         /**< Mined but not accepted */
