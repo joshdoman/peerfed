@@ -382,8 +382,8 @@ void Chainstate::MaybeUpdateMempoolForReorg(
             // The transaction must not be expired
             if (CheckExpiredConversionAtTip(*Assert(m_chain.Tip()), it->GetConversionDest().value())) return true;
             // The conversion must have be valid at start of next block
-            int checkLastNBlocks = gArgs.GetIntArg("-checkexistingconversionslastnblocks", DEFAULT_CHECK_EXISTING_CONVERSIONS_VALID_IN_LAST_N_BLOCKS);
-            int buffer = gArgs.GetIntArg("-checkconversionsbuffer", DEFAULT_CHECK_CONVERSIONS_BUFFER);
+            int checkLastNBlocks = gArgs.GetIntArg("-mempoolexistingconversionschecklastnblocks", DEFAULT_MEMPOOL_EXISTING_CONVERSIONS_CHECK_LAST_N_BLOCKS);
+            int buffer = gArgs.GetIntArg("-mempoolconversionbuffer", DEFAULT_MEMPOOL_CONVERSION_BUFFER);
             if (CheckValidConversionAtTip(m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) return true;
         }
         LockPoints lp = it->GetLockPoints();
@@ -868,8 +868,8 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         }
 
         // Check that conversion is valid at the start of the next block
-        int checkLastNBlocks = gArgs.GetIntArg("-checknewconversionslastnblocks", DEFAULT_CHECK_NEW_CONVERSIONS_VALID_IN_LAST_N_BLOCKS);
-        int buffer = gArgs.GetIntArg("-checkconversionsbuffer", DEFAULT_CHECK_CONVERSIONS_BUFFER);
+        int checkLastNBlocks = gArgs.GetIntArg("-mempoolnewconversionschecklastnblocks", DEFAULT_MEMPOOL_NEW_CONVERSIONS_CHECK_LAST_N_BLOCKS);
+        int buffer = gArgs.GetIntArg("-mempoolconversionbuffer", DEFAULT_MEMPOOL_CONVERSION_BUFFER);
         if (!CheckValidConversionAtTip(m_active_chainstate.m_chain.Tip(), ws.m_conversion_dest.value(), checkLastNBlocks, buffer)) {
             return state.Invalid(TxValidationResult::TX_INVALID_CONVERSION, "invalid-conversion");
         }
@@ -2901,8 +2901,8 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
             AssertLockHeld(m_mempool->cs);
             AssertLockHeld(::cs_main);
             // The conversion must be valid at start of next block
-            int checkLastNBlocks = gArgs.GetIntArg("-checkexistingconversionslastnblocks", DEFAULT_CHECK_EXISTING_CONVERSIONS_VALID_IN_LAST_N_BLOCKS);
-            int buffer = gArgs.GetIntArg("-checkconversionsbuffer", DEFAULT_CHECK_CONVERSIONS_BUFFER);
+            int checkLastNBlocks = gArgs.GetIntArg("-mempoolexistingconversionschecklastnblocks", DEFAULT_MEMPOOL_EXISTING_CONVERSIONS_CHECK_LAST_N_BLOCKS);
+            int buffer = gArgs.GetIntArg("-mempoolconversionbuffer", DEFAULT_MEMPOOL_CONVERSION_BUFFER);
             if (it->GetConversionDest() && CheckValidConversionAtTip(m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) return true;
             // Transaction is not a conversion or conversion is valid at start of next block
             return false;
