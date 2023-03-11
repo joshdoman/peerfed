@@ -37,6 +37,7 @@ enum class TxValidationResult {
     TX_MISSING_INPUTS,        //!< transaction was missing some of its inputs
     TX_PREMATURE_SPEND,       //!< transaction spends a coinbase too early, or violates locktime/sequence locks
     TX_EXPIRED_CONVERSION,    //!< transaction conversion deadline has expired
+    TX_INVALID_CONVERSION,    //!< transaction conversion is invalid at the end of the last N blocks (default: 1)
     /**
      * Transaction might have a witness prior to SegWit
      * activation, or witness may have been malleated (which includes

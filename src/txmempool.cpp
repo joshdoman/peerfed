@@ -665,15 +665,16 @@ void CTxMemPool::removeRecursive(const CTransaction &origTx, MemPoolRemovalReaso
         RemoveStaged(setAllRemoves, false, reason);
 }
 
-void CTxMemPool::removeForReorg(CChain& chain, std::function<bool(txiter)> check_final_not_expired_and_mature)
+void CTxMemPool::removeForReorg(CChain& chain, std::function<bool(txiter)> check_final_valid_and_mature)
 {
-    // Remove transactions spending a coinbase which are now immature, have an expired conversion deadline, or are no-longer-final transactions
+    // Remove transactions spending a coinbase which are now immature or are no-longer-final transactions
+    // Also removes conversion transactions that have an expired conversion deadline or are not valid at start of next block
     AssertLockHeld(cs);
     AssertLockHeld(::cs_main);
 
     setEntries txToRemove;
     for (indexed_transaction_set::const_iterator it = mapTx.begin(); it != mapTx.end(); it++) {
-        if (check_final_not_expired_and_mature(it)) txToRemove.insert(it);
+        if (check_final_valid_and_mature(it)) txToRemove.insert(it);
     }
     setEntries setAllRemoves;
     for (txiter it : txToRemove) {
@@ -705,7 +706,7 @@ void CTxMemPool::removeConflicts(const CTransaction &tx)
 /**
  * Called when a block is connected. Removes from mempool and updates the miner fee estimator.
  */
-void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight, CAmounts totalSupply, std::function<bool(txiter)> check_expired)
+void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight, CAmounts totalSupply, std::function<bool(txiter)> check_expired, std::function<bool(txiter)> check_invalid_conversion)
 {
     AssertLockHeld(cs);
     AssertLockHeld(::cs_main);
@@ -734,16 +735,23 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     lastRollingFeeUpdate = GetTime();
     blockSinceLastRollingFeeBump = true;
 
-    // Remove all expired transactions and their descendants
+    // Remove all expired and invalid conversion transactions and their descendants
     setEntries expiredTxsToRemove;
+    setEntries invalidConversionTxsToRemove;
     for (indexed_transaction_set::const_iterator it = mapTx.begin(); it != mapTx.end(); it++) {
         if (check_expired(it)) expiredTxsToRemove.insert(it);
+        else if (check_invalid_conversion(it)) invalidConversionTxsToRemove.insert(it);
     }
     setEntries setAllExpiredRemoves;
     for (txiter it : expiredTxsToRemove) {
         CalculateDescendants(it, setAllExpiredRemoves);
     }
+    setEntries setAllInvalidConversionRemoves;
+    for (txiter it : invalidConversionTxsToRemove) {
+        CalculateDescendants(it, setAllInvalidConversionRemoves);
+    }
     RemoveStaged(setAllExpiredRemoves, false, MemPoolRemovalReason::TXEXPIRED);
+    RemoveStaged(setAllInvalidConversionRemoves, false, MemPoolRemovalReason::CONVERSIONINVALID);
 
     // Update the normalized tx fees with the new conversion rate
     UpdateNormalizedFees(totalSupply);
