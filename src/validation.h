@@ -70,6 +70,12 @@ static constexpr bool DEFAULT_COINSTATSINDEX{false};
 static const char* const DEFAULT_BLOCKFILTERINDEX = "0";
 /** Default for -stopatheight */
 static const int DEFAULT_STOPATHEIGHT = 0;
+/** Default for -checknewconversionslastnblocks */
+static const int DEFAULT_CHECK_NEW_CONVERSIONS_VALID_IN_LAST_N_BLOCKS = 1; // Require new conversions to be valid at tip
+/** Default for -checkexistingconversionslastnblocks */
+static const int DEFAULT_CHECK_EXISTING_CONVERSIONS_VALID_IN_LAST_N_BLOCKS = 6; // Remove from mempool if invalid for six blocks
+/** Default for -checkconversionsbuffer */
+static const int DEFAULT_CHECK_CONVERSIONS_BUFFER = 500; // Check validity with 5% buffer (500 bips)
 /** Block files containing a block-height within MIN_BLOCKS_TO_KEEP of ActiveChain().Tip() will not be pruned. */
 static const unsigned int MIN_BLOCKS_TO_KEEP = 288;
 static const signed int DEFAULT_CHECKBLOCKS = 6;
@@ -271,9 +277,12 @@ bool CheckFinalTxAtTip(const CBlockIndex& active_chain_tip, const CTransaction& 
 bool CheckExpiredConversionAtTip(const CBlockIndex& active_chain_tip, const CTxConversionInfo& info) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
 /**
- * Check if conversion is valid at start of the next block
+ * Check if conversion was valid within some range at the end of one of the last N blocks
+ * @param[in]   percent_buffer  Allowable buffer (in bips) when checking the validity of
+ *                              the transaction. First, checks validity by increasing the
+ *                              cash supply, then checks by increasing the bond supply.
  */
-bool CheckValidConversionAtTip(const CBlockIndex& active_chain_tip, const CTxConversionInfo& info) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+bool CheckValidConversionAtTip(const CBlockIndex& active_chain_tip, const CTxConversionInfo& info, const int& check_last_N_blocks, const int& percent_buffer) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 /**
  * Check if transaction will be BIP68 final in the next block to be created on top of tip.
  * @param[in]   tip             Chain tip to check tx sequence locks against. For example,

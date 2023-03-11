@@ -195,13 +195,26 @@ bool CheckExpiredConversionAtTip(const CBlockIndex& active_chain_tip, const CTxC
     return info.nDeadline && info.nDeadline < (uint32_t)nBlockHeight;
 }
 
-bool CheckValidConversionAtTip(const CBlockIndex& active_chain_tip, const CTxConversionInfo& info)
+bool CheckValidConversionAtTip(CBlockIndex* tip, const CTxConversionInfo& info, const int& check_last_N_blocks, const int& percent_buffer)
 {
     AssertLockHeld(cs_main);
-    CAmounts totalSupply = active_chain_tip.GetTotalSupply();
+    CBlockIndex* pindex = tip;
     CAmount dummy;
-    if (Consensus::IsValidConversion(totalSupply, info.inputs, info.minOutputs, info.slippageType, dummy)) {
-        return true;
+    for (int i = 0; i < check_last_N_blocks && pindex != nullptr; i++) {
+        // Check validity by increasing cash supply by allowable buffer
+        CAmounts totalSupply1 = pindex->GetTotalSupply();
+        totalSupply1[CASH] += totalSupply1[CASH] * percent_buffer / 10000; // percent_buffer represented in bips (1% = 100)
+        if (Consensus::IsValidConversion(totalSupply1, info.inputs, info.minOutputs, info.slippageType, dummy)) {
+            return true;
+        }
+        // Check validity by increasing bond supply by allowable buffer
+        CAmounts totalSupply2 = pindex->GetTotalSupply();
+        totalSupply2[BOND] += totalSupply2[BOND] * percent_buffer / 10000; // percent_buffer represented in bips (1% = 100)
+        if (Consensus::IsValidConversion(totalSupply2, info.inputs, info.minOutputs, info.slippageType, dummy)) {
+            return true;
+        }
+        // Check the previous block
+        pindex = pindex->pprev;
     }
     return false;
 }
@@ -369,7 +382,9 @@ void Chainstate::MaybeUpdateMempoolForReorg(
             // The transaction must not be expired
             if (CheckExpiredConversionAtTip(*Assert(m_chain.Tip()), it->GetConversionDest().value())) return true;
             // The conversion must have be valid at start of next block
-            if (CheckValidConversionAtTip(*Assert(m_chain.Tip()), it->GetConversionDest().value())) return true;
+            int checkLastNBlocks = gArgs.GetIntArg("-checkexistingconversionslastnblocks", DEFAULT_CHECK_EXISTING_CONVERSIONS_VALID_IN_LAST_N_BLOCKS);
+            int buffer = gArgs.GetIntArg("-checkconversionsbuffer", DEFAULT_CHECK_CONVERSIONS_BUFFER);
+            if (CheckValidConversionAtTip(m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) return true;
         }
         LockPoints lp = it->GetLockPoints();
         const bool validLP{TestLockPointValidity(m_chain, lp)};
@@ -853,7 +868,9 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         }
 
         // Check that conversion is valid at the start of the next block
-        if (!CheckValidConversionAtTip(*Assert(m_active_chainstate.m_chain.Tip()), ws.m_conversion_dest.value())) {
+        int checkLastNBlocks = gArgs.GetIntArg("-checknewconversionslastnblocks", DEFAULT_CHECK_NEW_CONVERSIONS_VALID_IN_LAST_N_BLOCKS);
+        int buffer = gArgs.GetIntArg("-checkconversionsbuffer", DEFAULT_CHECK_CONVERSIONS_BUFFER);
+        if (!CheckValidConversionAtTip(m_active_chainstate.m_chain.Tip(), ws.m_conversion_dest.value(), checkLastNBlocks, buffer)) {
             return state.Invalid(TxValidationResult::TX_INVALID_CONVERSION, "invalid-conversion");
         }
     }
@@ -2884,7 +2901,9 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
             AssertLockHeld(m_mempool->cs);
             AssertLockHeld(::cs_main);
             // The conversion must be valid at start of next block
-            if (it->GetConversionDest() && CheckValidConversionAtTip(*Assert(m_chain.Tip()), it->GetConversionDest().value())) return true;
+            int checkLastNBlocks = gArgs.GetIntArg("-checkexistingconversionslastnblocks", DEFAULT_CHECK_EXISTING_CONVERSIONS_VALID_IN_LAST_N_BLOCKS);
+            int buffer = gArgs.GetIntArg("-checkconversionsbuffer", DEFAULT_CHECK_CONVERSIONS_BUFFER);
+            if (it->GetConversionDest() && CheckValidConversionAtTip(m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) return true;
             // Transaction is not a conversion or conversion is valid at start of next block
             return false;
         };
