@@ -271,9 +271,9 @@ bool CheckFinalTxAtTip(const CBlockIndex& active_chain_tip, const CTransaction& 
 bool CheckExpiredTxAtTip(const CBlockIndex& active_chain_tip, const CTransaction& tx) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
 /**
- * Check if conversion deadline will be expired in the next block to be created.
+ * Check if conversion will be expired in the next block to be created.
  */
-bool CheckExpiredTxAtTip(const CBlockIndex& active_chain_tip, const CTxConversionInfo& info) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+bool CheckExpiredConversionAtTip(const CBlockIndex& active_chain_tip, const CTxConversionInfo& info) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
 /**
  * Check if transaction will be BIP68 final in the next block to be created on top of tip.

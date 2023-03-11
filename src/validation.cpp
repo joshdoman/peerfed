@@ -197,7 +197,7 @@ bool CheckExpiredTxAtTip(const CBlockIndex& active_chain_tip, const CTransaction
     return IsExpiredConversion(tx, nBlockHeight);
 }
 
-bool CheckExpiredTxAtTip(const CBlockIndex& active_chain_tip, const CTxConversionInfo& info)
+bool CheckExpiredConversionAtTip(const CBlockIndex& active_chain_tip, const CTxConversionInfo& info)
 {
     AssertLockHeld(cs_main);
     const int nBlockHeight = active_chain_tip.nHeight + 1;
@@ -363,7 +363,7 @@ void Chainstate::MaybeUpdateMempoolForReorg(
         // The transaction must be final.
         if (!CheckFinalTxAtTip(*Assert(m_chain.Tip()), tx)) return true;
         // The transaction must not be expired
-        if (it->GetConversionDest() && CheckExpiredTxAtTip(*Assert(m_chain.Tip()), it->GetConversionDest().value())) return true;
+        if (it->GetConversionDest() && CheckExpiredConversionAtTip(*Assert(m_chain.Tip()), it->GetConversionDest().value())) return true;
         LockPoints lp = it->GetLockPoints();
         const bool validLP{TestLockPointValidity(m_chain, lp)};
         CCoinsViewMemPool view_mempool(&CoinsTip(), *m_mempool);
@@ -2858,7 +2858,7 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
             AssertLockHeld(m_mempool->cs);
             AssertLockHeld(::cs_main);
             // The transaction must not have expired
-            if (it->GetConversionDest() && CheckExpiredTxAtTip(*Assert(m_chain.Tip()), it->GetConversionDest().value())) return true;
+            if (it->GetConversionDest() && CheckExpiredConversionAtTip(*Assert(m_chain.Tip()), it->GetConversionDest().value())) return true;
             // Transaction is not a conversion or conversion has not expired
             return false;
         };
