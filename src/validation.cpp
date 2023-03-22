@@ -616,6 +616,10 @@ private:
         /** Iterators to all mempool entries that would be replaced by this transaction, including
          * those it directly conflicts with and their descendants. */
         CTxMemPool::setEntries m_all_conflicting;
+        /** Iterators to all mempool entries that would be replaced by this transaction, including
+         * those it directly conflicts with and their descendants, excluding invalid conversions
+         * and their descendants. */
+        CTxMemPool::setEntries m_all_valid_conflicting;
         /** All mempool ancestors of this transaction. */
         CTxMemPool::setEntries m_ancestors;
         /** Mempool entry constructed for this transaction. Constructed in PreChecks() but not
@@ -635,10 +639,10 @@ private:
         CAmount m_normalized_base_fees;
         /** Base fees + any fee delta set by the user with prioritisetransaction. */
         CAmount m_modified_fees;
-        /** Total modified fees of all transactions being replaced. */
-        CAmount m_conflicting_fees{0};
-        /** Total virtual size of all transactions being replaced. */
-        size_t m_conflicting_size{0};
+        /** Total modified fees of all valid transactions being replaced. */
+        CAmount m_valid_conflicting_fees{0};
+        /** Total virtual size of all valid transactions being replaced. */
+        size_t m_valid_conflicting_size{0};
 
         /** Conversion destination if present in transaction. */
         std::optional<CTxConversionInfo> m_conversion_dest;
@@ -998,6 +1002,19 @@ bool MemPoolAccept::ReplacementChecks(Workspace& ws)
     const uint256& hash = ws.m_hash;
     TxValidationState& state = ws.m_state;
 
+    std::function<bool(CTxMemPool::txiter)> filter_invalid_conversion = [this](CTxMemPool::txiter it) {
+        // Conversion must be valid according to the same rules used to evaluate a new transaction
+        if (it->GetConversionDest()) {
+            // Check that conversion is valid at the start of the next block
+            int checkLastNBlocks = gArgs.GetIntArg("-mempoolnewconversionschecklastnblocks", DEFAULT_MEMPOOL_NEW_CONVERSIONS_CHECK_LAST_N_BLOCKS);
+            int buffer = gArgs.GetIntArg("-mempoolconversionbuffer", DEFAULT_MEMPOOL_CONVERSION_BUFFER);
+            if (!CheckValidConversionAtTip(m_active_chainstate.m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     CFeeRate newFeeRate(ws.m_modified_fees, ws.m_vsize);
     // Enforce Rule #6. The replacement transaction must have a higher feerate than its direct conflicts.
     // - The motivation for this check is to ensure that the replacement transaction is preferable for
@@ -1008,12 +1025,14 @@ bool MemPoolAccept::ReplacementChecks(Workspace& ws)
     //   guarantee that this is incentive-compatible for miners, because it is possible for a
     //   descendant transaction of a direct conflict to pay a higher feerate than the transaction that
     //   might replace them, under these rules.
-    if (const auto err_string{PaysMoreThanConflicts(ws.m_iters_conflicting, newFeeRate, hash)}) {
+    // - Skips over transactions that are invalid conversions
+    if (const auto err_string{PaysMoreThanConflicts(ws.m_iters_conflicting, newFeeRate, hash, filter_invalid_conversion)}) {
         return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "insufficient fee", *err_string);
     }
 
     // Calculate all conflicting entries and enforce Rule #5.
-    if (const auto err_string{GetEntriesForConflicts(tx, m_pool, ws.m_iters_conflicting, ws.m_all_conflicting)}) {
+    // Excludes conflicting entries that are invalid conversions and their descendants.
+    if (const auto err_string{GetEntriesForConflicts(tx, m_pool, ws.m_iters_conflicting, ws.m_all_conflicting, ws.m_all_valid_conflicting, filter_invalid_conversion)}) {
         return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY,
                              "too many potential replacements", *err_string);
     }
@@ -1022,13 +1041,13 @@ bool MemPoolAccept::ReplacementChecks(Workspace& ws)
         return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY,
                              "replacement-adds-unconfirmed", *err_string);
     }
-    // Check if it's economically rational to mine this transaction rather than the ones it
+    // Check if it's economically rational to mine this transaction rather than the *valid* ones it
     // replaces and pays for its own relay fees. Enforce Rules #3 and #4.
-    for (CTxMemPool::txiter it : ws.m_all_conflicting) {
-        ws.m_conflicting_fees += it->GetModifiedFee();
-        ws.m_conflicting_size += it->GetTxSize();
+    for (CTxMemPool::txiter it : ws.m_all_valid_conflicting) {
+        ws.m_valid_conflicting_fees += it->GetModifiedFee();
+        ws.m_valid_conflicting_size += it->GetTxSize();
     }
-    if (const auto err_string{PaysForRBF(ws.m_conflicting_fees, ws.m_modified_fees, ws.m_vsize,
+    if (const auto err_string{PaysForRBF(ws.m_valid_conflicting_fees, ws.m_modified_fees, ws.m_vsize,
                                          m_pool.m_incremental_relay_feerate, hash)}) {
         return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "insufficient fee", *err_string);
     }
@@ -1132,8 +1151,8 @@ bool MemPoolAccept::Finalize(const ATMPArgs& args, Workspace& ws)
         LogPrint(BCLog::MEMPOOL, "replacing tx %s with %s for %s additional fees, %d delta bytes\n",
                 it->GetTx().GetHash().ToString(),
                 hash.ToString(),
-                FormatMoney(ws.m_modified_fees - ws.m_conflicting_fees),
-                (int)entry->GetTxSize() - (int)ws.m_conflicting_size);
+                FormatMoney(ws.m_modified_fees - ws.m_valid_conflicting_fees),
+                (int)entry->GetTxSize() - (int)ws.m_valid_conflicting_size);
         ws.m_replaced_transactions.push_back(it->GetSharedTx());
     }
     m_pool.RemoveStaged(ws.m_all_conflicting, false, MemPoolRemovalReason::REPLACED);

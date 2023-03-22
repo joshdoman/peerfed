@@ -611,7 +611,9 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
 // Also assumes that if an entry is in setDescendants already, then all
 // in-mempool descendants of it are already in setDescendants as well, so that we
 // can save time by not iterating over those entries.
-void CTxMemPool::CalculateDescendants(txiter entryit, setEntries& setDescendants) const
+// Excludes an entry from setDescendants if check_invalid_conversion returns true and excludes
+// that entries children.
+void CTxMemPool::CalculateDescendants(txiter entryit, setEntries& setDescendants, std::optional<std::function<bool(txiter)>> check_invalid_conversion) const
 {
     setEntries stage;
     if (setDescendants.count(entryit) == 0) {
@@ -622,6 +624,11 @@ void CTxMemPool::CalculateDescendants(txiter entryit, setEntries& setDescendants
     // already been walked, or will be walked in this iteration).
     while (!stage.empty()) {
         txiter it = *stage.begin();
+        // Erase if invalid conversion evaluates to true
+        if (check_invalid_conversion && check_invalid_conversion.value()(it)) {
+            stage.erase(it);
+            continue;
+        }
         setDescendants.insert(it);
         stage.erase(it);
 

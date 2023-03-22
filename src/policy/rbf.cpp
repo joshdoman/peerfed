@@ -58,7 +58,9 @@ RBFTransactionState IsRBFOptInEmptyMempool(const CTransaction& tx)
 std::optional<std::string> GetEntriesForConflicts(const CTransaction& tx,
                                                   CTxMemPool& pool,
                                                   const CTxMemPool::setEntries& iters_conflicting,
-                                                  CTxMemPool::setEntries& all_conflicts)
+                                                  CTxMemPool::setEntries& all_conflicts,
+                                                  CTxMemPool::setEntries& all_valid_conflicts,
+                                                  std::function<bool(CTxMemPool::txiter)>& filter_invalid_conversion)
 {
     AssertLockHeld(pool.cs);
     const uint256 txid = tx.GetHash();
@@ -79,6 +81,10 @@ std::optional<std::string> GetEntriesForConflicts(const CTransaction& tx,
     // Calculate the set of all transactions that would have to be evicted.
     for (CTxMemPool::txiter it : iters_conflicting) {
         pool.CalculateDescendants(it, all_conflicts);
+    }
+    // Calculate the set of all valid transaction descendants, excluding invalid conversions and their descendants
+    for (CTxMemPool::txiter it : iters_conflicting) {
+        pool.CalculateDescendants(it, all_valid_conflicts, filter_invalid_conversion);
     }
     return std::nullopt;
 }
@@ -132,9 +138,14 @@ std::optional<std::string> EntriesAndTxidsDisjoint(const CTxMemPool::setEntries&
 
 std::optional<std::string> PaysMoreThanConflicts(const CTxMemPool::setEntries& iters_conflicting,
                                                  CFeeRate replacement_feerate,
-                                                 const uint256& txid)
+                                                 const uint256& txid,
+                                                 std::function<bool(CTxMemPool::txiter)>& check_invalid_conversion)
 {
     for (const auto& mi : iters_conflicting) {
+        // Skip fee rate evaluation if transaction is an invalid conversion
+        if (check_invalid_conversion(mi)) {
+            continue;
+        }
         // Don't allow the replacement to reduce the feerate of the mempool.
         //
         // We usually don't want to accept replacements with lower feerates than what they replaced
