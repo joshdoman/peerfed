@@ -297,7 +297,7 @@ bool CheckSequenceLocksAtTip(CBlockIndex* tip,
 // Returns the script flags which should be checked for a given block
 static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const ChainstateManager& chainman);
 
-static void LimitMempoolSize(CTxMemPool& pool, CCoinsViewCache& coins_cache)
+static void LimitMempoolSize(CTxMemPool& pool, CChain& chain, CCoinsViewCache& coins_cache)
     EXCLUSIVE_LOCKS_REQUIRED(::cs_main, pool.cs)
 {
     AssertLockHeld(::cs_main);
@@ -307,7 +307,16 @@ static void LimitMempoolSize(CTxMemPool& pool, CCoinsViewCache& coins_cache)
         LogPrint(BCLog::MEMPOOL, "Expired %i transactions from the memory pool\n", expired);
     }
 
-    std::function<bool(CTxMemPool::txiter)> is_invalid_conversion = [](CTxMemPool::txiter) {
+    CBlockIndex* tip = chain.Tip();
+    int buffer = gArgs.GetIntArg("-mempoolconversionbuffer", DEFAULT_MEMPOOL_CONVERSION_BUFFER);
+    std::function<bool(CTxMemPool::txiter)> is_invalid_conversion = [tip, buffer](CTxMemPool::txiter it)
+        EXCLUSIVE_LOCKS_REQUIRED(::cs_main) {
+        AssertLockHeld(::cs_main);
+        // Conversion considered invalid if not valid in the next block within set buffer
+        int checkLastNBlocks = 1;
+        if (it->GetConversionDest() && !CheckValidConversionAtTip(tip, it->GetConversionDest().value(), checkLastNBlocks, buffer)) {
+            return true;
+        }
         return false;
     };
 
@@ -374,7 +383,10 @@ void Chainstate::MaybeUpdateMempoolForReorg(
     // Also updates valid entries' cached LockPoints if needed.
     // If false, the tx is still valid and its lockpoints are updated.
     // If true, the tx would be invalid in the next block; remove this entry and all of its descendants.
-    const auto filter_final_valid_and_mature = [this](CTxMemPool::txiter it)
+
+    int checkLastNBlocks = gArgs.GetIntArg("-mempoolexistingconversionschecklastnblocks", DEFAULT_MEMPOOL_EXISTING_CONVERSIONS_CHECK_LAST_N_BLOCKS);
+    int buffer = gArgs.GetIntArg("-mempoolconversionbuffer", DEFAULT_MEMPOOL_CONVERSION_BUFFER);
+    const auto filter_final_valid_and_mature = [this, checkLastNBlocks, buffer](CTxMemPool::txiter it)
         EXCLUSIVE_LOCKS_REQUIRED(m_mempool->cs, ::cs_main) {
         AssertLockHeld(m_mempool->cs);
         AssertLockHeld(::cs_main);
@@ -386,8 +398,6 @@ void Chainstate::MaybeUpdateMempoolForReorg(
             // The transaction must not be expired
             if (CheckExpiredConversionAtTip(*Assert(m_chain.Tip()), it->GetConversionDest().value())) return true;
             // The conversion must be valid at start of next block
-            int checkLastNBlocks = gArgs.GetIntArg("-mempoolexistingconversionschecklastnblocks", DEFAULT_MEMPOOL_EXISTING_CONVERSIONS_CHECK_LAST_N_BLOCKS);
-            int buffer = gArgs.GetIntArg("-mempoolconversionbuffer", DEFAULT_MEMPOOL_CONVERSION_BUFFER);
             if (!CheckValidConversionAtTip(m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) return true;
         }
         LockPoints lp = it->GetLockPoints();
@@ -427,7 +437,7 @@ void Chainstate::MaybeUpdateMempoolForReorg(
     // We also need to remove any now-immature transactions
     m_mempool->removeForReorg(m_chain, filter_final_valid_and_mature);
     // Re-limit mempool size, in case we added any transactions
-    LimitMempoolSize(*m_mempool, this->CoinsTip());
+    LimitMempoolSize(*m_mempool, m_chain, this->CoinsTip());
 }
 
 /**
@@ -1006,15 +1016,14 @@ bool MemPoolAccept::ReplacementChecks(Workspace& ws)
     const uint256& hash = ws.m_hash;
     TxValidationState& state = ws.m_state;
 
-    std::function<bool(CTxMemPool::txiter)> filter_invalid_conversion = [this](CTxMemPool::txiter it) {
+    int checkLastNBlocks = gArgs.GetIntArg("-mempoolnewconversionschecklastnblocks", DEFAULT_MEMPOOL_NEW_CONVERSIONS_CHECK_LAST_N_BLOCKS);
+    int buffer = gArgs.GetIntArg("-mempoolconversionbuffer", DEFAULT_MEMPOOL_CONVERSION_BUFFER);
+    std::function<bool(CTxMemPool::txiter)> filter_invalid_conversion = [this, checkLastNBlocks, buffer](CTxMemPool::txiter it)
+        EXCLUSIVE_LOCKS_REQUIRED(::cs_main) {
+        AssertLockHeld(::cs_main);
         // Conversion must be valid according to the same rules used to evaluate a new transaction
-        if (it->GetConversionDest()) {
-            // Check that conversion is valid at the start of the next block
-            int checkLastNBlocks = gArgs.GetIntArg("-mempoolnewconversionschecklastnblocks", DEFAULT_MEMPOOL_NEW_CONVERSIONS_CHECK_LAST_N_BLOCKS);
-            int buffer = gArgs.GetIntArg("-mempoolconversionbuffer", DEFAULT_MEMPOOL_CONVERSION_BUFFER);
-            if (!CheckValidConversionAtTip(m_active_chainstate.m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) {
-                return true;
-            }
+        if (it->GetConversionDest() && !CheckValidConversionAtTip(m_active_chainstate.m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) {
+            return true;
         }
         return false;
     };
@@ -1177,7 +1186,7 @@ bool MemPoolAccept::Finalize(const ATMPArgs& args, Workspace& ws)
     // in the package. LimitMempoolSize() should be called at the very end to make sure the mempool
     // is still within limits and package submission happens atomically.
     if (!args.m_package_submission && !bypass_limits) {
-        LimitMempoolSize(m_pool, m_active_chainstate.CoinsTip());
+        LimitMempoolSize(m_pool, m_active_chainstate.m_chain, m_active_chainstate.CoinsTip());
         if (!m_pool.exists(GenTxid::Txid(hash)))
             return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "mempool full");
     }
@@ -1242,7 +1251,7 @@ bool MemPoolAccept::SubmitPackage(const ATMPArgs& args, std::vector<Workspace>& 
 
     // It may or may not be the case that all the transactions made it into the mempool. Regardless,
     // make sure we haven't exceeded max mempool size.
-    LimitMempoolSize(m_pool, m_active_chainstate.CoinsTip());
+    LimitMempoolSize(m_pool, m_active_chainstate.m_chain, m_active_chainstate.CoinsTip());
 
     // Find the wtxids of the transactions that made it into the mempool. Allow partial submission,
     // but don't report success unless they all made it into the mempool.
@@ -2919,13 +2928,14 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
         // Checks whether the conversion transaction is valid at start of next block
         // If false, the tx is still valid.
         // If true, the tx would be invalid in the next block; remove this entry and all of its descendants.
-        const auto filter_invalid_conversion = [this](CTxMemPool::txiter it)
+
+        int checkLastNBlocks = gArgs.GetIntArg("-mempoolexistingconversionschecklastnblocks", DEFAULT_MEMPOOL_EXISTING_CONVERSIONS_CHECK_LAST_N_BLOCKS);
+        int buffer = gArgs.GetIntArg("-mempoolconversionbuffer", DEFAULT_MEMPOOL_CONVERSION_BUFFER);
+        const auto filter_invalid_conversion = [this, checkLastNBlocks, buffer](CTxMemPool::txiter it)
             EXCLUSIVE_LOCKS_REQUIRED(m_mempool->cs, ::cs_main) {
             AssertLockHeld(m_mempool->cs);
             AssertLockHeld(::cs_main);
             // The conversion must be valid at start of next block
-            int checkLastNBlocks = gArgs.GetIntArg("-mempoolexistingconversionschecklastnblocks", DEFAULT_MEMPOOL_EXISTING_CONVERSIONS_CHECK_LAST_N_BLOCKS);
-            int buffer = gArgs.GetIntArg("-mempoolconversionbuffer", DEFAULT_MEMPOOL_CONVERSION_BUFFER);
             if (it->GetConversionDest() && !CheckValidConversionAtTip(m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) return true;
             // Transaction is not a conversion or conversion is valid at start of next block
             return false;
