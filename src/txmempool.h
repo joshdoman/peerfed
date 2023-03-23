@@ -725,7 +725,7 @@ public:
      * Optional function filter_invalid_conversion that excludes a transaction from
      * setDescendants if it returns true and excludes all of its descendants
      */
-    void CalculateDescendants(txiter it, setEntries& setDescendants, std::optional<std::function<bool(txiter)>> filter_invalid_conversion = std::nullopt) const EXCLUSIVE_LOCKS_REQUIRED(cs);
+    void CalculateDescendants(txiter it, setEntries& setDescendants, std::function<bool(txiter)> filter_invalid_conversion = nullptr) const EXCLUSIVE_LOCKS_REQUIRED(cs);
 
     /** The minimum fee to get into the mempool, which may itself not be enough
      *  for larger-sized transactions.

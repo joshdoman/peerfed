@@ -613,7 +613,7 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
 // can save time by not iterating over those entries.
 // Excludes an entry from setDescendants if check_invalid_conversion returns true and excludes
 // that entries children.
-void CTxMemPool::CalculateDescendants(txiter entryit, setEntries& setDescendants, std::optional<std::function<bool(txiter)>> check_invalid_conversion) const
+void CTxMemPool::CalculateDescendants(txiter entryit, setEntries& setDescendants, std::function<bool(txiter)> check_invalid_conversion) const
 {
     setEntries stage;
     if (setDescendants.count(entryit) == 0) {
@@ -625,7 +625,7 @@ void CTxMemPool::CalculateDescendants(txiter entryit, setEntries& setDescendants
     while (!stage.empty()) {
         txiter it = *stage.begin();
         // Erase if invalid conversion evaluates to true
-        if (check_invalid_conversion && check_invalid_conversion.value()(it)) {
+        if (check_invalid_conversion && check_invalid_conversion(it)) {
             stage.erase(it);
             continue;
         }
