@@ -44,7 +44,7 @@ QString TransactionDesc::FormatTxStatus(const interfaces::WalletTxStatus& status
     } else if (depth == 0) {
         QString s;
         if (status.is_expired) {
-            s = tr("Expired");
+            s = tr("Expired, not in memory pool");
         } else if (inMempool) {
             /*: Text explaining the current status of a transaction, shown in the
                 status field of the details window for this transaction. This status
