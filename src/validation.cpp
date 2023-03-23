@@ -307,8 +307,12 @@ static void LimitMempoolSize(CTxMemPool& pool, CCoinsViewCache& coins_cache)
         LogPrint(BCLog::MEMPOOL, "Expired %i transactions from the memory pool\n", expired);
     }
 
+    std::function<bool(CTxMemPool::txiter)> is_invalid_conversion = [](CTxMemPool::txiter) {
+        return false;
+    };
+
     std::vector<COutPoint> vNoSpendsRemaining;
-    pool.TrimToSize(pool.m_max_size_bytes, &vNoSpendsRemaining);
+    pool.TrimToSize(pool.m_max_size_bytes, is_invalid_conversion, &vNoSpendsRemaining);
     for (const COutPoint& removed : vNoSpendsRemaining)
         coins_cache.Uncache(removed);
 }
@@ -381,10 +385,10 @@ void Chainstate::MaybeUpdateMempoolForReorg(
         if (it->GetConversionDest()) {
             // The transaction must not be expired
             if (CheckExpiredConversionAtTip(*Assert(m_chain.Tip()), it->GetConversionDest().value())) return true;
-            // The conversion must have be valid at start of next block
+            // The conversion must be valid at start of next block
             int checkLastNBlocks = gArgs.GetIntArg("-mempoolexistingconversionschecklastnblocks", DEFAULT_MEMPOOL_EXISTING_CONVERSIONS_CHECK_LAST_N_BLOCKS);
             int buffer = gArgs.GetIntArg("-mempoolconversionbuffer", DEFAULT_MEMPOOL_CONVERSION_BUFFER);
-            if (CheckValidConversionAtTip(m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) return true;
+            if (!CheckValidConversionAtTip(m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) return true;
         }
         LockPoints lp = it->GetLockPoints();
         const bool validLP{TestLockPointValidity(m_chain, lp)};
@@ -2922,7 +2926,7 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
             // The conversion must be valid at start of next block
             int checkLastNBlocks = gArgs.GetIntArg("-mempoolexistingconversionschecklastnblocks", DEFAULT_MEMPOOL_EXISTING_CONVERSIONS_CHECK_LAST_N_BLOCKS);
             int buffer = gArgs.GetIntArg("-mempoolconversionbuffer", DEFAULT_MEMPOOL_CONVERSION_BUFFER);
-            if (it->GetConversionDest() && CheckValidConversionAtTip(m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) return true;
+            if (it->GetConversionDest() && !CheckValidConversionAtTip(m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) return true;
             // Transaction is not a conversion or conversion is valid at start of next block
             return false;
         };

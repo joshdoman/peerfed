@@ -1205,26 +1205,15 @@ void CTxMemPool::trackPackageRemoved(const CFeeRate& rate) {
     }
 }
 
-void CTxMemPool::TrimToSize(size_t sizelimit, std::vector<COutPoint>* pvNoSpendsRemaining) {
+void CTxMemPool::TrimToSize(size_t sizelimit, std::function<bool(txiter)> check_invalid_conversion, std::vector<COutPoint>* pvNoSpendsRemaining) {
     AssertLockHeld(cs);
 
     unsigned nTxnRemoved = 0;
-    CFeeRate maxFeeRateRemoved(0);
-    while (!mapTx.empty() && DynamicMemoryUsage() > sizelimit) {
-        indexed_transaction_set::index<descendant_score>::type::iterator it = mapTx.get<descendant_score>().begin();
 
-        // We set the new mempool min fee to the feerate of the removed set, plus the
-        // "minimum reasonable fee rate" (ie some value under which we consider txn
-        // to have 0 fee). This way, we don't allow txn to enter mempool with feerate
-        // equal to txn which were removed with no block in between.
-        CFeeRate removed(it->GetModFeesWithDescendants(), it->GetSizeWithDescendants());
-        removed += m_incremental_relay_feerate;
-        trackPackageRemoved(removed);
-        maxFeeRateRemoved = std::max(maxFeeRateRemoved, removed);
-
+    // Abstract out the removeEntry logic to avoid duplication, returns number of txs removed
+    std::function<unsigned(txiter)> removeEntry = [this, nTxnRemoved, pvNoSpendsRemaining](txiter it) {
         setEntries stage;
-        CalculateDescendants(mapTx.project<0>(it), stage);
-        nTxnRemoved += stage.size();
+        CalculateDescendants(it, stage);
 
         std::vector<CTransaction> txn;
         if (pvNoSpendsRemaining) {
@@ -1241,6 +1230,37 @@ void CTxMemPool::TrimToSize(size_t sizelimit, std::vector<COutPoint>* pvNoSpends
                 }
             }
         }
+        return stage.size();
+    };
+
+    // Start by removing invalid conversion txs
+    for (auto mi = mapTx.get<descendant_score>().begin(); mi != mapTx.get<descendant_score>().end(); ++mi) {
+        if (DynamicMemoryUsage() <= sizelimit) {
+            if (nTxnRemoved > 0) {
+                LogPrint(BCLog::MEMPOOL, "Removed %u txn, all invalid conversions\n", nTxnRemoved);
+            }
+            return;
+        }
+        txiter it = mapTx.project<0>(mi);
+        if (check_invalid_conversion && check_invalid_conversion(it)) {
+            nTxnRemoved += removeEntry(it);
+        }
+    }
+
+    // After all invalid conversion txs have been removed, start removing valid txs in order of lowest fee rate
+    CFeeRate maxFeeRateRemoved(0);
+    while (!mapTx.empty() && DynamicMemoryUsage() > sizelimit) {
+        indexed_transaction_set::index<descendant_score>::type::iterator it = mapTx.get<descendant_score>().begin();
+
+        // We set the new mempool min fee to the feerate of the removed set, plus the
+        // "minimum reasonable fee rate" (ie some value under which we consider txn
+        // to have 0 fee). This way, we don't allow txn to enter mempool with feerate
+        // equal to txn which were removed with no block in between.
+        CFeeRate removed(it->GetModFeesWithDescendants(), it->GetSizeWithDescendants());
+        removed += m_incremental_relay_feerate;
+        trackPackageRemoved(removed);
+        maxFeeRateRemoved = std::max(maxFeeRateRemoved, removed);
+        nTxnRemoved += removeEntry(mapTx.project<0>(it));
     }
 
     if (maxFeeRateRemoved > CFeeRate(0)) {
