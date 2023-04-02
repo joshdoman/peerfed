@@ -1762,7 +1762,7 @@ BOOST_AUTO_TEST_CASE(bip341_keypath_test_vectors)
             auto script_bytes = ParseHex(utxo_spent["scriptPubKey"].get_str());
             CScript script{script_bytes.begin(), script_bytes.end()};
             CAmount amount{utxo_spent["amountSats"].getInt<int>()};
-            utxos.emplace_back(amount, script);
+            utxos.emplace_back(CASH, amount, script);
         }
 
         PrecomputedTransactionData txdata;

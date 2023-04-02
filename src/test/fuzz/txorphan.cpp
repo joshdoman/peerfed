@@ -64,7 +64,7 @@ FUZZ_TARGET_INIT(txorphan, initialize_orphanage)
             }
             // output amount will not affect txorphanage
             for (uint32_t i = 0; i < num_out; i++) {
-                tx_mut.vout.emplace_back(CAmount{0}, CScript{});
+                tx_mut.vout.emplace_back(CAmountType{0}, CAmount{0}, CScript{});
             }
             // restore previously popped outpoints
             for (auto& in : tx_mut.vin) {

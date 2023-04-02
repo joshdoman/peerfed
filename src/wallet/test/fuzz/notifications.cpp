@@ -127,11 +127,11 @@ FUZZ_TARGET_INIT(wallet_notifications, initialize_setup)
                         const auto out_value{ConsumeMoney(fuzzed_data_provider, in)};
                         in -= out_value;
                         auto& wallet{fuzzed_data_provider.ConsumeBool() ? a : b};
-                        tx.vout.emplace_back(out_value, wallet.GetScriptPubKey(fuzzed_data_provider));
+                        tx.vout.emplace_back(CASH, out_value, wallet.GetScriptPubKey(fuzzed_data_provider));
                     }
                     // Spend the remaining input value, if any
                     auto& wallet{fuzzed_data_provider.ConsumeBool() ? a : b};
-                    tx.vout.emplace_back(in, wallet.GetScriptPubKey(fuzzed_data_provider));
+                    tx.vout.emplace_back(CASH, in, wallet.GetScriptPubKey(fuzzed_data_provider));
                     // Add tx to block
                     block.vtx.emplace_back(MakeTransactionRef(tx));
                 }

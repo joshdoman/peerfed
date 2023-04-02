@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(signet_parse_tests)
 
     // no witness commitment
     CMutableTransaction cb;
-    cb.vout.emplace_back(0, CScript{});
+    cb.vout.emplace_back(CASH, 0, CScript{});
     block.vtx.push_back(MakeTransactionRef(cb));
     block.vtx.push_back(MakeTransactionRef(cb)); // Add dummy tx to exercise merkle root code
     BOOST_CHECK(!SignetTxs::Create(block, challenge));

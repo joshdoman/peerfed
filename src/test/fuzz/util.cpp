@@ -348,7 +348,7 @@ CMutableTransaction ConsumeTransaction(FuzzedDataProvider& fuzzed_data_provider,
         const auto script_pk = p2wsh_op_true ?
                                    P2WSH_OP_TRUE :
                                    ConsumeScript(fuzzed_data_provider, /*maybe_p2wsh=*/true);
-        tx_mut.vout.emplace_back(amount, script_pk);
+        tx_mut.vout.emplace_back(CASH, amount, script_pk);
     }
     return tx_mut;
 }

@@ -78,14 +78,14 @@ BOOST_AUTO_TEST_CASE(blockfilter_basic_test)
     excluded_scripts[2] << OP_RETURN << OP_4 << OP_ADD << OP_8 << OP_EQUAL;
 
     CMutableTransaction tx_1;
-    tx_1.vout.emplace_back(100, included_scripts[0]);
-    tx_1.vout.emplace_back(200, included_scripts[1]);
-    tx_1.vout.emplace_back(0, excluded_scripts[0]);
+    tx_1.vout.emplace_back(CASH, 100, included_scripts[0]);
+    tx_1.vout.emplace_back(CASH, 200, included_scripts[1]);
+    tx_1.vout.emplace_back(CASH, 0, excluded_scripts[0]);
 
     CMutableTransaction tx_2;
-    tx_2.vout.emplace_back(300, included_scripts[2]);
-    tx_2.vout.emplace_back(0, excluded_scripts[2]);
-    tx_2.vout.emplace_back(400, excluded_scripts[3]); // Script is empty
+    tx_2.vout.emplace_back(CASH, 300, included_scripts[2]);
+    tx_2.vout.emplace_back(CASH, 0, excluded_scripts[2]);
+    tx_2.vout.emplace_back(CASH, 400, excluded_scripts[3]); // Script is empty
 
     CBlock block;
     block.vtx.push_back(MakeTransactionRef(tx_1));
@@ -93,9 +93,9 @@ BOOST_AUTO_TEST_CASE(blockfilter_basic_test)
 
     CBlockUndo block_undo;
     block_undo.vtxundo.emplace_back();
-    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(500, included_scripts[3]), 1000, true);
-    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(600, included_scripts[4]), 10000, false);
-    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(700, excluded_scripts[3]), 100000, false);
+    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(CASH, 500, included_scripts[3]), 1000, true);
+    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(CASH, 600, included_scripts[4]), 10000, false);
+    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(CASH, 700, excluded_scripts[3]), 100000, false);
 
     BlockFilter block_filter(BlockFilterType::BASIC, block, block_undo);
     const GCSFilter& filter = block_filter.GetFilter();

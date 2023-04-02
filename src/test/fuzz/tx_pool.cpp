@@ -213,7 +213,7 @@ FUZZ_TARGET_INIT(tx_pool_standard, initialize_tx_pool)
             const auto amount_fee = fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(-1000, amount_in);
             const auto amount_out = (amount_in - amount_fee) / num_out;
             for (int i = 0; i < num_out; ++i) {
-                tx_mut.vout.emplace_back(amount_out, P2WSH_OP_TRUE);
+                tx_mut.vout.emplace_back(CASH, amount_out, P2WSH_OP_TRUE);
             }
             const auto tx = MakeTransactionRef(tx_mut);
             // Restore previously removed outpoints
