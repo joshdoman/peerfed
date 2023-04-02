@@ -626,6 +626,9 @@ void SendCoinsDialog::onSendAmountTypeChanged()
     }
     // Update smart fee label
     updateSmartFeeLabel();
+    // Clear coin control selection
+    m_coin_control->UnSelectAll();
+    coinControlUpdateLabels();
 }
 
 void SendCoinsDialog::clear()

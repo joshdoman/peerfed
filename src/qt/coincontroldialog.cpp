@@ -508,8 +508,8 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
 
     // actually update labels
     BitcoinUnit nDisplayUnit = BitcoinUnit::CASH;
-    if (model && model->getOptionsModel())
-        nDisplayUnit = model->getOptionsModel()->getDisplayUnit();
+    if (model && model->getOptionsModel() && m_coin_control.m_fee_type)
+        nDisplayUnit = model->getOptionsModel()->getDisplayUnit(m_coin_control.m_fee_type.value());
 
     QLabel *l1 = dialog->findChild<QLabel *>("labelCoinControlQuantity");
     QLabel *l2 = dialog->findChild<QLabel *>("labelCoinControlAmount");
@@ -619,6 +619,10 @@ void CoinControlDialog::updateView()
         for (const auto& outpair : coins.second) {
             const COutPoint& output = std::get<0>(outpair);
             const interfaces::WalletTxOut& out = std::get<1>(outpair);
+            if (out.txout.amountType != m_coin_control.m_fee_type) {
+                // Skip if output type is not the current fee type
+                continue;
+            }
             nSum += out.txout.nValue;
             nChildren++;
 
