@@ -245,11 +245,11 @@ QString formatBitcoinURI(const SendCoinsRecipient &info)
     return ret;
 }
 
-bool isDust(interfaces::Node& node, const QString& address, const CAmount& amount)
+bool isDust(interfaces::Node& node, const QString& address, const CAmount& amount, const CAmountType& amountType)
 {
     CTxDestination dest = DecodeDestination(address.toStdString());
     CScript script = GetScriptForDestination(dest);
-    CTxOut txOut(amount, script);
+    CTxOut txOut(amountType, amount, script);
     return IsDust(txOut, node.getDustRelayFee());
 }
 

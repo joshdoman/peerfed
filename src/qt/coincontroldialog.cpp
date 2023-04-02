@@ -398,7 +398,8 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
         if (amount > 0)
         {
             // Assumes a p2pkh script size
-            CTxOut txout(amount, CScript() << std::vector<unsigned char>(24, 0));
+            CAmountType amountType = m_coin_control.m_fee_type.value_or(CASH);
+            CTxOut txout(amountType, amount, CScript() << std::vector<unsigned char>(24, 0));
             fDust |= IsDust(txout, model->node().getDustRelayFee());
         }
     }
@@ -487,7 +488,8 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
 
             if (nChange > 0) {
                 // Assumes a p2pkh script size
-                CTxOut txout(nChange, CScript() << std::vector<unsigned char>(24, 0));
+                CAmountType amountType = m_coin_control.m_fee_type.value_or(CASH);
+                CTxOut txout(amountType, nChange, CScript() << std::vector<unsigned char>(24, 0));
                 // Never create dust outputs; if we would, just add the dust to the fee.
                 if (IsDust(txout, model->node().getDustRelayFee()))
                 {

@@ -141,7 +141,7 @@ bool SendCoinsEntry::validate(interfaces::Node& node)
     }
 
     // Reject dust outputs:
-    if (retval && GUIUtil::isDust(node, ui->payTo->text(), ui->payAmount->value())) {
+    if (retval && GUIUtil::isDust(node, ui->payTo->text(), ui->payAmount->value(), ui->payAmount->type())) {
         ui->payAmount->setValid(false);
         retval = false;
     }
