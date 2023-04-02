@@ -78,7 +78,7 @@ FUZZ_TARGET_INIT(transaction, initialize_transaction)
     (void)tx.GetHash();
     (void)tx.GetTotalSize();
     try {
-        (void)tx.GetValueOut();
+        (void)tx.GetValuesOut();
     } catch (const std::runtime_error&) {
     }
     (void)tx.GetWitnessHash();

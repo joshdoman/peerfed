@@ -93,29 +93,17 @@ uint256 CTransaction::ComputeWitnessHash() const
 CTransaction::CTransaction(const CMutableTransaction& tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
 CTransaction::CTransaction(CMutableTransaction&& tx) : vin(std::move(tx.vin)), vout(std::move(tx.vout)), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
 
-CAmount CTransaction::GetValueOut() const
-{
-    CAmount nValueOut = 0;
-    for (const auto& tx_out : vout) {
-        if (!MoneyRange(tx_out.nValue) || !MoneyRange(nValueOut + tx_out.nValue))
-            throw std::runtime_error(std::string(__func__) + ": value out of range");
-        nValueOut += tx_out.nValue;
-    }
-    assert(MoneyRange(nValueOut));
-    return nValueOut;
-}
-
 CAmounts CTransaction::GetValuesOut() const
 {
-    CAmounts nValueOut = {0};
+    CAmounts nValuesOut = {0};
     for (const auto& tx_out : vout) {
-        if (!MoneyRange(tx_out.nValue) || !MoneyRange(nValueOut[tx_out.amountType] + tx_out.nValue))
+        if (!MoneyRange(tx_out.nValue) || !MoneyRange(nValuesOut[tx_out.amountType] + tx_out.nValue))
             throw std::runtime_error(std::string(__func__) + ": value out of range");
-        nValueOut[tx_out.amountType] += tx_out.nValue;
+        nValuesOut[tx_out.amountType] += tx_out.nValue;
     }
-    assert(MoneyRange(nValueOut[CASH]));
-    assert(MoneyRange(nValueOut[BOND]));
-    return nValueOut;
+    assert(MoneyRange(nValuesOut[CASH]));
+    assert(MoneyRange(nValuesOut[BOND]));
+    return nValuesOut;
 }
 
 unsigned int CTransaction::GetTotalSize() const
