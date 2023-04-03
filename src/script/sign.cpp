@@ -703,6 +703,12 @@ bool SignTransaction(CMutableTransaction& mtx, const SigningProvider* keystore, 
             continue;
         }
 
+        // amount must be specified for valid segwit signature
+        if (amountType == UNKNOWN && !txin.scriptWitness.IsNull()) {
+            input_errors[i] = _("Missing amount type");
+            continue;
+        }
+
         ScriptError serror = SCRIPT_ERR_OK;
         if (!VerifyScript(txin.scriptSig, prevPubKey, &txin.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, TransactionSignatureChecker(&txConst, i, amountType, amount, txdata, MissingDataBehavior::FAIL), &serror)) {
             if (serror == SCRIPT_ERR_INVALID_STACK_OPERATION) {

@@ -256,6 +256,7 @@ void ParsePrevouts(const UniValue& prevTxsUnival, FillableSigningProvider* keyst
                 Coin newcoin;
                 newcoin.out.scriptPubKey = scriptPubKey;
                 newcoin.out.nValue = MAX_MONEY;
+                newcoin.out.amountType = UNKNOWN;
                 if (prevOut.exists("amount")) {
                     newcoin.out.nValue = AmountFromValue(find_value(prevOut, "amount"));
                 }
@@ -358,6 +359,10 @@ void SignTransactionResultToJSON(CMutableTransaction& mtx, bool complete, const 
         if (err_pair.second.original == "Missing amount") {
             // This particular error needs to be an exception for some reason
             throw JSONRPCError(RPC_TYPE_ERROR, strprintf("Missing amount for %s", coins.at(mtx.vin.at(err_pair.first).prevout).out.ToString()));
+        }
+        if (err_pair.second.original == "Missing amount type") {
+            // This particular error needs to be an exception for some reason
+            throw JSONRPCError(RPC_TYPE_ERROR, strprintf("Missing amount type for %s", coins.at(mtx.vin.at(err_pair.first).prevout).out.ToString()));
         }
         TxInErrorToJSON(mtx.vin.at(err_pair.first), vErrors, err_pair.second.original);
     }

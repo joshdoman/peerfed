@@ -10,9 +10,10 @@
 #include <array>
 
 /** Coin type (0 for 'cash', 1 for 'bond') */
-typedef bool CAmountType;
+typedef int8_t CAmountType;
 static constexpr CAmountType CASH = 0;
 static constexpr CAmountType BOND = 1;
+static constexpr CAmountType UNKNOWN = 2;
 
 /** Amount in satoshis (Can be negative) */
 typedef int64_t CAmount;
