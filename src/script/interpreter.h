@@ -155,6 +155,7 @@ struct PrecomputedTransactionData
     uint256 m_prevouts_single_hash;
     uint256 m_sequences_single_hash;
     uint256 m_outputs_single_hash;
+    uint256 m_spent_amount_types_single_hash;
     uint256 m_spent_amounts_single_hash;
     uint256 m_spent_scripts_single_hash;
     //! Whether the 5 fields above are initialized.
@@ -238,7 +239,7 @@ extern const HashWriter HASHER_TAPLEAF;    //!< Hasher with tag "TapLeaf" pre-fe
 extern const HashWriter HASHER_TAPBRANCH;  //!< Hasher with tag "TapBranch" pre-fed to it.
 
 template <class T>
-uint256 SignatureHash(const CScript& scriptCode, const T& txTo, unsigned int nIn, int nHashType, const CAmount& amount, SigVersion sigversion, const PrecomputedTransactionData* cache = nullptr);
+uint256 SignatureHash(const CScript& scriptCode, const T& txTo, unsigned int nIn, int nHashType, const CAmountType& amountType, const CAmount& amount, SigVersion sigversion, const PrecomputedTransactionData* cache = nullptr);
 
 class BaseSignatureChecker
 {
@@ -285,6 +286,7 @@ private:
     const T* txTo;
     const MissingDataBehavior m_mdb;
     unsigned int nIn;
+    const CAmountType amountType;
     const CAmount amount;
     const PrecomputedTransactionData* txdata;
 
@@ -293,8 +295,8 @@ protected:
     virtual bool VerifySchnorrSignature(Span<const unsigned char> sig, const XOnlyPubKey& pubkey, const uint256& sighash) const;
 
 public:
-    GenericTransactionSignatureChecker(const T* txToIn, unsigned int nInIn, const CAmount& amountIn, MissingDataBehavior mdb) : txTo(txToIn), m_mdb(mdb), nIn(nInIn), amount(amountIn), txdata(nullptr) {}
-    GenericTransactionSignatureChecker(const T* txToIn, unsigned int nInIn, const CAmount& amountIn, const PrecomputedTransactionData& txdataIn, MissingDataBehavior mdb) : txTo(txToIn), m_mdb(mdb), nIn(nInIn), amount(amountIn), txdata(&txdataIn) {}
+    GenericTransactionSignatureChecker(const T* txToIn, unsigned int nInIn, const CAmountType& amountTypeIn, const CAmount& amountIn, MissingDataBehavior mdb) : txTo(txToIn), m_mdb(mdb), nIn(nInIn), amountType(amountTypeIn), amount(amountIn), txdata(nullptr) {}
+    GenericTransactionSignatureChecker(const T* txToIn, unsigned int nInIn, const CAmountType& amountTypeIn, const CAmount& amountIn, const PrecomputedTransactionData& txdataIn, MissingDataBehavior mdb) : txTo(txToIn), m_mdb(mdb), nIn(nInIn), amountType(amountTypeIn), amount(amountIn), txdata(&txdataIn) {}
     bool CheckECDSASignature(const std::vector<unsigned char>& scriptSig, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const override;
     bool CheckSchnorrSignature(Span<const unsigned char> sig, Span<const unsigned char> pubkey, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* serror = nullptr) const override;
     bool CheckLockTime(const CScriptNum& nLockTime) const override;

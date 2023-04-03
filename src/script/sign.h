@@ -40,13 +40,14 @@ class MutableTransactionSignatureCreator : public BaseSignatureCreator
     const CMutableTransaction& m_txto;
     unsigned int nIn;
     int nHashType;
+    CAmount amountType;
     CAmount amount;
     const MutableTransactionSignatureChecker checker;
     const PrecomputedTransactionData* m_txdata;
 
 public:
-    MutableTransactionSignatureCreator(const CMutableTransaction& tx LIFETIMEBOUND, unsigned int input_idx, const CAmount& amount, int hash_type);
-    MutableTransactionSignatureCreator(const CMutableTransaction& tx LIFETIMEBOUND, unsigned int input_idx, const CAmount& amount, const PrecomputedTransactionData* txdata, int hash_type);
+    MutableTransactionSignatureCreator(const CMutableTransaction& tx LIFETIMEBOUND, unsigned int input_idx, const CAmountType& amountType, const CAmount& amount, int hash_type);
+    MutableTransactionSignatureCreator(const CMutableTransaction& tx LIFETIMEBOUND, unsigned int input_idx, const CAmountType& amountType, const CAmount& amount, const PrecomputedTransactionData* txdata, int hash_type);
     const BaseSignatureChecker& Checker() const override { return checker; }
     bool CreateSig(const SigningProvider& provider, std::vector<unsigned char>& vchSig, const CKeyID& keyid, const CScript& scriptCode, SigVersion sigversion) const override;
     bool CreateSchnorrSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const XOnlyPubKey& pubkey, const uint256* leaf_hash, const uint256* merkle_root, SigVersion sigversion) const override;
@@ -92,7 +93,7 @@ struct SignatureData {
 bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreator& creator, const CScript& scriptPubKey, SignatureData& sigdata);
 
 /** Produce a script signature for a transaction. */
-bool SignSignature(const SigningProvider &provider, const CScript& fromPubKey, CMutableTransaction& txTo, unsigned int nIn, const CAmount& amount, int nHashType);
+bool SignSignature(const SigningProvider &provider, const CScript& fromPubKey, CMutableTransaction& txTo, unsigned int nIn, const CAmountType& amountType, const CAmount& amount, int nHashType);
 bool SignSignature(const SigningProvider &provider, const CTransaction& txFrom, CMutableTransaction& txTo, unsigned int nIn, int nHashType);
 
 /** Extract signature data from a transaction input, and insert it. */

@@ -55,7 +55,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, Dersig100Setup)
 
         // Sign:
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(scriptPubKey, spends[i], 0, SIGHASH_ALL, 0, SigVersion::BASE);
+        uint256 hash = SignatureHash(scriptPubKey, spends[i], 0, SIGHASH_ALL, CASH, 0, SigVersion::BASE);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char)SIGHASH_ALL);
         spends[i].vin[0].scriptSig << vchSig;
@@ -193,7 +193,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, Dersig100Setup)
     // Sign, with a non-DER signature
     {
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(p2pk_scriptPubKey, spend_tx, 0, SIGHASH_ALL, 0, SigVersion::BASE);
+        uint256 hash = SignatureHash(p2pk_scriptPubKey, spend_tx, 0, SIGHASH_ALL, CASH, 0, SigVersion::BASE);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char) 0); // padding byte makes this non-DER
         vchSig.push_back((unsigned char)SIGHASH_ALL);
@@ -261,12 +261,13 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, Dersig100Setup)
         invalid_with_cltv_tx.vin[0].prevout.n = 2;
         invalid_with_cltv_tx.vin[0].nSequence = 0;
         invalid_with_cltv_tx.vout.resize(1);
+        invalid_with_cltv_tx.vout[0].amountType = CASH;
         invalid_with_cltv_tx.vout[0].nValue = 11*CENT;
         invalid_with_cltv_tx.vout[0].scriptPubKey = p2pk_scriptPubKey;
 
         // Sign
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(spend_tx.vout[2].scriptPubKey, invalid_with_cltv_tx, 0, SIGHASH_ALL, 0, SigVersion::BASE);
+        uint256 hash = SignatureHash(spend_tx.vout[2].scriptPubKey, invalid_with_cltv_tx, 0, SIGHASH_ALL, CASH, 0, SigVersion::BASE);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char)SIGHASH_ALL);
         invalid_with_cltv_tx.vin[0].scriptSig = CScript() << vchSig << 101;
@@ -294,7 +295,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, Dersig100Setup)
 
         // Sign
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(spend_tx.vout[3].scriptPubKey, invalid_with_csv_tx, 0, SIGHASH_ALL, 0, SigVersion::BASE);
+        uint256 hash = SignatureHash(spend_tx.vout[3].scriptPubKey, invalid_with_csv_tx, 0, SIGHASH_ALL, CASH, 0, SigVersion::BASE);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char)SIGHASH_ALL);
         invalid_with_csv_tx.vin[0].scriptSig = CScript() << vchSig << 101;
@@ -319,12 +320,13 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, Dersig100Setup)
         valid_with_witness_tx.vin[0].prevout.hash = spend_tx.GetHash();
         valid_with_witness_tx.vin[0].prevout.n = 1;
         valid_with_witness_tx.vout.resize(1);
+        valid_with_witness_tx.vout[0].amountType = CASH;
         valid_with_witness_tx.vout[0].nValue = 11*CENT;
         valid_with_witness_tx.vout[0].scriptPubKey = p2pk_scriptPubKey;
 
         // Sign
         SignatureData sigdata;
-        BOOST_CHECK(ProduceSignature(keystore, MutableTransactionSignatureCreator(valid_with_witness_tx, 0, 11 * CENT, SIGHASH_ALL), spend_tx.vout[1].scriptPubKey, sigdata));
+        BOOST_CHECK(ProduceSignature(keystore, MutableTransactionSignatureCreator(valid_with_witness_tx, 0, CASH, 11 * CENT, SIGHASH_ALL), spend_tx.vout[1].scriptPubKey, sigdata));
         UpdateInput(valid_with_witness_tx.vin[0], sigdata);
 
         // This should be valid under all script flags.
@@ -346,13 +348,14 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, Dersig100Setup)
         tx.vin[1].prevout.hash = spend_tx.GetHash();
         tx.vin[1].prevout.n = 1;
         tx.vout.resize(1);
+        tx.vout[0].amountType = CASH;
         tx.vout[0].nValue = 22*CENT;
         tx.vout[0].scriptPubKey = p2pk_scriptPubKey;
 
         // Sign
         for (int i = 0; i < 2; ++i) {
             SignatureData sigdata;
-            BOOST_CHECK(ProduceSignature(keystore, MutableTransactionSignatureCreator(tx, i, 11 * CENT, SIGHASH_ALL), spend_tx.vout[i].scriptPubKey, sigdata));
+            BOOST_CHECK(ProduceSignature(keystore, MutableTransactionSignatureCreator(tx, i, CASH, 11 * CENT, SIGHASH_ALL), spend_tx.vout[i].scriptPubKey, sigdata));
             UpdateInput(tx.vin[i], sigdata);
         }
 

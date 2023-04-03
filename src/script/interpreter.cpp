@@ -1387,6 +1387,16 @@ uint256 GetSpentAmountsSHA256(const std::vector<CTxOut>& outputs_spent)
     return ss.GetSHA256();
 }
 
+/** Compute the (single) SHA256 of the concatenation of all amounts spent by a tx. */
+uint256 GetSpentAmountTypesSHA256(const std::vector<CTxOut>& outputs_spent)
+{
+    HashWriter ss{};
+    for (const auto& txout : outputs_spent) {
+        ss << txout.amountType;
+    }
+    return ss.GetSHA256();
+}
+
 /** Compute the (single) SHA256 of the concatenation of all scriptPubKeys spent by a tx. */
 uint256 GetSpentScriptsSHA256(const std::vector<CTxOut>& outputs_spent)
 {
@@ -1446,6 +1456,7 @@ void PrecomputedTransactionData::Init(const T& txTo, std::vector<CTxOut>&& spent
         m_bip143_segwit_ready = true;
     }
     if (uses_bip341_taproot) {
+        m_spent_amount_types_single_hash = GetSpentAmountTypesSHA256(m_spent_outputs);
         m_spent_amounts_single_hash = GetSpentAmountsSHA256(m_spent_outputs);
         m_spent_scripts_single_hash = GetSpentScriptsSHA256(m_spent_outputs);
         m_bip341_taproot_ready = true;
@@ -1522,6 +1533,7 @@ bool SignatureHashSchnorr(uint256& hash_out, ScriptExecutionData& execdata, cons
     ss << tx_to.nLockTime;
     if (input_type != SIGHASH_ANYONECANPAY) {
         ss << cache.m_prevouts_single_hash;
+        ss << cache.m_spent_amount_types_single_hash;
         ss << cache.m_spent_amounts_single_hash;
         ss << cache.m_spent_scripts_single_hash;
         ss << cache.m_sequences_single_hash;
@@ -1571,7 +1583,7 @@ bool SignatureHashSchnorr(uint256& hash_out, ScriptExecutionData& execdata, cons
 }
 
 template <class T>
-uint256 SignatureHash(const CScript& scriptCode, const T& txTo, unsigned int nIn, int nHashType, const CAmount& amount, SigVersion sigversion, const PrecomputedTransactionData* cache)
+uint256 SignatureHash(const CScript& scriptCode, const T& txTo, unsigned int nIn, int nHashType, const CAmountType& amountType, const CAmount& amount, SigVersion sigversion, const PrecomputedTransactionData* cache)
 {
     assert(nIn < txTo.vin.size());
 
@@ -1609,6 +1621,7 @@ uint256 SignatureHash(const CScript& scriptCode, const T& txTo, unsigned int nIn
         // may already be contain in hashSequence.
         ss << txTo.vin[nIn].prevout;
         ss << scriptCode;
+        ss << amountType;
         ss << amount;
         ss << txTo.vin[nIn].nSequence;
         // Outputs (none/one/all, depending on flags)
@@ -1667,7 +1680,7 @@ bool GenericTransactionSignatureChecker<T>::CheckECDSASignature(const std::vecto
     // Witness sighashes need the amount.
     if (sigversion == SigVersion::WITNESS_V0 && amount < 0) return HandleMissingData(m_mdb);
 
-    uint256 sighash = SignatureHash(scriptCode, *txTo, nIn, nHashType, amount, sigversion, this->txdata);
+    uint256 sighash = SignatureHash(scriptCode, *txTo, nIn, nHashType, amountType, amount, sigversion, this->txdata);
 
     if (!VerifyECDSASignature(vchSig, pubkey, sighash))
         return false;

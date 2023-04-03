@@ -44,7 +44,7 @@ static void VerifyScriptBench(benchmark::Bench& bench)
     CMutableTransaction txSpend = BuildSpendingTransaction(scriptSig, CScriptWitness(), CTransaction(txCredit));
     CScriptWitness& witness = txSpend.vin[0].scriptWitness;
     witness.stack.emplace_back();
-    key.Sign(SignatureHash(witScriptPubkey, txSpend, 0, SIGHASH_ALL, txCredit.vout[0].nValue, SigVersion::WITNESS_V0), witness.stack.back());
+    key.Sign(SignatureHash(witScriptPubkey, txSpend, 0, SIGHASH_ALL, txCredit.vout[0].amountType, txCredit.vout[0].nValue, SigVersion::WITNESS_V0), witness.stack.back());
     witness.stack.back().push_back(static_cast<unsigned char>(SIGHASH_ALL));
     witness.stack.push_back(ToByteVector(pubkey));
 
@@ -56,7 +56,7 @@ static void VerifyScriptBench(benchmark::Bench& bench)
             txCredit.vout[0].scriptPubKey,
             &txSpend.vin[0].scriptWitness,
             flags,
-            MutableTransactionSignatureChecker(&txSpend, 0, txCredit.vout[0].nValue, MissingDataBehavior::ASSERT_FAIL),
+            MutableTransactionSignatureChecker(&txSpend, 0, txCredit.vout[0].amountType, txCredit.vout[0].nValue, MissingDataBehavior::ASSERT_FAIL),
             &err);
         assert(err == SCRIPT_ERR_OK);
         assert(success);
@@ -67,6 +67,7 @@ static void VerifyScriptBench(benchmark::Bench& bench)
         int csuccess = bitcoinconsensus_verify_script_with_amount(
             txCredit.vout[0].scriptPubKey.data(),
             txCredit.vout[0].scriptPubKey.size(),
+            txCredit.vout[0].amountType,
             txCredit.vout[0].nValue,
             (const unsigned char*)stream.data(), stream.size(), 0, flags, nullptr);
         assert(csuccess == 1);

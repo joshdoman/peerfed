@@ -120,10 +120,11 @@ bool CheckTxScripts(const CTransaction& tx, const std::map<COutPoint, CScript>& 
     ScriptError err = expect_valid ? SCRIPT_ERR_UNKNOWN_ERROR : SCRIPT_ERR_OK;
     for (unsigned int i = 0; i < tx.vin.size() && tx_valid; ++i) {
         const CTxIn input = tx.vin[i];
+        const CAmountType amountType = CASH; // TODO: Implement map_prevout_amount_types
         const CAmount amount = map_prevout_values.count(input.prevout) ? map_prevout_values.at(input.prevout) : 0;
         try {
             tx_valid = VerifyScript(input.scriptSig, map_prevout_scriptPubKeys.at(input.prevout),
-                &input.scriptWitness, flags, TransactionSignatureChecker(&tx, i, amount, txdata, MissingDataBehavior::ASSERT_FAIL), &err);
+                &input.scriptWitness, flags, TransactionSignatureChecker(&tx, i, amountType, amount, txdata, MissingDataBehavior::ASSERT_FAIL), &err);
         } catch (...) {
             BOOST_ERROR("Bad test: " << strTest);
             return true; // The test format is bad and an error is thrown. Return true to silence further error.
@@ -451,7 +452,7 @@ static void CheckWithFlag(const CTransactionRef& output, const CMutableTransacti
 {
     ScriptError error;
     CTransaction inputi(input);
-    bool ret = VerifyScript(inputi.vin[0].scriptSig, output->vout[0].scriptPubKey, &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, output->vout[0].nValue, MissingDataBehavior::ASSERT_FAIL), &error);
+    bool ret = VerifyScript(inputi.vin[0].scriptSig, output->vout[0].scriptPubKey, &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, output->vout[0].amountType, output->vout[0].nValue, MissingDataBehavior::ASSERT_FAIL), &error);
     assert(ret == success);
 }
 
@@ -513,13 +514,14 @@ BOOST_AUTO_TEST_CASE(test_big_witness_transaction)
         mtx.vin[i].scriptSig = CScript();
 
         mtx.vout.resize(mtx.vout.size() + 1);
+        mtx.vout[i].nValue = CASH;
         mtx.vout[i].nValue = 1000;
         mtx.vout[i].scriptPubKey = CScript() << OP_1;
     }
 
     // sign all inputs
     for(uint32_t i = 0; i < mtx.vin.size(); i++) {
-        bool hashSigned = SignSignature(keystore, scriptPubKey, mtx, i, 1000, sigHashes.at(i % sigHashes.size()));
+        bool hashSigned = SignSignature(keystore, scriptPubKey, mtx, i, CASH, 1000, sigHashes.at(i % sigHashes.size()));
         assert(hashSigned);
     }
 
@@ -562,7 +564,7 @@ SignatureData CombineSignatures(const CMutableTransaction& input1, const CMutabl
     SignatureData sigdata;
     sigdata = DataFromTransaction(input1, 0, tx->vout[0]);
     sigdata.MergeSignatureData(DataFromTransaction(input2, 0, tx->vout[0]));
-    ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(input1, 0, tx->vout[0].nValue, SIGHASH_ALL), tx->vout[0].scriptPubKey, sigdata);
+    ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(input1, 0, tx->vout[0].amountType, tx->vout[0].nValue, SIGHASH_ALL), tx->vout[0].scriptPubKey, sigdata);
     return sigdata;
 }
 
