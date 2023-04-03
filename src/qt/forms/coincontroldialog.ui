@@ -422,6 +422,11 @@
      </column>
      <column>
       <property name="text">
+       <string>Unscaled Amount</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
        <string>Received with label</string>
       </property>
      </column>

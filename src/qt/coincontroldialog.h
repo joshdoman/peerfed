@@ -78,6 +78,7 @@ private:
     {
         COLUMN_CHECKBOX = 0,
         COLUMN_AMOUNT,
+        COLUMN_UNSCALED_AMOUNT,
         COLUMN_LABEL,
         COLUMN_ADDRESS,
         COLUMN_DATE,
@@ -95,6 +96,7 @@ private:
 private Q_SLOTS:
     void showMenu(const QPoint &);
     void copyAmount();
+    void copyUnscaledAmount();
     void copyLabel();
     void copyAddress();
     void copyTransactionOutpoint();

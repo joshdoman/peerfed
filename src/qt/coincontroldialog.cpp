@@ -39,7 +39,7 @@ bool CoinControlDialog::fSubtractFeeFromAmount = false;
 
 bool CCoinControlWidgetItem::operator<(const QTreeWidgetItem &other) const {
     int column = treeWidget()->sortColumn();
-    if (column == CoinControlDialog::COLUMN_AMOUNT || column == CoinControlDialog::COLUMN_DATE || column == CoinControlDialog::COLUMN_CONFIRMATIONS)
+    if (column == CoinControlDialog::COLUMN_AMOUNT || column == CoinControlDialog::COLUMN_UNSCALED_AMOUNT || column == CoinControlDialog::COLUMN_DATE || column == CoinControlDialog::COLUMN_CONFIRMATIONS)
         return data(column, Qt::UserRole).toLongLong() < other.data(column, Qt::UserRole).toLongLong();
     return QTreeWidgetItem::operator<(other);
 }
@@ -58,6 +58,7 @@ CoinControlDialog::CoinControlDialog(CCoinControl& coin_control, WalletModel* _m
     contextMenu->addAction(tr("&Copy address"), this, &CoinControlDialog::copyAddress);
     contextMenu->addAction(tr("Copy &label"), this, &CoinControlDialog::copyLabel);
     contextMenu->addAction(tr("Copy &amount"), this, &CoinControlDialog::copyAmount);
+    contextMenu->addAction(tr("Copy unscaled &amount"), this, &CoinControlDialog::copyUnscaledAmount);
     m_copy_transaction_outpoint_action = contextMenu->addAction(tr("Copy transaction &ID and output index"), this, &CoinControlDialog::copyTransactionOutpoint);
     contextMenu->addSeparator();
     lockAction = contextMenu->addAction(tr("L&ock unspent"), this, &CoinControlDialog::lockCoin);
@@ -108,10 +109,11 @@ CoinControlDialog::CoinControlDialog(CCoinControl& coin_control, WalletModel* _m
 
     ui->treeWidget->setColumnWidth(COLUMN_CHECKBOX, 84);
     ui->treeWidget->setColumnWidth(COLUMN_AMOUNT, 110);
-    ui->treeWidget->setColumnWidth(COLUMN_LABEL, 190);
+    ui->treeWidget->setColumnWidth(COLUMN_UNSCALED_AMOUNT, 110);
+    ui->treeWidget->setColumnWidth(COLUMN_LABEL, 140);
     ui->treeWidget->setColumnWidth(COLUMN_ADDRESS, 320);
-    ui->treeWidget->setColumnWidth(COLUMN_DATE, 130);
-    ui->treeWidget->setColumnWidth(COLUMN_CONFIRMATIONS, 110);
+    ui->treeWidget->setColumnWidth(COLUMN_DATE, 100);
+    ui->treeWidget->setColumnWidth(COLUMN_CONFIRMATIONS, 100);
 
     // default view is sorted by amount desc
     sortView(COLUMN_AMOUNT, Qt::DescendingOrder);
@@ -211,6 +213,12 @@ void CoinControlDialog::showMenu(const QPoint &point)
 void CoinControlDialog::copyAmount()
 {
     GUIUtil::setClipboard(BitcoinUnits::removeSpaces(contextMenuItem->text(COLUMN_AMOUNT)));
+}
+
+// context menu action: copy unscaled amount
+void CoinControlDialog::copyUnscaledAmount()
+{
+    GUIUtil::setClipboard(BitcoinUnits::removeSpaces(contextMenuItem->text(COLUMN_UNSCALED_AMOUNT)));
 }
 
 // context menu action: copy label
@@ -509,9 +517,10 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
     }
 
     // actually update labels
+    CAmountType amountType = m_coin_control.m_fee_type.value_or(CASH);
     BitcoinUnit nDisplayUnit = BitcoinUnit::CASH;
-    if (model && model->getOptionsModel() && m_coin_control.m_fee_type)
-        nDisplayUnit = model->getOptionsModel()->getDisplayUnit(m_coin_control.m_fee_type.value());
+    if (model && model->getOptionsModel())
+        nDisplayUnit = model->getOptionsModel()->getDisplayUnit(amountType);
 
     QLabel *l1 = dialog->findChild<QLabel *>("labelCoinControlQuantity");
     QLabel *l2 = dialog->findChild<QLabel *>("labelCoinControlAmount");
@@ -526,6 +535,14 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
     dialog->findChild<QLabel *>("labelCoinControlLowOutput")    ->setEnabled(nPayAmount > 0);
     dialog->findChild<QLabel *>("labelCoinControlChangeText")   ->setEnabled(nPayAmount > 0);
     dialog->findChild<QLabel *>("labelCoinControlChange")       ->setEnabled(nPayAmount > 0);
+
+    // Scale amounts
+    if (model->getOptionsModel() && model->getOptionsModel()->getShowScaledAmount(amountType)) {
+        nAmount = ScaleAmount(nAmount, model->getBestScaleFactor());
+        nPayFee = ScaleAmount(nPayFee, model->getBestScaleFactor());
+        nAfterFee = ScaleAmount(nAfterFee, model->getBestScaleFactor());
+        nChange = ScaleAmount(nChange, model->getBestScaleFactor());
+    }
 
     // stats
     l1->setText(QString::number(nQuantity));                                 // Quantity
@@ -592,7 +609,8 @@ void CoinControlDialog::updateView()
     QFlags<Qt::ItemFlag> flgCheckbox = Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable;
     QFlags<Qt::ItemFlag> flgTristate = Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable | Qt::ItemIsAutoTristate;
 
-    BitcoinUnit nDisplayUnit = model->getOptionsModel()->getDisplayUnit();
+    CAmountType amountType = m_coin_control.m_fee_type.value_or(CASH);
+    BitcoinUnit nDisplayUnit = model->getOptionsModel()->getDisplayUnit(amountType);
 
     for (const auto& coins : model->wallet().listCoins()) {
         CCoinControlWidgetItem* itemWalletAddress{nullptr};
@@ -662,8 +680,16 @@ void CoinControlDialog::updateView()
             }
 
             // amount
-            itemOutput->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, out.txout.nValue));
-            itemOutput->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong)out.txout.nValue)); // padding so that sorting works correctly
+            CAmount scaledAmount = out.txout.nValue;
+            if (model->getOptionsModel()->getShowScaledAmount(amountType)) {
+                scaledAmount = ScaleAmount(scaledAmount, model->getBestScaleFactor());
+            }
+            itemOutput->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, scaledAmount));
+            itemOutput->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong)scaledAmount)); // padding so that sorting works correctly
+
+            // unscaled amount
+            itemOutput->setText(COLUMN_UNSCALED_AMOUNT, BitcoinUnits::format(nDisplayUnit, out.txout.nValue));
+            itemOutput->setData(COLUMN_UNSCALED_AMOUNT, Qt::UserRole, QVariant((qlonglong)out.txout.nValue));
 
             // date
             itemOutput->setText(COLUMN_DATE, GUIUtil::dateTimeStr(out.time));
@@ -696,8 +722,14 @@ void CoinControlDialog::updateView()
         if (treeMode)
         {
             itemWalletAddress->setText(COLUMN_CHECKBOX, "(" + QString::number(nChildren) + ")");
-            itemWalletAddress->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, nSum));
-            itemWalletAddress->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong)nSum));
+            CAmount scaledNSum = nSum;
+            if (model->getOptionsModel()->getShowScaledAmount(amountType)) {
+                scaledNSum = ScaleAmount(scaledNSum, model->getBestScaleFactor());
+            }
+            itemWalletAddress->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, scaledNSum));
+            itemWalletAddress->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong)scaledNSum));
+            itemWalletAddress->setText(COLUMN_UNSCALED_AMOUNT, BitcoinUnits::format(nDisplayUnit, nSum));
+            itemWalletAddress->setData(COLUMN_UNSCALED_AMOUNT, Qt::UserRole, QVariant((qlonglong)nSum));
         }
     }
 
