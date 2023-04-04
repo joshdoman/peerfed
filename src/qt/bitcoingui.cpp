@@ -278,6 +278,13 @@ void BitcoinGUI::createActions()
     convertCoinsAction->setShortcut(QKeySequence(QStringLiteral("Alt+4")));
     tabGroup->addAction(convertCoinsAction);
 
+    convertCoinsAction2 = new QAction(platformStyle->SingleColorIcon(":/icons/send"), tr("&Convert2"), this); // TODO: replace icon
+    convertCoinsAction2->setStatusTip(tr("Convert between cash and bonds"));
+    convertCoinsAction2->setToolTip(convertCoinsAction2->statusTip());
+    convertCoinsAction2->setCheckable(true);
+    convertCoinsAction2->setShortcut(QKeySequence(QStringLiteral("Alt+4")));
+    tabGroup->addAction(convertCoinsAction2);
+
     historyAction = new QAction(platformStyle->SingleColorIcon(":/icons/history"), tr("&Transactions"), this);
     historyAction->setStatusTip(tr("Browse transaction history"));
     historyAction->setToolTip(historyAction->statusTip());
@@ -296,6 +303,8 @@ void BitcoinGUI::createActions()
     connect(receiveCoinsAction, &QAction::triggered, this, &BitcoinGUI::gotoReceiveCoinsPage);
     connect(convertCoinsAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
     connect(convertCoinsAction, &QAction::triggered, this, &BitcoinGUI::gotoConvertCoinsPage);
+    connect(convertCoinsAction2, &QAction::triggered, [this]{ showNormalIfMinimized(); });
+    connect(convertCoinsAction2, &QAction::triggered, this, &BitcoinGUI::gotoConvertCoinsPage2);
     connect(historyAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
     connect(historyAction, &QAction::triggered, this, &BitcoinGUI::gotoHistoryPage);
 #endif // ENABLE_WALLET
@@ -583,6 +592,7 @@ void BitcoinGUI::createToolBars()
         toolbar->addAction(sendCoinsAction);
         toolbar->addAction(receiveCoinsAction);
         toolbar->addAction(convertCoinsAction);
+        toolbar->addAction(convertCoinsAction2);
         toolbar->addAction(historyAction);
         overviewAction->setChecked(true);
 
@@ -785,6 +795,7 @@ void BitcoinGUI::setWalletActionsEnabled(bool enabled)
     sendCoinsAction->setEnabled(enabled);
     receiveCoinsAction->setEnabled(enabled);
     convertCoinsAction->setEnabled(enabled);
+    convertCoinsAction2->setEnabled(enabled);
     historyAction->setEnabled(enabled);
     encryptWalletAction->setEnabled(enabled);
     backupWalletAction->setEnabled(enabled);
@@ -948,6 +959,12 @@ void BitcoinGUI::gotoConvertCoinsPage()
 {
     convertCoinsAction->setChecked(true);
     if (walletFrame) walletFrame->gotoConvertCoinsPage();
+}
+
+void BitcoinGUI::gotoConvertCoinsPage2()
+{
+    convertCoinsAction2->setChecked(true);
+    if (walletFrame) walletFrame->gotoConvertCoinsPage2();
 }
 
 void BitcoinGUI::gotoReceiveCoinsPage()
@@ -1252,6 +1269,7 @@ void BitcoinGUI::changeEvent(QEvent *e)
         sendCoinsAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/send")));
         receiveCoinsAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/receiving_addresses")));
         convertCoinsAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/send"))); // TODO: replace icon
+        convertCoinsAction2->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/send"))); // TODO: replace icon
         historyAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/history")));
     }
 

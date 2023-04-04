@@ -73,6 +73,8 @@ public Q_SLOTS:
     void gotoHistoryPage();
     /** Switch to convert coins page */
     void gotoConvertCoinsPage();
+    /** Switch to convert coins page 2 */
+    void gotoConvertCoinsPage2();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */

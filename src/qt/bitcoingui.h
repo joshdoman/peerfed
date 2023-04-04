@@ -147,6 +147,7 @@ private:
     QAction* aboutAction = nullptr;
     QAction* receiveCoinsAction = nullptr;
     QAction* convertCoinsAction = nullptr;
+    QAction* convertCoinsAction2 = nullptr;
     QAction* optionsAction = nullptr;
     QAction* encryptWalletAction = nullptr;
     QAction* backupWalletAction = nullptr;
@@ -280,6 +281,8 @@ public Q_SLOTS:
     void gotoHistoryPage();
     /** Switch to convert coins page */
     void gotoConvertCoinsPage();
+    /** Switch to convert coins page 2*/
+    void gotoConvertCoinsPage2();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */

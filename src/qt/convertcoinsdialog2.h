@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_SENDCOINSDIALOG_H
-#define BITCOIN_QT_SENDCOINSDIALOG_H
+#ifndef BITCOIN_QT_CONVERTCOINSDIALOG2_H
+#define BITCOIN_QT_CONVERTCOINSDIALOG2_H
 
 #include <qt/clientmodel.h>
 #include <qt/walletmodel.h>
@@ -22,7 +22,7 @@ class CCoinControl;
 } // namespace wallet
 
 namespace Ui {
-    class SendCoinsDialog;
+    class ConvertCoinsDialog2;
 }
 
 QT_BEGIN_NAMESPACE
@@ -30,13 +30,13 @@ class QUrl;
 QT_END_NAMESPACE
 
 /** Dialog for sending bitcoins */
-class SendCoinsDialog : public QDialog
+class ConvertCoinsDialog2 : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit SendCoinsDialog(const PlatformStyle *platformStyle, QWidget *parent = nullptr);
-    ~SendCoinsDialog();
+    explicit ConvertCoinsDialog2(const PlatformStyle *platformStyle, QWidget *parent = nullptr);
+    ~ConvertCoinsDialog2();
 
     void setClientModel(ClientModel *clientModel);
     void setModel(WalletModel *model);
@@ -45,15 +45,10 @@ public:
      */
     QWidget *setupTabChain(QWidget *prev);
 
-    void setAddress(const QString &address);
-    void pasteEntry(const SendCoinsRecipient &rv);
-    bool handlePaymentRequest(const SendCoinsRecipient &recipient);
-
 public Q_SLOTS:
     void clear();
     void reject() override;
     void accept() override;
-    SendCoinsEntry *addEntry();
     void updateTabsAndLabels();
     void setBalance(const interfaces::WalletBalances& balances);
 
@@ -61,7 +56,7 @@ Q_SIGNALS:
     void coinsSent(const uint256& txid);
 
 private:
-    Ui::SendCoinsDialog *ui;
+    Ui::ConvertCoinsDialog2 *ui;
     ClientModel *clientModel;
     WalletModel *model;
     std::unique_ptr<wallet::CCoinControl> m_coin_control;
@@ -92,13 +87,9 @@ private:
     void updateCoinControlState();
 
 private Q_SLOTS:
-    void sendButtonClicked(bool checked);
-    CAmountType getSendAmountType();
-    void onSendAmountTypeChanged();
+    void convertButtonClicked(bool checked);
     void on_buttonChooseFee_clicked();
     void on_buttonMinimizeFee_clicked();
-    void removeEntry(SendCoinsEntry* entry);
-    void useAvailableBalance(SendCoinsEntry* entry);
     void refreshBalance();
     void coinControlFeatureChanged(bool);
     void coinControlButtonClicked();
@@ -112,6 +103,7 @@ private Q_SLOTS:
     void coinControlClipboardBytes();
     void coinControlClipboardLowOutput();
     void coinControlClipboardChange();
+    CAmountType getFeeType();
     void updateFeeSectionControls();
     void updateNumberOfBlocks(int count, const QDateTime& blockDate, double nVerificationProgress, SyncType synctype, SynchronizationState sync_state);
     void updateSmartFeeLabel();
@@ -124,12 +116,12 @@ Q_SIGNALS:
 
 #define SEND_CONFIRM_DELAY   3
 
-class SendConfirmationDialog : public QMessageBox
+class ConvertConfirmationDialog : public QMessageBox
 {
     Q_OBJECT
 
 public:
-    SendConfirmationDialog(const QString& title, const QString& text, const QString& informative_text = "", const QString& detailed_text = "", int secDelay = SEND_CONFIRM_DELAY, bool enable_send = true, bool always_show_unsigned = true, QWidget* parent = nullptr);
+    ConvertConfirmationDialog(const QString& title, const QString& text, const QString& informative_text = "", const QString& detailed_text = "", int secDelay = SEND_CONFIRM_DELAY, bool enable_send = true, bool always_show_unsigned = true, QWidget* parent = nullptr);
     /* Returns QMessageBox::Cancel, QMessageBox::Yes when "Send" is
        clicked and QMessageBox::Save when "Create Unsigned" is clicked. */
     int exec() override;
@@ -148,4 +140,4 @@ private:
     QString m_psbt_button_text{tr("Create Unsigned")};
 };
 
-#endif // BITCOIN_QT_SendCoinsDialog_H
+#endif // BITCOIN_QT_CONVERTCOINSDIALOG2_H

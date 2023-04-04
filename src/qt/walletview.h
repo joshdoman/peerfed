@@ -14,6 +14,7 @@ class ClientModel;
 class OverviewPage;
 class PlatformStyle;
 class ConvertCoinsDialog;
+class ConvertCoinsDialog2;
 class ReceiveCoinsDialog;
 class SendCoinsDialog;
 class SendCoinsRecipient;
@@ -62,6 +63,7 @@ private:
     OverviewPage *overviewPage;
     QWidget *transactionsPage;
     ConvertCoinsDialog *convertCoinsPage;
+    ConvertCoinsDialog2 *convertCoinsPage2;
     ReceiveCoinsDialog *receiveCoinsPage;
     SendCoinsDialog *sendCoinsPage;
     AddressBookPage *usedSendingAddressesPage;
@@ -79,6 +81,8 @@ public Q_SLOTS:
     void gotoHistoryPage();
     /** Switch to convert coins page */
     void gotoConvertCoinsPage();
+    /** Switch to convert coins page 2 */
+    void gotoConvertCoinsPage2();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
