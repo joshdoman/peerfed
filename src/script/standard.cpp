@@ -294,7 +294,7 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
 bool ExtractConversionInfo(const CScript& script, CTxConversionInfo& conversionInfoRet)
 {
     if (script.size() >= 3 && script[0] == OP_CONVERT) {
-        conversionInfoRet.slippageType = script[1];
+        conversionInfoRet.slippageType = (bool)script[1];
         // Get scriptPubKey
         uint scriptLength = script[2];
         if (scriptLength == 0) {
