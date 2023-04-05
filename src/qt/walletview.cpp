@@ -12,7 +12,6 @@
 #include <qt/overviewpage.h>
 #include <qt/platformstyle.h>
 #include <qt/convertcoinsdialog.h>
-#include <qt/convertcoinsdialog2.h>
 #include <qt/receivecoinsdialog.h>
 #include <qt/sendcoinsdialog.h>
 #include <qt/signverifymessagedialog.h>
@@ -63,9 +62,6 @@ WalletView::WalletView(WalletModel* wallet_model, const PlatformStyle* _platform
     convertCoinsPage = new ConvertCoinsDialog(platformStyle);
     convertCoinsPage->setModel(walletModel);
 
-    convertCoinsPage2 = new ConvertCoinsDialog2(platformStyle);
-    convertCoinsPage2->setModel(walletModel);
-
     receiveCoinsPage = new ReceiveCoinsDialog(platformStyle);
     receiveCoinsPage->setModel(walletModel);
 
@@ -81,7 +77,6 @@ WalletView::WalletView(WalletModel* wallet_model, const PlatformStyle* _platform
     addWidget(overviewPage);
     addWidget(transactionsPage);
     addWidget(convertCoinsPage);
-    addWidget(convertCoinsPage2);
     addWidget(receiveCoinsPage);
     addWidget(sendCoinsPage);
 
@@ -106,8 +101,6 @@ WalletView::WalletView(WalletModel* wallet_model, const PlatformStyle* _platform
     connect(sendCoinsPage, &SendCoinsDialog::message, this, &WalletView::message);
     // Pass through messages from convertCoinsPage
     connect(convertCoinsPage, &ConvertCoinsDialog::message, this, &WalletView::message);
-    // Pass through messages from convertCoinsPage2
-    connect(convertCoinsPage2, &ConvertCoinsDialog2::message, this, &WalletView::message);
     // Pass through messages from transactionView
     connect(transactionView, &TransactionView::message, this, &WalletView::message);
 
@@ -138,7 +131,6 @@ void WalletView::setClientModel(ClientModel *_clientModel)
     overviewPage->setClientModel(_clientModel);
     sendCoinsPage->setClientModel(_clientModel);
     convertCoinsPage->setClientModel(_clientModel);
-    convertCoinsPage2->setClientModel(_clientModel);
     walletModel->setClientModel(_clientModel);
 }
 
@@ -179,11 +171,6 @@ void WalletView::gotoHistoryPage()
 void WalletView::gotoConvertCoinsPage()
 {
     setCurrentWidget(convertCoinsPage);
-}
-
-void WalletView::gotoConvertCoinsPage2()
-{
-    setCurrentWidget(convertCoinsPage2);
 }
 
 void WalletView::gotoReceiveCoinsPage()

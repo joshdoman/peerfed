@@ -169,13 +169,6 @@ void WalletFrame::gotoConvertCoinsPage()
         i.value()->gotoConvertCoinsPage();
 }
 
-void WalletFrame::gotoConvertCoinsPage2()
-{
-    QMap<WalletModel*, WalletView*>::const_iterator i;
-    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
-        i.value()->gotoConvertCoinsPage2();
-}
-
 void WalletFrame::gotoReceiveCoinsPage()
 {
     QMap<WalletModel*, WalletView*>::const_iterator i;
