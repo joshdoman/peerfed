@@ -286,7 +286,7 @@ CAmountType ConvertCoinsDialog::getInputType()
 
 CAmountType ConvertCoinsDialog::getOutputType()
 {
-    return !getInputType();
+    return ui->radioTypeCashIn->isChecked() ? BOND : CASH;
 }
 
 void ConvertCoinsDialog::updateConversionType()

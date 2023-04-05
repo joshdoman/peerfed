@@ -649,7 +649,7 @@ static void MutateTxSign(CMutableTransaction& tx, const std::string& flagStr)
                     newcoin.out.nValue = AmountFromValue(prevOut["amount"]);
                 }
                 if (prevOut.exists("amountType")) {
-                    newcoin.out.nValue = AmountTypeFromValue(prevOut["amountType"]);
+                    newcoin.out.amountType = AmountTypeFromValue(prevOut["amountType"]);
                 }
                 newcoin.nHeight = 1;
                 view.AddCoin(out, std::move(newcoin), true);
