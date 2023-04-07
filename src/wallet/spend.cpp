@@ -1200,7 +1200,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
     coin_selection_params.m_change_fee = coin_selection_params.m_effective_feerate.GetFee(coin_selection_params.change_output_size);
     coin_selection_params.m_cost_of_change = coin_selection_params.m_discard_feerate.GetFee(coin_selection_params.change_spend_size) + coin_selection_params.m_change_fee;
 
-    coin_selection_params.m_min_change_target = GenerateChangeTarget(((tx_details.maxInput < tx_details.minOutput) ? tx_details.maxInput : tx_details.minOutput), coin_selection_params.m_change_fee, rng_fast);
+    coin_selection_params.m_min_change_target = GenerateChangeTarget(0, coin_selection_params.m_change_fee, rng_fast); // No point trying to hide change since there will be only one output with the input type
 
     // The smallest change amount should be:
     // 1. at least equal to dust threshold
