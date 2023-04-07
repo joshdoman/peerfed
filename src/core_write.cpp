@@ -41,6 +41,14 @@ std::string ValueFromAmountType(const CAmountType amountType)
     return amountType == CASH ? "cash" : "bond";
 }
 
+UniValue ValueFromScaleFactor(const CAmountScaleFactor scaleFactor)
+{
+    static_assert(BASE_FACTOR > 1);
+    int64_t quotient = scaleFactor / BASE_FACTOR;
+    int64_t remainder = scaleFactor % BASE_FACTOR;
+    return UniValue(UniValue::VNUM, strprintf("%d.%010d", quotient, remainder));
+}
+
 std::string FormatScript(const CScript& script)
 {
     std::string ret;
