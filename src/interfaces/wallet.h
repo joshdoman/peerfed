@@ -62,6 +62,8 @@ struct WalletConversionTxDetails
     CAmountType inputType;
     CAmountType outputType;
     CAmountType remainderType;
+    std::optional<CTxDestination> remainderDest; /** CNoDestination sends remainder to miner */
+    std::vector<wallet::CRecipient> recipients; /** Optional list of recipients */
 };
 
 //! Interface for accessing a wallet.
@@ -182,8 +184,8 @@ public:
     virtual bool createBumpTransaction(const uint256& txid,
         const wallet::CCoinControl& coin_control,
         std::vector<bilingual_str>& errors,
-        CAmount& old_fee,
-        CAmount& new_fee,
+        CAmounts& old_fees,
+        CAmounts& new_fees,
         CMutableTransaction& mtx) = 0;
 
     //! Sign bump transaction.

@@ -48,8 +48,8 @@ Result CreateRateBumpTransaction(CWallet& wallet,
     const uint256& txid,
     const CCoinControl& coin_control,
     std::vector<bilingual_str>& errors,
-    CAmount& old_fee,
-    CAmount& new_fee,
+    CAmounts& old_fees,
+    CAmounts& new_fees,
     CMutableTransaction& mtx,
     bool require_mine);
 

@@ -1044,12 +1044,12 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
 
 
     std::vector<bilingual_str> errors;
-    CAmount old_fee;
-    CAmount new_fee;
+    CAmounts old_fees;
+    CAmounts new_fees;
     CMutableTransaction mtx;
     feebumper::Result res;
     // Targeting feerate bump.
-    res = feebumper::CreateRateBumpTransaction(*pwallet, hash, coin_control, errors, old_fee, new_fee, mtx, /*require_mine=*/ !want_psbt);
+    res = feebumper::CreateRateBumpTransaction(*pwallet, hash, coin_control, errors, old_fees, new_fees, mtx, /*require_mine=*/ !want_psbt);
     if (res != feebumper::Result::OK) {
         switch(res) {
             case feebumper::Result::INVALID_ADDRESS_OR_KEY:
@@ -1096,8 +1096,10 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
         result.pushKV("psbt", EncodeBase64(ssTx.str()));
     }
 
-    result.pushKV("origfee", ValueFromAmount(old_fee));
-    result.pushKV("fee", ValueFromAmount(new_fee));
+    result.pushKV("origfeecash", ValueFromAmount(old_fees[CASH]));
+    result.pushKV("origfeebond", ValueFromAmount(old_fees[BOND]));
+    result.pushKV("feecash", ValueFromAmount(new_fees[CASH]));
+    result.pushKV("feebond", ValueFromAmount(new_fees[BOND]));
     UniValue result_errors(UniValue::VARR);
     for (const bilingual_str& error : errors) {
         result_errors.push_back(error.original);

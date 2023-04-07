@@ -63,7 +63,7 @@ static feebumper::Result PreconditionChecks(const CWallet& wallet, const CWallet
 }
 
 //! Check if the user provided a valid feeRate
-static feebumper::Result CheckFeeRate(const CWallet& wallet, const CWalletTx& wtx, const CFeeRate& newFeerate, const int64_t maxTxSize, CAmount old_fee, std::vector<bilingual_str>& errors)
+static feebumper::Result CheckFeeRate(const CWallet& wallet, const CWalletTx& wtx, const CAmountType& newFeeType, const CFeeRate& newFeerate, const int64_t maxTxSize, CAmounts old_fees, std::vector<bilingual_str>& errors)
 {
     // check that fee rate is higher than mempool's minimum fee
     // (no point in bumping fee if we know that the new tx won't be accepted to the mempool)
@@ -81,32 +81,34 @@ static feebumper::Result CheckFeeRate(const CWallet& wallet, const CWalletTx& wt
     }
 
     CAmount new_total_fee = newFeerate.GetFee(maxTxSize);
+    CAmount normalized_new_total_fee = newFeeType == CASH ? new_total_fee : wallet.chain().estimateConversionOutputAmount(new_total_fee, BOND);
 
     CFeeRate incrementalRelayFee = std::max(wallet.chain().relayIncrementalFee(), CFeeRate(WALLET_INCREMENTAL_RELAY_FEE));
 
     // Given old total fee and transaction size, calculate the old feeRate
     const int64_t txSize = GetVirtualTransactionSize(*(wtx.tx));
-    CFeeRate nOldFeeRate(old_fee, txSize);
+    CAmount normalizedOldFee = old_fees[CASH] + wallet.chain().estimateConversionOutputAmount(old_fees[BOND], BOND);
+    CFeeRate nNormalizedOldFeeRate(normalizedOldFee, txSize);
     // Min total fee is old fee + relay fee
-    CAmount minTotalFee = nOldFeeRate.GetFee(maxTxSize) + incrementalRelayFee.GetFee(maxTxSize);
+    CAmount minNormalizedTotalFee = nNormalizedOldFeeRate.GetFee(maxTxSize) + incrementalRelayFee.GetFee(maxTxSize);
 
-    if (new_total_fee < minTotalFee) {
-        errors.push_back(strprintf(Untranslated("Insufficient total fee %s, must be at least %s (oldFee %s + incrementalFee %s)"),
-            FormatMoney(new_total_fee), FormatMoney(minTotalFee), FormatMoney(nOldFeeRate.GetFee(maxTxSize)), FormatMoney(incrementalRelayFee.GetFee(maxTxSize))));
+    if (normalized_new_total_fee < minNormalizedTotalFee) {
+        errors.push_back(strprintf(Untranslated("Insufficient normalized total fee %s, must be at least %s (normalizedOldFee %s + incrementalFee %s)"),
+            FormatMoney(new_total_fee), FormatMoney(minNormalizedTotalFee), FormatMoney(nNormalizedOldFeeRate.GetFee(maxTxSize)), FormatMoney(incrementalRelayFee.GetFee(maxTxSize))));
         return feebumper::Result::INVALID_PARAMETER;
     }
 
     CAmount requiredFee = GetRequiredFee(wallet, maxTxSize);
-    if (new_total_fee < requiredFee) {
-        errors.push_back(strprintf(Untranslated("Insufficient total fee (cannot be less than required fee %s)"),
+    if (normalized_new_total_fee < requiredFee) {
+        errors.push_back(strprintf(Untranslated("Insufficient total fee (cannot be less than required fee %s on normalized basis)"),
             FormatMoney(requiredFee)));
         return feebumper::Result::INVALID_PARAMETER;
     }
 
     // Check that in all cases the new fee doesn't violate maxTxFee
     const CAmount max_tx_fee = wallet.GetDescaledDefaultMaxTxFee();
-    if (new_total_fee > max_tx_fee) {
-        errors.push_back(strprintf(Untranslated("Specified or calculated fee %s is too high (cannot be higher than -maxtxfee %s)"),
+    if (normalized_new_total_fee > max_tx_fee) {
+        errors.push_back(strprintf(Untranslated("Specified or calculated fee %s is too high (cannot be higher than -maxtxfee %s on normalized basis)"),
             FormatMoney(new_total_fee), FormatMoney(max_tx_fee)));
         return feebumper::Result::WALLET_ERROR;
     }
@@ -114,14 +116,15 @@ static feebumper::Result CheckFeeRate(const CWallet& wallet, const CWalletTx& wt
     return feebumper::Result::OK;
 }
 
-static CFeeRate EstimateFeeRate(const CWallet& wallet, const CWalletTx& wtx, const CAmount old_fee, const CCoinControl& coin_control)
+static CFeeRate EstimateFeeRate(const CWallet& wallet, const CWalletTx& wtx, const CAmounts old_fees, const CCoinControl& coin_control)
 {
     // Get the fee rate of the original transaction. This is calculated from
     // the tx fee/vsize, so it may have been rounded down. Add 1 satoshi to the
     // result.
     int64_t txSize = GetVirtualTransactionSize(*(wtx.tx));
-    CFeeRate feerate(old_fee, txSize);
-    feerate += CFeeRate(1);
+    CAmount normalizedOldFee = old_fees[CASH] + wallet.chain().estimateConversionOutputAmount(old_fees[BOND], BOND);
+    CFeeRate normalizedfeerate(normalizedOldFee, txSize);
+    normalizedfeerate += CFeeRate(1);
 
     // The node has a configurable incremental relay fee. Increment the fee by
     // the minimum of that and the wallet's conservative
@@ -132,10 +135,16 @@ static CFeeRate EstimateFeeRate(const CWallet& wallet, const CWalletTx& wtx, con
     // original tx, so the total fee will be greater (Rule 3)
     CFeeRate node_incremental_relay_fee = wallet.chain().relayIncrementalFee();
     CFeeRate wallet_incremental_relay_fee = CFeeRate(WALLET_INCREMENTAL_RELAY_FEE);
-    feerate += std::max(node_incremental_relay_fee, wallet_incremental_relay_fee);
+    normalizedfeerate += std::max(node_incremental_relay_fee, wallet_incremental_relay_fee);
 
     // Fee rate must also be at least the wallet's GetMinimumFeeRate
     CFeeRate min_feerate(GetMinimumFeeRate(wallet, coin_control, /*feeCalc=*/nullptr));
+
+    // De-normalize fee rate (since min_feerate is denormalized)
+    CFeeRate feerate = normalizedfeerate;
+    if (coin_control.m_fee_type == BOND) {
+        feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(feerate.GetFeePerK(), CASH));
+    }
 
     // Set the required fee rate for the replacement transaction in coin control.
     return std::max(feerate, min_feerate);
@@ -156,7 +165,7 @@ bool TransactionCanBeBumped(const CWallet& wallet, const uint256& txid)
 }
 
 Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCoinControl& coin_control, std::vector<bilingual_str>& errors,
-                                 CAmount& old_fee, CAmount& new_fee, CMutableTransaction& mtx, bool require_mine)
+                                 CAmounts& old_fees, CAmounts& new_fees, CMutableTransaction& mtx, bool require_mine)
 {
     // We are going to modify coin control later, copy to re-use
     CCoinControl new_coin_control(coin_control);
@@ -173,7 +182,7 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
     // Retrieve all of the UTXOs and add them to coin control
     // While we're here, calculate the input amount
     std::map<COutPoint, Coin> coins;
-    CAmount input_value = 0;
+    CAmounts input_values = {0};
     std::vector<CTxOut> spent_outputs;
     for (const CTxIn& txin : wtx.tx->vin) {
         coins[txin.prevout]; // Create empty map entry keyed by prevout.
@@ -190,7 +199,7 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
         } else {
             new_coin_control.SelectExternal(txin.prevout, coin.out);
         }
-        input_value += coin.out.nValue;
+        input_values[coin.out.amountType] += coin.out.nValue;
         spent_outputs.push_back(coin.out);
     }
 
@@ -223,12 +232,30 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
         return result;
     }
 
+    // Conversion info
+    bool isConversion = false;
+    CAmount conversionFee = 0;
+    CAmountType conversionFeeType = 0;
+    CAmountType remainderType = 0;
+    CTxDestination remainderDest;
+    uint32_t nDeadline;
+
     // Fill in recipients(and preserve a single change key if there is one)
     // While we're here, calculate the output amount
     std::vector<CRecipient> recipients;
-    CAmount output_value = 0;
+    CAmounts output_values = {0};
     for (const auto& output : wtx.tx->vout) {
-        if (!OutputIsChange(wallet, output)) {
+        if (output.scriptPubKey.IsConversionScript()) {
+            CTxConversionInfo conversionInfo;
+            if (ExtractConversionInfo(output.scriptPubKey, conversionInfo)) {
+                isConversion = true;
+                conversionFee = output.nValue;
+                conversionFeeType = output.amountType;
+                remainderType = conversionInfo.slippageType;
+                remainderDest = conversionInfo.destination;
+                nDeadline = conversionInfo.nDeadline;
+            }
+        } else if (!OutputIsChange(wallet, output)) {
             CRecipient recipient = {output.scriptPubKey, output.amountType, output.nValue, false};
             recipients.push_back(recipient);
         } else {
@@ -236,12 +263,18 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
             ExtractDestination(output.scriptPubKey, change_dest);
             new_coin_control.destChange = change_dest;
         }
-        output_value += output.nValue;
+        output_values[output.amountType] += output.nValue;
     }
 
-    old_fee = input_value - output_value;
+    if (isConversion) {
+        old_fees[conversionFeeType] = conversionFee;
+        old_fees[!conversionFeeType] = 0;
+    } else {
+        old_fees[CASH] = input_values[CASH] - output_values[CASH];
+        old_fees[BOND] = input_values[BOND] - output_values[BOND];
+    }
 
-    if (coin_control.m_feerate) {
+    if (coin_control.m_fee_type && coin_control.m_feerate) {
         // The user provided a feeRate argument.
         // We calculate this here to avoid compiler warning on the cs_wallet lock
         // We need to make a temporary transaction with no input witnesses as the dummy signer expects them to be empty for external inputs
@@ -251,13 +284,19 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
             txin.scriptWitness.SetNull();
         }
         const int64_t maxTxSize{CalculateMaximumSignedTxSize(CTransaction(mtx), &wallet, &new_coin_control).vsize};
-        Result res = CheckFeeRate(wallet, wtx, *new_coin_control.m_feerate, maxTxSize, old_fee, errors);
+        Result res = CheckFeeRate(wallet, wtx, *new_coin_control.m_fee_type, *new_coin_control.m_feerate, maxTxSize, old_fees, errors);
         if (res != Result::OK) {
             return res;
         }
     } else {
         // The user did not provide a feeRate argument
-        new_coin_control.m_feerate = EstimateFeeRate(wallet, wtx, old_fee, new_coin_control);
+        // First, set the fee type
+        if (isConversion) {
+            new_coin_control.m_fee_type = conversionFeeType;
+        } else {
+            new_coin_control.m_fee_type = old_fees[CASH] > 0 ? CASH : BOND;
+        }
+        new_coin_control.m_feerate = EstimateFeeRate(wallet, wtx, old_fees, new_coin_control);
     }
 
     // Fill in required inputs we are double-spending(all of them)
@@ -276,7 +315,38 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
     new_coin_control.m_min_depth = 1;
 
     constexpr int RANDOM_CHANGE_POSITION = -1;
-    auto res = CreateTransaction(wallet, recipients, RANDOM_CHANGE_POSITION, new_coin_control, false);
+    util::Result<CreatedTransactionResult> res{util::Error{}};
+    if (isConversion) {
+        CAmount maxInput = std::max(input_values[CASH] - output_values[CASH], input_values[BOND] - output_values[BOND]);
+        CAmount minOutput = std::max(output_values[CASH] - input_values[CASH], output_values[BOND] - input_values[BOND]);
+        if (maxInput < 0) {
+            errors.push_back(Untranslated(strprintf("Inputs exceed outputs for both cash and bonds")));
+            return Result::MISC_ERROR;
+        }
+        if (minOutput < 0) {
+            errors.push_back(Untranslated(strprintf("Outputs exceed inputs for both cash and bonds")));
+            return Result::MISC_ERROR;
+        }
+        if (!recipients.empty()) {
+            // TODO: Implement handling of recipients in CreateConversionTransaction
+            errors.push_back(Untranslated(strprintf("Fee bumping a conversion with outputs to other recipients is not yet available.")));
+            return Result::MISC_ERROR;
+        }
+        CAmountType inputType = input_values[CASH] > output_values[CASH] ? CASH : BOND;
+        CAmountType outputType = !inputType;
+        WalletConversionTxDetails tx_details = {
+            maxInput,
+            minOutput,
+            inputType,
+            outputType,
+            remainderType,
+            remainderDest,
+            recipients
+        };
+        res = CreateConversionTransaction(wallet, tx_details, RANDOM_CHANGE_POSITION, new_coin_control, false);
+    } else {
+        res = CreateTransaction(wallet, recipients, RANDOM_CHANGE_POSITION, new_coin_control, false);
+    }
     if (!res) {
         errors.push_back(Untranslated("Unable to create transaction.") + Untranslated(" ") + util::ErrorString(res));
         return Result::WALLET_ERROR;
@@ -284,7 +354,8 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
 
     const auto& txr = *res;
     // Write back new fee if successful
-    new_fee = txr.fee;
+    new_fees[txr.feeType] = txr.fee;
+    new_fees[!txr.feeType] = 0;
 
     // Write back transaction
     mtx = CMutableTransaction(*txr.tx);

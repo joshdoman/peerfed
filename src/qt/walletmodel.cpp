@@ -566,13 +566,23 @@ bool WalletModel::bumpFee(uint256 hash, uint256& new_hash)
     CCoinControl coin_control;
     coin_control.m_signal_bip125_rbf = true;
     std::vector<bilingual_str> errors;
-    CAmount old_fee;
-    CAmount new_fee;
+    CAmounts old_fees;
+    CAmounts new_fees;
     CMutableTransaction mtx;
-    if (!m_wallet->createBumpTransaction(hash, coin_control, errors, old_fee, new_fee, mtx)) {
+    if (!m_wallet->createBumpTransaction(hash, coin_control, errors, old_fees, new_fees, mtx)) {
         QMessageBox::critical(nullptr, tr("Fee bump error"), tr("Increasing transaction fee failed") + "<br />(" +
             (errors.size() ? QString::fromStdString(errors[0].translated) : "") +")");
         return false;
+    }
+
+    // Apply scale factor to displayed fee amounts
+    if (getOptionsModel()->getShowScaledAmount(CASH)) {
+        old_fees[CASH] = ScaleAmount(old_fees[CASH], getBestScaleFactor());
+        new_fees[CASH] = ScaleAmount(new_fees[CASH], getBestScaleFactor());
+    }
+    if (getOptionsModel()->getShowScaledAmount(BOND)) {
+        old_fees[BOND] = ScaleAmount(old_fees[BOND], getBestScaleFactor());
+        new_fees[BOND] = ScaleAmount(new_fees[BOND], getBestScaleFactor());
     }
 
     // allow a user based fee verification
@@ -583,16 +593,38 @@ bool WalletModel::bumpFee(uint256 hash, uint256& new_hash)
     questionString.append("<tr><td>");
     questionString.append(tr("Current fee:"));
     questionString.append("</td><td>");
-    questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), old_fee));
-    questionString.append("</td></tr><tr><td>");
+    if (old_fees[CASH] > 0) {
+        questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(CASH), old_fees[CASH]));
+        questionString.append("</td></tr><tr><td>");
+    }
+    if (old_fees[BOND] > 0) {
+        questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(BOND), old_fees[BOND]));
+        questionString.append("</td></tr><tr><td>");
+    }
     questionString.append(tr("Increase:"));
     questionString.append("</td><td>");
-    questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), new_fee - old_fee));
-    questionString.append("</td></tr><tr><td>");
+    if (old_fees[CASH] > 0) {
+        questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(CASH), new_fees[CASH] - old_fees[CASH]));
+        questionString.append("</td></tr><tr><td>");
+    }
+    if (old_fees[BOND] > 0) {
+        questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(BOND), new_fees[BOND] - old_fees[BOND]));
+        questionString.append("</td></tr><tr><td>");
+    }
     questionString.append(tr("New fee:"));
     questionString.append("</td><td>");
-    questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), new_fee));
-    questionString.append("</td></tr></table>");
+    if (old_fees[CASH] > 0) {
+        questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(CASH), new_fees[CASH]));
+        questionString.append("</td></tr>");
+    }
+    if (old_fees[CASH] > 0 && old_fees[BOND] > 0) {
+        questionString.append("<td>");
+    }
+    if (old_fees[BOND] > 0) {
+        questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(BOND), new_fees[BOND]));
+        questionString.append("</td></tr>");
+    }
+    questionString.append("</table>");
 
     // Display warning in the "Confirm fee bump" window if the "Coin Control Features" option is enabled
     if (getOptionsModel()->getCoinControlFeatures()) {

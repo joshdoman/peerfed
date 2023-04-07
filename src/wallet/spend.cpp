@@ -1218,7 +1218,13 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
     // Create conversion output with dummy fee
     {
         CScript remainderScript;
-        GetChangeScript(reservedest, coin_control, remainderScript, error); // Send remainder to self
+        if (tx_details.remainderDest) {
+            // Set remainder script
+            remainderScript = GetScriptForDestination(tx_details.remainderDest.value());
+        } else {
+            // Send remainder to self
+            GetChangeScript(reservedest, coin_control, remainderScript, error);
+        }
         uint32_t nDeadline;
         if (coin_control.m_conversion_deadline && coin_control.m_conversion_deadline.value() > 0)
             nDeadline = wallet.GetLastBlockHeight() + coin_control.m_conversion_deadline.value();
