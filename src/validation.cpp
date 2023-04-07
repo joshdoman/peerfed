@@ -2291,8 +2291,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
     std::vector<int> prevheights;
     std::vector<CTxOut> conversionOutputs;
-    CAmounts conversionOutputAmount = {0};
-    CAmount nFees[2] = {0};
+    CAmounts conversionRemainderSum = {0};
+    CAmounts nFees = {0};
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
@@ -2323,19 +2323,19 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             if (conversion_dest) {
                 CAmounts inputs = conversion_dest.value().inputs;
                 CAmounts minOutputs = conversion_dest.value().minOutputs;
-                CAmountType amountType = conversion_dest.value().slippageType;
-                CAmount nAmount;
-                if (Consensus::IsValidConversion(totalSupply, inputs, minOutputs, amountType, nAmount)) {
-                    if (nAmount > 0) {
+                CAmountType remainderType = conversion_dest.value().slippageType;
+                CAmount remainder;
+                if (Consensus::IsValidConversion(totalSupply, inputs, minOutputs, remainderType, remainder)) {
+                    if (remainder > 0) {
                         // Include remainder output amount if non-zero
                         if (IsValidDestination(conversion_dest.value().destination)) {
                             // Send remainder to provided destination
                             CScript scriptPubKey = GetScriptForDestination(conversion_dest.value().destination);
-                            conversionOutputs.push_back(CTxOut(amountType, nAmount, scriptPubKey));
-                            conversionOutputAmount[amountType] += nAmount;
+                            conversionOutputs.push_back(CTxOut(remainderType, remainder, scriptPubKey));
+                            conversionRemainderSum[remainderType] += remainder;
                         } else {
                             // No destination provided. Add remainder to miner fees.
-                            nFees[amountType] += nAmount;
+                            nFees[remainderType] += remainder;
                         }
                     }
                 } else {
@@ -2401,8 +2401,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
     // Remove conversion output amount from total coinbase amounts and check if remainder exceeds block rewards
     CAmounts coinbaseAmounts = coinbaseTx.GetValuesOut();
-    coinbaseAmounts[CASH] -= conversionOutputAmount[CASH];
-    coinbaseAmounts[BOND] -= conversionOutputAmount[BOND];
+    coinbaseAmounts[CASH] -= conversionRemainderSum[CASH];
+    coinbaseAmounts[BOND] -= conversionRemainderSum[BOND];
     CAmounts blockRewards = {0};
     blockRewards[CASH] = nFees[CASH] + reward[CASH];
     blockRewards[BOND] = nFees[BOND] + reward[BOND];

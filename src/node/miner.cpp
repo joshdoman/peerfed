@@ -183,12 +183,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
     // Add miner outputs
-    coinbaseTx.vout.resize(2); // 2 outputs to miner (1 'cash', 1 'bond')
+    coinbaseTx.vout.resize(2); // 2 outputs to miner (1 for cash, 1 for bond)
     coinbaseTx.vout[CASH].amountType = CASH;
     coinbaseTx.vout[BOND].amountType = BOND;
     coinbaseTx.vout[CASH].scriptPubKey = scriptPubKeyIn;
     coinbaseTx.vout[BOND].scriptPubKey = scriptPubKeyIn;
-    // TODO: Set block subsidies correctly
     coinbaseTx.vout[CASH].nValue = nFees[CASH] + reward[CASH];
     coinbaseTx.vout[BOND].nValue = nFees[BOND] + reward[BOND];
     // Add conversion outputs
@@ -266,9 +265,9 @@ bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& packa
             if (conversionDest.value().nDeadline && conversionDest.value().nDeadline < (uint32_t)nHeight) {
                 return false;
             }
-            CAmountType amountType = 0;
-            CAmount nAmount = 0;
-            if (!Consensus::IsValidConversion(totalSupply, conversionDest.value().inputs, conversionDest.value().minOutputs, amountType, nAmount)) {
+            CAmountType remainderType = 0;
+            CAmount remainder = 0;
+            if (!Consensus::IsValidConversion(totalSupply, conversionDest.value().inputs, conversionDest.value().minOutputs, remainderType, remainder)) {
                 return false;
             }
         }

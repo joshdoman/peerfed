@@ -255,7 +255,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     return true;
 }
 
-bool Consensus::IsValidConversion(CAmounts& totalSupply, const CAmounts inputs, const CAmounts minOutputs, const CAmountType extraType, CAmount& extraOutput)
+bool Consensus::IsValidConversion(CAmounts& totalSupply, const CAmounts inputs, const CAmounts minOutputs, const CAmountType remainderType, CAmount& remainder)
 {
     // Calculate sum-of-squares invariants in and out and check that this is a valid conversion
     int128_t invariant_sq_in = pow((int128_t)totalSupply[CASH], 2) + pow((int128_t)totalSupply[BOND], 2); // K^2
@@ -265,21 +265,17 @@ bool Consensus::IsValidConversion(CAmounts& totalSupply, const CAmounts inputs, 
         return false;
     }
 
-    // Calculate extra output amount:
+    // Calculate remainder:
     // (A + ΔA + ΔA')^2 + (B + ΔB)^2 = K^2
     // (A + ΔA + ΔA')^2              = K^2 - (B + ΔB)^2
     //  A + ΔA + ΔA'                 = sqrt(K^2 - (B + ΔB)^2)
     //           ΔA'                 = sqrt(K^2 - (B + ΔB)^2) - (A + ΔA)
-    extraOutput = (sqrt(invariant_sq_in - pow((int128_t)(totalSupply[!extraType] + minOutputs[!extraType] - inputs[!extraType]), 2)) - (int128_t)(totalSupply[extraType] + minOutputs[extraType] - inputs[extraType])).convert_to<CAmount>();
+    remainder = (sqrt(invariant_sq_in - pow((int128_t)(totalSupply[!remainderType] + minOutputs[!remainderType] - inputs[!remainderType]), 2)) - (int128_t)(totalSupply[remainderType] + minOutputs[remainderType] - inputs[remainderType])).convert_to<CAmount>();
 
     // Update cash and bond supply in block header
     totalSupply[CASH] += (minOutputs[CASH] - inputs[CASH]);
     totalSupply[BOND] += (minOutputs[BOND] - inputs[BOND]);
-    if (extraType == CASH)
-        totalSupply[CASH] += extraOutput;
-    if (extraType == BOND)
-        totalSupply[BOND] += extraOutput;
-
+    totalSupply[remainderType] += remainder;
     return true;
 }
 
