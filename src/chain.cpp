@@ -151,8 +151,12 @@ int64_t CBlockIndex::GetInterestRate() const
 {
     CAmounts totalSupply = GetTotalSupply();
     uint128_t interest = (uint128_t)totalSupply[CASH];
-    interest *= 10000; // 100 basis points
+    interest *= 100000; // 100 basis points plus 1 decimal place
     interest /= (uint128_t)totalSupply[BOND];
+    // Round up if decimal place is greater than or equal to 5
+    if (interest % 10 >= 5)
+        interest += 10;
+    interest /= 10; // Remove decimal place
     return interest.convert_to<int64_t>();
 }
 
