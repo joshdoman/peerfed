@@ -228,8 +228,8 @@ RPCHelpMan listreceivedbyaddress()
                         {
                             {RPCResult::Type::BOOL, "involvesWatchonly", /*optional=*/true, "Only returns true if imported addresses were involved in transaction"},
                             {RPCResult::Type::STR, "address", "The receiving address"},
-                            {RPCResult::Type::STR_AMOUNT, "amount", "The total cash amount in " + CURRENCY_UNIT + " received by the address"},
-                            {RPCResult::Type::STR_AMOUNT, "amount", "The total bond amount in " + CURRENCY_UNIT + " received by the address"},
+                            {RPCResult::Type::STR_AMOUNT, "cashAmount", "The total cash amount in " + CURRENCY_UNIT + " received by the address"},
+                            {RPCResult::Type::STR_AMOUNT, "bondAmount", "The total bond amount in " + CURRENCY_UNIT + " received by the address"},
                             {RPCResult::Type::NUM, "confirmations", "The number of confirmations of the most recent transaction included"},
                             {RPCResult::Type::STR, "label", "The label of the receiving address. The default label is \"\""},
                             {RPCResult::Type::ARR, "txids", "",
@@ -343,6 +343,8 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
 
     bool involvesWatchonly = CachedTxIsFromMe(wallet, wtx, ISMINE_WATCH_ONLY);
 
+    const CAmountScaleFactor scaleFactor = wtx.state<TxStateConfirmed>() ? wallet.chain().findScaleFactor(wtx.state<TxStateConfirmed>()->confirmed_block_hash) : wallet.chain().getLastScaleFactor();
+
     // Converted
     for (const COutputEntry& c : listConverted)
     {
@@ -353,14 +355,17 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
         MaybePushAddress(entry, c.destination);
         entry.pushKV("category", "converted");
         entry.pushKV("amountType", ValueFromAmountType(c.amountType));
-        entry.pushKV("amount", ValueFromAmount(-c.amount+nFee[c.amountType]));
+        entry.pushKV("amount", ValueFromAmount(ScaleAmount(-c.amount+nFee[c.amountType], scaleFactor)));
+        entry.pushKV("unscaledAmount", ValueFromAmount(-c.amount+nFee[c.amountType]));
         const auto* address_book_entry = wallet.FindAddressBookEntry(c.destination);
         if (address_book_entry) {
             entry.pushKV("label", address_book_entry->GetLabel());
         }
         entry.pushKV("vout", c.vout);
-        if (nFee[c.amountType])
-            entry.pushKV("fee", ValueFromAmount(-nFee[c.amountType]));
+        if (nFee[c.amountType]) {
+            entry.pushKV("fee", ValueFromAmount(ScaleAmount(-nFee[c.amountType], scaleFactor)));
+            entry.pushKV("unscaledFee", ValueFromAmount(-nFee[c.amountType]));
+        }
         if (fLong)
             WalletTxToJSON(wallet, wtx, entry);
         entry.pushKV("abandoned", wtx.isAbandoned());
@@ -380,14 +385,17 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
             MaybePushAddress(entry, s.destination);
             entry.pushKV("category", "send");
             entry.pushKV("amountType", ValueFromAmountType(s.amountType));
-            entry.pushKV("amount", ValueFromAmount(-s.amount));
+            entry.pushKV("amount", ValueFromAmount(ScaleAmount(-s.amount, scaleFactor)));
+            entry.pushKV("unscaledAmount", ValueFromAmount(-s.amount));
             const auto* address_book_entry = wallet.FindAddressBookEntry(s.destination);
             if (address_book_entry) {
                 entry.pushKV("label", address_book_entry->GetLabel());
             }
             entry.pushKV("vout", s.vout);
-            if (nFee[s.amountType])
-                entry.pushKV("fee", ValueFromAmount(-nFee[s.amountType]));
+            if (nFee[s.amountType]) {
+                entry.pushKV("fee", ValueFromAmount(ScaleAmount(-nFee[s.amountType], scaleFactor)));
+                entry.pushKV("unscaledFee", ValueFromAmount(-nFee[s.amountType]));
+            }
             if (fLong)
                 WalletTxToJSON(wallet, wtx, entry);
             entry.pushKV("abandoned", wtx.isAbandoned());
@@ -427,7 +435,8 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
                 entry.pushKV("category", "receive");
             }
             entry.pushKV("amountType", ValueFromAmountType(r.amountType));
-            entry.pushKV("amount", ValueFromAmount(r.amount));
+            entry.pushKV("amount", ValueFromAmount(ScaleAmount(r.amount, scaleFactor)));
+            entry.pushKV("unscaledAmount", ValueFromAmount(r.amount));
             if (address_book_entry) {
                 entry.pushKV("label", label);
             }
@@ -494,22 +503,27 @@ RPCHelpMan listtransactions()
                             {RPCResult::Type::STR, "address",  /*optional=*/true, "The bitcoin address of the transaction (not returned if the output does not have an address, e.g. OP_RETURN null data)."},
                             {RPCResult::Type::STR, "category", "The transaction category.\n"
                                 "\"send\"                  Transactions sent.\n"
+                                "\"converted\"             Conversion transactions.\n"
                                 "\"receive\"               Non-coinbase transactions received.\n"
                                 "\"generate\"              Coinbase transactions received with more than 100 confirmations.\n"
                                 "\"immature\"              Coinbase transactions received with 100 or fewer confirmations.\n"
                                 "\"orphan\"                Orphaned coinbase transactions received."},
                             {RPCResult::Type::STR, "amountType", "the transaction amount type ('cash' or 'bond')"},
-                            {RPCResult::Type::STR_AMOUNT, "amount", "The amount in " + CURRENCY_UNIT + ". This is negative for the 'send' category, and is positive\n"
+                            {RPCResult::Type::STR_AMOUNT, "amount", "The amount in " + CURRENCY_UNIT + ". This is negative for the 'send' and 'converted' categories, and is positive\n"
+                                "for all other categories"},
+                            {RPCResult::Type::STR_AMOUNT, "unscaledAmount", "The unscaled amount in " + CURRENCY_UNIT + ". This is negative for the 'send' and 'converted' categories, and is positive\n"
                                 "for all other categories"},
                             {RPCResult::Type::STR, "label", /*optional=*/true, "A comment for the address/transaction, if any"},
                             {RPCResult::Type::NUM, "vout", "the vout value"},
                             {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
-                                 "'send' category of transactions."},
+                                 "'send' and 'converted' categories of transactions."},
+                            {RPCResult::Type::STR_AMOUNT, "unscaledFee", /*optional=*/true, "The unscaled amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
+                                 "'send' and 'converted' categories of transactions."},
                         },
                         TransactionDescriptionString()),
                         {
                             {RPCResult::Type::BOOL, "abandoned", /*optional=*/true, "'true' if the transaction has been abandoned (inputs are respendable). Only available for the \n"
-                                 "'send' category of transactions."},
+                                 "'send' and 'converted' categories of transactions."},
                         })},
                     }
                 },
@@ -609,21 +623,26 @@ RPCHelpMan listsinceblock()
                                 {RPCResult::Type::STR, "address",  /*optional=*/true, "The bitcoin address of the transaction (not returned if the output does not have an address, e.g. OP_RETURN null data)."},
                                 {RPCResult::Type::STR, "category", "The transaction category.\n"
                                     "\"send\"                  Transactions sent.\n"
+                                    "\"converted\"             Conversion transactions.\n"
                                     "\"receive\"               Non-coinbase transactions received.\n"
                                     "\"generate\"              Coinbase transactions received with more than 100 confirmations.\n"
                                     "\"immature\"              Coinbase transactions received with 100 or fewer confirmations.\n"
                                     "\"orphan\"                Orphaned coinbase transactions received."},
                                 {RPCResult::Type::STR, "amountType", "the transaction amount type ('cash' or 'bond')"},
-                                {RPCResult::Type::STR_AMOUNT, "amount", "The amount in " + CURRENCY_UNIT + ". This is negative for the 'send' category, and is positive\n"
+                                {RPCResult::Type::STR_AMOUNT, "amount", "The amount in " + CURRENCY_UNIT + ". This is negative for the 'send' and 'converted' categories, and is positive\n"
+                                    "for all other categories"},
+                                {RPCResult::Type::STR_AMOUNT, "unscaledAmount", "The unscaled amount in " + CURRENCY_UNIT + ". This is negative for the 'send' and 'converted' categories, and is positive\n"
                                     "for all other categories"},
                                 {RPCResult::Type::NUM, "vout", "the vout value"},
                                 {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
-                                     "'send' category of transactions."},
+                                     "'send' and 'converted' categories of transactions."},
+                                {RPCResult::Type::STR_AMOUNT, "unscaledFee", /*optional=*/true, "The unscaled amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
+                                     "'send' and 'converted' categories of transactions."},
                             },
                             TransactionDescriptionString()),
                             {
                                 {RPCResult::Type::BOOL, "abandoned", /*optional=*/true, "'true' if the transaction has been abandoned (inputs are respendable). Only available for the \n"
-                                     "'send' category of transactions."},
+                                     "'send' and 'converted' categories of transactions."},
                                 {RPCResult::Type::STR, "label", /*optional=*/true, "A comment for the address/transaction, if any"},
                             })},
                         }},
@@ -742,10 +761,16 @@ RPCHelpMan gettransaction()
                     {
                         {RPCResult::Type::STR_AMOUNT, ValueFromAmountType(CASH), "The amount of cash in " + CURRENCY_UNIT},
                         {RPCResult::Type::STR_AMOUNT, ValueFromAmountType(BOND), "The amount of bonds in " + CURRENCY_UNIT},
-                        {RPCResult::Type::STR_AMOUNT, "fee_" + ValueFromAmountType(CASH), /*optional=*/true, "The amount of cash portion of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
-                                     "'send' category of transactions."},
-                        {RPCResult::Type::STR_AMOUNT, "fee_" + ValueFromAmountType(BOND), /*optional=*/true, "The amount of bond portion of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
-                                     "'send' category of transactions."},
+                        {RPCResult::Type::STR_AMOUNT, "fee-" + ValueFromAmountType(CASH), /*optional=*/true, "The cash portion of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
+                                     "'send' and 'converted' categories of transactions."},
+                        {RPCResult::Type::STR_AMOUNT, "fee-" + ValueFromAmountType(BOND), /*optional=*/true, "The bond portion of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
+                                     "'send' and 'converted' categories of transactions."},
+                        {RPCResult::Type::STR_AMOUNT, ValueFromUnscaledAmountType(CASH), "The amount of unscaled cash in " + CURRENCY_UNIT},
+                        {RPCResult::Type::STR_AMOUNT, ValueFromUnscaledAmountType(BOND), "The amount of unscaled bonds in " + CURRENCY_UNIT},
+                        {RPCResult::Type::STR_AMOUNT, "fee-" + ValueFromUnscaledAmountType(CASH), /*optional=*/true, "The unscaled cash amount of fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
+                                     "'send' and 'converted' categories of transactions."},
+                        {RPCResult::Type::STR_AMOUNT, "fee-" + ValueFromUnscaledAmountType(BOND), /*optional=*/true, "The unscaled bond amount of fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
+                                     "'send' and 'converted' categories of transactions."},
                     },
                     TransactionDescriptionString()),
                     {
@@ -757,18 +782,22 @@ RPCHelpMan gettransaction()
                                 {RPCResult::Type::STR, "address", /*optional=*/true, "The bitcoin address involved in the transaction."},
                                 {RPCResult::Type::STR, "category", "The transaction category.\n"
                                     "\"send\"                  Transactions sent.\n"
+                                    "\"converted\"             Conversion transactions.\n"
                                     "\"receive\"               Non-coinbase transactions received.\n"
                                     "\"generate\"              Coinbase transactions received with more than 100 confirmations.\n"
                                     "\"immature\"              Coinbase transactions received with 100 or fewer confirmations.\n"
                                     "\"orphan\"                Orphaned coinbase transactions received."},
                                 {RPCResult::Type::STR, "amountType", "the transaction amount type ('cash' or 'bond')"},
                                 {RPCResult::Type::STR_AMOUNT, "amount", "The amount in " + CURRENCY_UNIT},
+                                {RPCResult::Type::STR_AMOUNT, "unscaledAmount", "The unscaledAmount in " + CURRENCY_UNIT},
                                 {RPCResult::Type::STR, "label", /*optional=*/true, "A comment for the address/transaction, if any"},
                                 {RPCResult::Type::NUM, "vout", "the vout value"},
                                 {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the \n"
-                                    "'send' category of transactions."},
+                                    "'send' and 'converted' categories of transactions."},
+                                {RPCResult::Type::STR_AMOUNT, "unscaledFee", /*optional=*/true, "The unscaled amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the \n"
+                                    "'send' and 'converted' categories of transactions."},
                                 {RPCResult::Type::BOOL, "abandoned", /*optional=*/true, "'true' if the transaction has been abandoned (inputs are respendable). Only available for the \n"
-                                     "'send' category of transactions."},
+                                     "'send' and 'converted' categories of transactions."},
                                 {RPCResult::Type::ARR, "parent_descs", /*optional=*/true, "Only if 'category' is 'received'. List of parent descriptors for the scriptPubKey of this coin.", {
                                     {RPCResult::Type::STR, "desc", "The descriptor string."},
                                 }},
@@ -814,6 +843,7 @@ RPCHelpMan gettransaction()
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid or non-wallet transaction id");
     }
     const CWalletTx& wtx = it->second;
+    const CAmountScaleFactor scaleFactor = wtx.state<TxStateConfirmed>() ? pwallet->chain().findScaleFactor(wtx.state<TxStateConfirmed>()->confirmed_block_hash) : pwallet->chain().getLastScaleFactor();
 
     CAmounts nCredit = CachedTxGetCredit(*pwallet, wtx, filter);
     CAmounts nDebit = CachedTxGetDebit(*pwallet, wtx, filter);
@@ -833,11 +863,18 @@ RPCHelpMan gettransaction()
         }
     }
 
-    entry.pushKV(ValueFromAmountType(CASH), ValueFromAmount(nNet[CASH] - nFee[CASH]));
-    entry.pushKV(ValueFromAmountType(BOND), ValueFromAmount(nNet[BOND] - nFee[BOND]));
+    entry.pushKV(ValueFromAmountType(CASH), ValueFromAmount(ScaleAmount(nNet[CASH] - nFee[CASH], scaleFactor)));
+    entry.pushKV(ValueFromAmountType(BOND), ValueFromAmount(ScaleAmount(nNet[BOND] - nFee[BOND], scaleFactor)));
     if (CachedTxIsFromMe(*pwallet, wtx, filter)) {
-        entry.pushKV("fee_" + ValueFromAmountType(CASH), ValueFromAmount(nFee[CASH]));
-        entry.pushKV("fee_" + ValueFromAmountType(BOND), ValueFromAmount(nFee[BOND]));
+        entry.pushKV("fee-" + ValueFromAmountType(CASH), ValueFromAmount(ScaleAmount(nFee[CASH], scaleFactor)));
+        entry.pushKV("fee-" + ValueFromAmountType(BOND), ValueFromAmount(ScaleAmount(nFee[BOND], scaleFactor)));
+    }
+
+    entry.pushKV(ValueFromUnscaledAmountType(CASH), ValueFromAmount(nNet[CASH] - nFee[CASH]));
+    entry.pushKV(ValueFromUnscaledAmountType(BOND), ValueFromAmount(nNet[BOND] - nFee[BOND]));
+    if (CachedTxIsFromMe(*pwallet, wtx, filter)) {
+        entry.pushKV("fee-" + ValueFromUnscaledAmountType(CASH), ValueFromAmount(nFee[CASH]));
+        entry.pushKV("fee-" + ValueFromUnscaledAmountType(BOND), ValueFromAmount(nFee[BOND]));
     }
 
     WalletTxToJSON(*pwallet, wtx, entry);
