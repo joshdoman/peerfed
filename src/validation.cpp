@@ -2283,11 +2283,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && g_parallel_script_checks ? &scriptcheckqueue : nullptr);
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
 
-    // Add rewards to total supply of previous block to obtain current total supply
+    // Get the total supply at the end of the previous block
     CAmounts totalSupply = pindex->pprev->GetTotalSupply();
-    CAmounts reward = GetBlockSubsidy(pindex->nHeight, totalSupply, m_params.GetConsensus());
-    totalSupply[CASH] += reward[CASH];
-    totalSupply[BOND] += reward[BOND];
 
     std::vector<int> prevheights;
     std::vector<CTxOut> conversionOutputs;
@@ -2399,22 +2396,24 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-missing-conversion-output");
     }
 
-    // Remove conversion output amount from total coinbase amounts and check if remainder exceeds block rewards
+    // Calculate allowable block reward
+    CAmounts reward = GetBlockSubsidy(pindex->nHeight, totalSupply, m_params.GetConsensus());
+    // Check that coinbase amount does not exceed block reward plus fees plus conversion remainder sum
     CAmounts coinbaseAmounts = coinbaseTx.GetValuesOut();
-    coinbaseAmounts[CASH] -= conversionRemainderSum[CASH];
-    coinbaseAmounts[BOND] -= conversionRemainderSum[BOND];
-    CAmounts blockRewards = {0};
-    blockRewards[CASH] = nFees[CASH] + reward[CASH];
-    blockRewards[BOND] = nFees[BOND] + reward[BOND];
-    if (coinbaseAmounts[CASH] > blockRewards[CASH]) {
-        LogPrintf("ERROR: ConnectBlock(): coinbase pays too much cash (actual=%d vs limit=%d)\n", coinbaseAmounts[CASH], blockRewards[CASH]);
+    CAmounts coinbaseLimit = {0};
+    coinbaseLimit[CASH] = nFees[CASH] + reward[CASH] + conversionRemainderSum[CASH];
+    coinbaseLimit[BOND] = nFees[BOND] + reward[BOND] + conversionRemainderSum[BOND];
+    if (coinbaseAmounts[CASH] > coinbaseLimit[CASH]) {
+        LogPrintf("ERROR: ConnectBlock(): coinbase pays too much cash (actual=%d vs limit=%d)\n", coinbaseAmounts[CASH], coinbaseLimit[CASH]);
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
-    } else if (coinbaseAmounts[BOND] > blockRewards[BOND]) {
-        LogPrintf("ERROR: ConnectBlock(): coinbase pays too many bonds (actual=%d vs limit=%d)\n", coinbaseAmounts[BOND], blockRewards[BOND]);
+    } else if (coinbaseAmounts[BOND] > coinbaseLimit[BOND]) {
+        LogPrintf("ERROR: ConnectBlock(): coinbase pays too many bonds (actual=%d vs limit=%d)\n", coinbaseAmounts[BOND], coinbaseLimit[BOND]);
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
     }
 
-    // Check that total supply of proposed block equals the expected total supply after conversions
+    // Total supply should increase by the coinbase amount less conversion remainder sum and fees (if miner does not claim reward in full, total supply should not increase by full amount)
+    totalSupply[CASH] += (coinbaseAmounts[CASH] - conversionRemainderSum[CASH] - nFees[CASH]);
+    totalSupply[BOND] += (coinbaseAmounts[BOND] - conversionRemainderSum[BOND] - nFees[BOND]);
     CAmounts actualTotalSupply = pindex->GetTotalSupply();
     if (totalSupply != actualTotalSupply) {
         LogPrintf("ERROR: ConnectBlock(): total supply differs from expected (actual=(%d cash, %d bond) vs expected=(%d cash, %d bond))\n", actualTotalSupply[CASH], actualTotalSupply[BOND], totalSupply[CASH], totalSupply[BOND]);

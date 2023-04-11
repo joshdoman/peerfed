@@ -153,10 +153,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     assert(pindexPrev != nullptr);
     nHeight = pindexPrev->nHeight + 1;
 
-    // Set cash and bond supply with block rewards
-    CAmounts reward = GetBlockSubsidy(nHeight, pindexPrev->GetTotalSupply(), chainparams.GetConsensus());
-    pblock->cashSupply = pindexPrev->cashSupply + reward[CASH];
-    pblock->bondSupply = pindexPrev->bondSupply + reward[BOND];
+    // Set cash and bond supply equal to the supply at the end of the previous block
+    pblock->cashSupply = pindexPrev->cashSupply;
+    pblock->bondSupply = pindexPrev->bondSupply;
 
     pblock->nVersion = m_chainstate.m_chainman.m_versionbitscache.ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
     // -regtest only: allow overriding block.nVersion with
@@ -180,6 +179,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     m_last_block_num_txs = nBlockTx;
     m_last_block_weight = nBlockWeight;
 
+    // Calculate reward and update total supply
+    CAmounts reward = GetBlockSubsidy(nHeight, pblock->GetTotalSupply(), chainparams.GetConsensus());
+    pblock->cashSupply += reward[CASH];
+    pblock->bondSupply += reward[BOND];
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
     // Add miner outputs
