@@ -50,6 +50,7 @@ int ParseSighashString(const UniValue& sighash);
 // core_write.cpp
 UniValue ValueFromAmount(const CAmount amount);
 std::string ValueFromAmountType(const CAmountType amountType);
+std::string ValueFromUnscaledAmountType(const CAmountType amountType);
 UniValue ValueFromScaleFactor(const CAmountScaleFactor scaleFactor);
 std::string FormatScript(const CScript& script);
 std::string EncodeHexTx(const CTransaction& tx, const int serializeFlags = 0);

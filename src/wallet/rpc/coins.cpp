@@ -175,6 +175,8 @@ RPCHelpMan getbalance()
                     {
                         {RPCResult::Type::STR_AMOUNT, "cash", "The total cash amount in " + CURRENCY_UNIT + " received for this wallet."},
                         {RPCResult::Type::STR_AMOUNT, "bond", "The total bond amount in " + CURRENCY_UNIT + " received for this wallet."},
+                        {RPCResult::Type::STR_AMOUNT, "unscaledCash", "The total unscaled cash amount in " + CURRENCY_UNIT + " received for this wallet."},
+                        {RPCResult::Type::STR_AMOUNT, "unscaledBond", "The total unscaled bond amount in " + CURRENCY_UNIT + " received for this wallet."},
                     }
                 },
                 RPCExamples{
@@ -212,11 +214,17 @@ RPCHelpMan getbalance()
 
     UniValue ret(UniValue::VOBJ);
 
-    for (int amountType = 0; amountType <= 1; amountType++) {
-        const auto bal = GetBalance(*pwallet, amountType, min_depth, avoid_reuse);
-        const auto amount = ValueFromAmount(bal.m_mine_trusted + (include_watchonly ? bal.m_watchonly_trusted : 0));
-        ret.pushKV(ValueFromAmountType(amountType), amount);
-    }
+    const auto cashBal = GetBalance(*pwallet, CASH, min_depth, avoid_reuse);
+    const auto cashAmount = cashBal.m_mine_trusted + (include_watchonly ? cashBal.m_watchonly_trusted : 0);
+    const auto bondBal = GetBalance(*pwallet, BOND, min_depth, avoid_reuse);
+    const auto bondAmount = bondBal.m_mine_trusted + (include_watchonly ? bondBal.m_watchonly_trusted : 0);
+
+    CAmountScaleFactor scaleFactor = pwallet->chain().getLastScaleFactor();
+    ret.pushKV(ValueFromAmountType(CASH), ValueFromAmount(ScaleAmount(cashAmount, scaleFactor)));
+    ret.pushKV(ValueFromAmountType(BOND), ValueFromAmount(ScaleAmount(bondAmount, scaleFactor)));
+    ret.pushKV(ValueFromUnscaledAmountType(CASH), ValueFromAmount(cashAmount));
+    ret.pushKV(ValueFromUnscaledAmountType(BOND), ValueFromAmount(bondAmount));
+
     return ret;
 },
     };
@@ -440,6 +448,20 @@ RPCHelpMan getbalances()
                     {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
                     {RPCResult::Type::STR_AMOUNT, "used", /*optional=*/true, "(only present if avoid_reuse is set) balance from coins sent to addresses that were previously spent from (potentially privacy violating)"},
                 }},
+                {RPCResult::Type::OBJ, "unscaledCash", "unscaled cash balances",
+                {
+                    {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
+                    {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
+                    {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
+                    {RPCResult::Type::STR_AMOUNT, "used", /*optional=*/true, "(only present if avoid_reuse is set) balance from coins sent to addresses that were previously spent from (potentially privacy violating)"},
+                }},
+                {RPCResult::Type::OBJ, "unscaledBond", "unscaled bond balances",
+                {
+                    {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
+                    {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
+                    {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
+                    {RPCResult::Type::STR_AMOUNT, "used", /*optional=*/true, "(only present if avoid_reuse is set) balance from coins sent to addresses that were previously spent from (potentially privacy violating)"},
+                }},
                 }
                 },
                 {RPCResult::Type::OBJ, "watchonly", /*optional=*/true, "watchonly balances (not present if wallet does not watch anything)",
@@ -451,6 +473,18 @@ RPCHelpMan getbalances()
                     {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
                 }},
                 {RPCResult::Type::OBJ, "bond", "bond balances",
+                {
+                    {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
+                    {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
+                    {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
+                }},
+                {RPCResult::Type::OBJ, "unscaledCash", "unscaled cash balances",
+                {
+                    {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
+                    {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
+                    {RPCResult::Type::STR_AMOUNT, "immature", "balance from immature coinbase outputs"},
+                }},
+                {RPCResult::Type::OBJ, "unscaledBond", "unscaled bond balances",
                 {
                     {RPCResult::Type::STR_AMOUNT, "trusted", "trusted balance (outputs created by the wallet or confirmed outputs)"},
                     {RPCResult::Type::STR_AMOUNT, "untrusted_pending", "untrusted pending balance (outputs created by others that are in the mempool)"},
@@ -479,30 +513,36 @@ RPCHelpMan getbalances()
     UniValue watchonly{UniValue::VOBJ};
     UniValue ret{UniValue::VOBJ};
 
-    for (int amountType = 0; amountType <= 1; amountType++) {
-        const auto bal = GetBalance(wallet, amountType); // TODO: Implement coin type
+    auto spk_man = wallet.GetLegacyScriptPubKeyMan();
+    CAmountScaleFactor scaleFactor = wallet.chain().getLastScaleFactor();
+    for (int i = 0; i <= 3; i++) {
+        const CAmountType amountType = i % 2;
+        const CAmountScaleFactor thisScaleFactor = i < 2 ? scaleFactor : BASE_FACTOR;
+        const auto bal = GetBalance(wallet, amountType);
+        auto key = i < 2 ? ValueFromAmountType(amountType) : ValueFromUnscaledAmountType(amountType);
         {
             UniValue balances_mine{UniValue::VOBJ};
-            balances_mine.pushKV("trusted", ValueFromAmount(bal.m_mine_trusted));
-            balances_mine.pushKV("untrusted_pending", ValueFromAmount(bal.m_mine_untrusted_pending));
-            balances_mine.pushKV("immature", ValueFromAmount(bal.m_mine_immature));
+            balances_mine.pushKV("trusted", ValueFromAmount(ScaleAmount(bal.m_mine_trusted, thisScaleFactor)));
+            balances_mine.pushKV("untrusted_pending", ValueFromAmount(ScaleAmount(bal.m_mine_untrusted_pending, thisScaleFactor)));
+            balances_mine.pushKV("immature", ValueFromAmount(ScaleAmount(bal.m_mine_immature, thisScaleFactor)));
             if (wallet.IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE)) {
                 // If the AVOID_REUSE flag is set, bal has been set to just the un-reused address balance. Get
                 // the total balance, and then subtract bal to get the reused address balance.
                 const auto full_bal = GetBalance(wallet, amountType, 0, false);
-                balances_mine.pushKV("used", ValueFromAmount(full_bal.m_mine_trusted + full_bal.m_mine_untrusted_pending - bal.m_mine_trusted - bal.m_mine_untrusted_pending));
+                balances_mine.pushKV("used", ValueFromAmount(ScaleAmount(full_bal.m_mine_trusted + full_bal.m_mine_untrusted_pending - bal.m_mine_trusted - bal.m_mine_untrusted_pending, thisScaleFactor)));
             }
-            mine.pushKV(ValueFromAmountType(amountType), balances_mine);
+            mine.pushKV(key, balances_mine);
         }
-        auto spk_man = wallet.GetLegacyScriptPubKeyMan();
+
         if (spk_man && spk_man->HaveWatchOnly()) {
             UniValue balances_watchonly{UniValue::VOBJ};
-            balances_watchonly.pushKV("trusted", ValueFromAmount(bal.m_watchonly_trusted));
-            balances_watchonly.pushKV("untrusted_pending", ValueFromAmount(bal.m_watchonly_untrusted_pending));
-            balances_watchonly.pushKV("immature", ValueFromAmount(bal.m_watchonly_immature));
-            watchonly.pushKV(ValueFromAmountType(amountType), balances_watchonly);
+            balances_watchonly.pushKV("trusted", ValueFromAmount(ScaleAmount(bal.m_watchonly_trusted, thisScaleFactor)));
+            balances_watchonly.pushKV("untrusted_pending", ValueFromAmount(ScaleAmount(bal.m_watchonly_untrusted_pending, thisScaleFactor)));
+            balances_watchonly.pushKV("immature", ValueFromAmount(ScaleAmount(bal.m_watchonly_immature, thisScaleFactor)));
+            watchonly.pushKV(key, balances_watchonly);
         }
     }
+
     ret.pushKV("mine", mine);
     if (!watchonly.empty())
         ret.pushKV("watchonly", watchonly);

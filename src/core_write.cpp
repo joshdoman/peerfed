@@ -41,6 +41,11 @@ std::string ValueFromAmountType(const CAmountType amountType)
     return amountType == CASH ? "cash" : "bond";
 }
 
+std::string ValueFromUnscaledAmountType(const CAmountType amountType)
+{
+    return amountType == CASH ? "unscaledCash" : "unscaledBond";
+}
+
 UniValue ValueFromScaleFactor(const CAmountScaleFactor scaleFactor)
 {
     static_assert(BASE_FACTOR > 1);
