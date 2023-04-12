@@ -16,6 +16,7 @@ struct CMutableTransaction;
 class Coin;
 class COutPoint;
 class SigningProvider;
+typedef uint64_t CAmountScaleFactor;
 
 /**
  * Sign a transaction with the given keystore and previous transactions
@@ -39,6 +40,6 @@ void SignTransactionResultToJSON(CMutableTransaction& mtx, bool complete, const 
 void ParsePrevouts(const UniValue& prevTxsUnival, FillableSigningProvider* keystore, std::map<COutPoint, Coin>& coins);
 
 /** Create a transaction from univalue parameters */
-CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, std::optional<bool> rbf);
+CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, std::optional<bool> rbf, const CAmountScaleFactor& scaleFactor);
 
 #endif // BITCOIN_RPC_RAWTRANSACTION_UTIL_H

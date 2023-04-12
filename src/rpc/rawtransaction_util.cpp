@@ -22,7 +22,7 @@
 #include <util/strencodings.h>
 #include <util/translation.h>
 
-CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, std::optional<bool> rbf)
+CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, std::optional<bool> rbf, const CAmountScaleFactor& scaleFactor)
 {
     if (outputs_in.isNull()) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, output argument must be non-null");
@@ -131,7 +131,7 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
             }
             has_conversion_info_output = true;
 
-            CAmount nAmount = AmountFromValue(output["conversionFee"]);
+            CAmount nAmount = DescaleAmount(AmountFromValue(output["conversionFee"]), scaleFactor);
             CAmountType feeAmountType = AmountTypeFromValue(output["feeType"]);
 
             CTxDestination destination;
@@ -182,7 +182,7 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
                     }
 
                     CScript scriptPubKey = GetScriptForDestination(destination);
-                    CAmount nAmount = AmountFromValue(output[name_]);
+                    CAmount nAmount = DescaleAmount(AmountFromValue(output[name_]), scaleFactor);
 
                     CTxOut out(amountType, nAmount, scriptPubKey);
                     rawTx.vout.push_back(out);

@@ -23,7 +23,7 @@
 
 
 namespace wallet {
-static void ParseRecipients(const UniValue& amount_type, const UniValue& address_amounts, const UniValue& subtract_fee_outputs, std::vector<CRecipient>& recipients)
+static void ParseRecipients(const UniValue& amount_type, const UniValue& address_amounts, const UniValue& subtract_fee_outputs, std::vector<CRecipient>& recipients, CAmountScaleFactor scaleFactor)
 {
     CAmountType amountType = AmountTypeFromValue(amount_type);
     std::set<CTxDestination> destinations;
@@ -40,7 +40,7 @@ static void ParseRecipients(const UniValue& amount_type, const UniValue& address
         destinations.insert(dest);
 
         CScript script_pub_key = GetScriptForDestination(dest);
-        CAmount amount = AmountFromValue(address_amounts[i++]);
+        CAmount amount = DescaleAmount(AmountFromValue(address_amounts[i++]), scaleFactor);
 
         bool subtract_fee = false;
         for (unsigned int idx = 0; idx < subtract_fee_outputs.size(); idx++) {
@@ -50,7 +50,7 @@ static void ParseRecipients(const UniValue& amount_type, const UniValue& address
             }
         }
 
-        CRecipient recipient = {script_pub_key, amountType, amount, subtract_fee}; // TODO: Implement amount type
+        CRecipient recipient = {script_pub_key, amountType, amount, subtract_fee};
         recipients.push_back(recipient);
     }
 }
@@ -307,8 +307,10 @@ RPCHelpMan sendtoaddress()
         subtractFeeFromAmount.push_back(address);
     }
 
+    // Parse recipients and descale amounts using latest scale factor
+    CAmountScaleFactor scaleFactor = pwallet->chain().getLastScaleFactor();
     std::vector<CRecipient> recipients;
-    ParseRecipients(amountType, address_amounts, subtractFeeFromAmount, recipients);
+    ParseRecipients(amountType, address_amounts, subtractFeeFromAmount, recipients, scaleFactor);
     const bool verbose{request.params[11].isNull() ? false : request.params[11].get_bool()};
 
     return SendMoney(*pwallet, coin_control, recipients, mapValue, verbose);
@@ -322,7 +324,7 @@ RPCHelpMan sendmany()
                 "\nSend multiple times. Amounts are double-precision floating point numbers." +
         HELP_REQUIRING_PASSPHRASE,
                 {
-                    {"amount_type", RPCArg::Type::STR, RPCArg::Optional::NO, "The amount type to send ('cash' or 'bond')."},
+                    {"amount_type", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of amount to send ('cash' or 'bond')."},
                     {"amounts", RPCArg::Type::OBJ_USER_KEYS, RPCArg::Optional::NO, "The addresses and amounts",
                         {
                             {"address", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The bitcoin address is the key, the numeric amount (can be string) in " + CURRENCY_UNIT + " is the value"},
@@ -398,8 +400,10 @@ RPCHelpMan sendmany()
 
     SetFeeEstimateMode(*pwallet, coin_control, /*conf_target=*/request.params[6], /*estimate_mode=*/request.params[7], /*fee_rate=*/request.params[8], /*override_min_fee=*/false);
 
+    // Parse recipients and descale amounts using latest scale factor
+    CAmountScaleFactor scaleFactor = pwallet->chain().getLastScaleFactor();
     std::vector<CRecipient> recipients;
-    ParseRecipients(amountType, sendTo, subtractFeeFromAmount, recipients);
+    ParseRecipients(amountType, sendTo, subtractFeeFromAmount, recipients, scaleFactor);
     const bool verbose{request.params[9].isNull() ? false : request.params[9].get_bool()};
 
     return SendMoney(*pwallet, coin_control, recipients, std::move(mapValue), verbose);
@@ -1127,7 +1131,7 @@ RPCHelpMan send()
                     {"", RPCArg::Type::OBJ_USER_KEYS, RPCArg::Optional::OMITTED, "",
                         {
                             {"address", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "A key-value pair. The key (string) is the bitcoin address, the value (float or string) is the amount in " + CURRENCY_UNIT + ""},
-                            {"amountType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of amount output ('cash' or 'bond')."},
+                            {"amountType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of output amount ('cash' or 'bond')."},
                         },
                         },
                     {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
@@ -1225,7 +1229,8 @@ RPCHelpMan send()
             CAmount fee;
             int change_position;
             bool rbf{options.exists("replaceable") ? options["replaceable"].get_bool() : pwallet->m_signal_rbf};
-            CMutableTransaction rawTx = ConstructTransaction(options["inputs"], request.params[0], options["locktime"], rbf);
+            CAmountScaleFactor scaleFactor = pwallet->chain().getLastScaleFactor();
+            CMutableTransaction rawTx = ConstructTransaction(options["inputs"], request.params[0], options["locktime"], rbf, scaleFactor);
             CCoinControl coin_control;
             // Automatically select coins, unless at least one is manually selected. Can
             // be overridden by options.add_inputs.
@@ -1253,6 +1258,7 @@ RPCHelpMan sendall()
                     {"", RPCArg::Type::OBJ_USER_KEYS, RPCArg::Optional::OMITTED, "",
                         {
                             {"address", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "A key-value pair. The key (string) is the bitcoin address, the value (float or string) is the amount in " + CURRENCY_UNIT + ""},
+                            {"amountType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of output amount ('cash' or 'bond')."},
                         },
                     },
                 },
@@ -1314,165 +1320,168 @@ RPCHelpMan sendall()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            RPCTypeCheck(request.params, {
-                UniValue::VARR, // recipients
-                UniValue::VNUM, // conf_target
-                UniValue::VSTR, // estimate_mode
-                UniValueType(), // fee_rate, will be checked by AmountFromValue() in SetFeeEstimateMode()
-                UniValue::VOBJ, // options
-                }, true
-            );
-
-            std::shared_ptr<CWallet> const pwallet{GetWalletForJSONRPCRequest(request)};
-            if (!pwallet) return UniValue::VNULL;
-            // Make sure the results are valid at least up to the most recent block
-            // the user could have gotten from another RPC command prior to now
-            pwallet->BlockUntilSyncedToCurrentChain();
-
-            UniValue options{request.params[4].isNull() ? UniValue::VOBJ : request.params[4]};
-            InterpretFeeEstimationInstructions(/*conf_target=*/request.params[1], /*estimate_mode=*/request.params[2], /*fee_rate=*/request.params[3], options);
-            PreventOutdatedOptions(options);
-
-
-            std::set<std::string> addresses_without_amount;
-            UniValue recipient_key_value_pairs(UniValue::VARR);
-            const UniValue& recipients{request.params[0]};
-            for (unsigned int i = 0; i < recipients.size(); ++i) {
-                const UniValue& recipient{recipients[i]};
-                if (recipient.isStr()) {
-                    UniValue rkvp(UniValue::VOBJ);
-                    rkvp.pushKV(recipient.get_str(), 0);
-                    recipient_key_value_pairs.push_back(rkvp);
-                    addresses_without_amount.insert(recipient.get_str());
-                } else {
-                    recipient_key_value_pairs.push_back(recipient);
-                }
-            }
-
-            if (addresses_without_amount.size() == 0) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Must provide at least one address without a specified amount");
-            }
-
-            CCoinControl coin_control;
-            // TODO: set m_fee_type
-
-            SetFeeEstimateMode(*pwallet, coin_control, options["conf_target"], options["estimate_mode"], options["fee_rate"], /*override_min_fee=*/false);
-
-            coin_control.fAllowWatchOnly = ParseIncludeWatchonly(options["include_watching"], *pwallet);
-
-            const bool rbf{options.exists("replaceable") ? options["replaceable"].get_bool() : pwallet->m_signal_rbf};
-
-            FeeCalculation fee_calc_out;
-            CFeeRate fee_rate{GetMinimumFeeRate(*pwallet, coin_control, &fee_calc_out)};
-            // Do not, ever, assume that it's fine to change the fee rate if the user has explicitly
-            // provided one
-            if (coin_control.m_feerate && fee_rate > *coin_control.m_feerate) {
-               throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Fee rate (%s) is lower than the minimum fee rate setting (%s)", coin_control.m_feerate->ToString(FeeEstimateMode::SAT_VB), fee_rate.ToString(FeeEstimateMode::SAT_VB)));
-            }
-            if (fee_calc_out.reason == FeeReason::FALLBACK && !pwallet->m_allow_fallback_fee) {
-                // eventually allow a fallback fee
-                throw JSONRPCError(RPC_WALLET_ERROR, "Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.");
-            }
-
-            CMutableTransaction rawTx{ConstructTransaction(options["inputs"], recipient_key_value_pairs, options["locktime"], rbf)}; // TODO: Implement amount type
-            LOCK(pwallet->cs_wallet);
-
-            CAmount total_input_value(0);
-            bool send_max{options.exists("send_max") ? options["send_max"].get_bool() : false};
-            if (options.exists("inputs") && options.exists("send_max")) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot combine send_max with specific inputs.");
-            } else if (options.exists("inputs")) {
-                for (const CTxIn& input : rawTx.vin) {
-                    if (pwallet->IsSpent(input.prevout)) {
-                        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Input not available. UTXO (%s:%d) was already spent.", input.prevout.hash.ToString(), input.prevout.n));
-                    }
-                    const CWalletTx* tx{pwallet->GetWalletTx(input.prevout.hash)};
-                    if (!tx || input.prevout.n >= tx->tx->vout.size() || !(pwallet->IsMine(tx->tx->vout[input.prevout.n]) & (coin_control.fAllowWatchOnly ? ISMINE_ALL : ISMINE_SPENDABLE))) {
-                        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Input not found. UTXO (%s:%d) is not part of wallet.", input.prevout.hash.ToString(), input.prevout.n));
-                    }
-                    total_input_value += tx->tx->vout[input.prevout.n].nValue;
-                }
-            } else {
-                for (const COutput& output : AvailableCoins(*pwallet, &coin_control, fee_rate, /*nMinimumAmount=*/0).All()) {
-                    CHECK_NONFATAL(output.input_bytes > 0);
-                    if (send_max && fee_rate.GetFee(output.input_bytes) > output.txout.nValue) {
-                        continue;
-                    }
-                    CTxIn input(output.outpoint.hash, output.outpoint.n, CScript(), rbf ? MAX_BIP125_RBF_SEQUENCE : CTxIn::SEQUENCE_FINAL);
-                    rawTx.vin.push_back(input);
-                    total_input_value += output.txout.nValue;
-                }
-            }
-
-            // estimate final size of tx
-            const TxSize tx_size{CalculateMaximumSignedTxSize(CTransaction(rawTx), pwallet.get())};
-            const CAmount fee_from_size{fee_rate.GetFee(tx_size.vsize)};
-            const CAmount effective_value{total_input_value - fee_from_size};
-
-            if (fee_from_size > pwallet->GetDescaledDefaultMaxTxFee()) {
-                throw JSONRPCError(RPC_WALLET_ERROR, TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED).original);
-            }
-
-            if (effective_value <= 0) {
-                if (send_max) {
-                    throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Total value of UTXO pool too low to pay for transaction, try using lower feerate.");
-                } else {
-                    throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Total value of UTXO pool too low to pay for transaction. Try using lower feerate or excluding uneconomic UTXOs with 'send_max' option.");
-                }
-            }
-
-            // If this transaction is too large, e.g. because the wallet has many UTXOs, it will be rejected by the node's mempool.
-            if (tx_size.weight > MAX_STANDARD_TX_WEIGHT) {
-                throw JSONRPCError(RPC_WALLET_ERROR, "Transaction too large.");
-            }
-
-            CAmount output_amounts_claimed{0};
-            for (const CTxOut& out : rawTx.vout) {
-                output_amounts_claimed += out.nValue;
-            }
-
-            if (output_amounts_claimed > total_input_value) {
-                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Assigned more value to outputs than available funds.");
-            }
-
-            const CAmount remainder{effective_value - output_amounts_claimed};
-            if (remainder < 0) {
-                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient funds for fees after creating specified outputs.");
-            }
-
-            const CAmount per_output_without_amount{remainder / (long)addresses_without_amount.size()};
-
-            bool gave_remaining_to_first{false};
-            for (CTxOut& out : rawTx.vout) {
-                CTxDestination dest;
-                ExtractDestination(out.scriptPubKey, dest);
-                std::string addr{EncodeDestination(dest)};
-                if (addresses_without_amount.count(addr) > 0) {
-                    out.nValue = per_output_without_amount;
-                    if (!gave_remaining_to_first) {
-                        out.nValue += remainder % addresses_without_amount.size();
-                        gave_remaining_to_first = true;
-                    }
-                    if (IsDust(out, pwallet->chain().relayDustFee())) {
-                        // Dynamically generated output amount is dust
-                        throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Dynamically assigned remainder results in dust output.");
-                    }
-                } else {
-                    if (IsDust(out, pwallet->chain().relayDustFee())) {
-                        // Specified output amount is dust
-                        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Specified output amount to %s is below dust threshold.", addr));
-                    }
-                }
-            }
-
-            const bool lock_unspents{options.exists("lock_unspents") ? options["lock_unspents"].get_bool() : false};
-            if (lock_unspents) {
-                for (const CTxIn& txin : rawTx.vin) {
-                    pwallet->LockCoin(txin.prevout);
-                }
-            }
-
-            return FinishTransaction(pwallet, options, rawTx);
+            // TODO: Implement to handle different output amount types and a declared fee type
+            throw JSONRPCError(RPC_WALLET_ERROR, "Method not yet implemented.");
+            // RPCTypeCheck(request.params, {
+            //     UniValue::VARR, // recipients
+            //     UniValue::VNUM, // conf_target
+            //     UniValue::VSTR, // estimate_mode
+            //     UniValueType(), // fee_rate, will be checked by AmountFromValue() in SetFeeEstimateMode()
+            //     UniValue::VOBJ, // options
+            //     }, true
+            // );
+            //
+            // std::shared_ptr<CWallet> const pwallet{GetWalletForJSONRPCRequest(request)};
+            // if (!pwallet) return UniValue::VNULL;
+            // // Make sure the results are valid at least up to the most recent block
+            // // the user could have gotten from another RPC command prior to now
+            // pwallet->BlockUntilSyncedToCurrentChain();
+            //
+            // UniValue options{request.params[4].isNull() ? UniValue::VOBJ : request.params[4]};
+            // InterpretFeeEstimationInstructions(/*conf_target=*/request.params[1], /*estimate_mode=*/request.params[2], /*fee_rate=*/request.params[3], options);
+            // PreventOutdatedOptions(options);
+            //
+            //
+            // std::set<std::string> addresses_without_amount;
+            // UniValue recipient_key_value_pairs(UniValue::VARR);
+            // const UniValue& recipients{request.params[0]};
+            // for (unsigned int i = 0; i < recipients.size(); ++i) {
+            //     const UniValue& recipient{recipients[i]};
+            //     if (recipient.isStr()) {
+            //         UniValue rkvp(UniValue::VOBJ);
+            //         rkvp.pushKV(recipient.get_str(), 0);
+            //         recipient_key_value_pairs.push_back(rkvp);
+            //         addresses_without_amount.insert(recipient.get_str());
+            //     } else {
+            //         recipient_key_value_pairs.push_back(recipient);
+            //     }
+            // }
+            //
+            // if (addresses_without_amount.size() == 0) {
+            //     throw JSONRPCError(RPC_INVALID_PARAMETER, "Must provide at least one address without a specified amount");
+            // }
+            //
+            // CCoinControl coin_control;
+            // // TODO: set m_fee_type
+            //
+            // SetFeeEstimateMode(*pwallet, coin_control, options["conf_target"], options["estimate_mode"], options["fee_rate"], /*override_min_fee=*/false);
+            //
+            // coin_control.fAllowWatchOnly = ParseIncludeWatchonly(options["include_watching"], *pwallet);
+            //
+            // const bool rbf{options.exists("replaceable") ? options["replaceable"].get_bool() : pwallet->m_signal_rbf};
+            //
+            // FeeCalculation fee_calc_out;
+            // CFeeRate fee_rate{GetMinimumFeeRate(*pwallet, coin_control, &fee_calc_out)};
+            // // Do not, ever, assume that it's fine to change the fee rate if the user has explicitly
+            // // provided one
+            // if (coin_control.m_feerate && fee_rate > *coin_control.m_feerate) {
+            //    throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Fee rate (%s) is lower than the minimum fee rate setting (%s)", coin_control.m_feerate->ToString(FeeEstimateMode::SAT_VB), fee_rate.ToString(FeeEstimateMode::SAT_VB)));
+            // }
+            // if (fee_calc_out.reason == FeeReason::FALLBACK && !pwallet->m_allow_fallback_fee) {
+            //     // eventually allow a fallback fee
+            //     throw JSONRPCError(RPC_WALLET_ERROR, "Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.");
+            // }
+            //
+            // CAmountScaleFactor scaleFactor = pwallet->chain().getLastScaleFactor();
+            // CMutableTransaction rawTx{ConstructTransaction(options["inputs"], recipient_key_value_pairs, options["locktime"], rbf, scaleFactor)};
+            // LOCK(pwallet->cs_wallet);
+            //
+            // CAmount total_input_value(0);
+            // bool send_max{options.exists("send_max") ? options["send_max"].get_bool() : false};
+            // if (options.exists("inputs") && options.exists("send_max")) {
+            //     throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot combine send_max with specific inputs.");
+            // } else if (options.exists("inputs")) {
+            //     for (const CTxIn& input : rawTx.vin) {
+            //         if (pwallet->IsSpent(input.prevout)) {
+            //             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Input not available. UTXO (%s:%d) was already spent.", input.prevout.hash.ToString(), input.prevout.n));
+            //         }
+            //         const CWalletTx* tx{pwallet->GetWalletTx(input.prevout.hash)};
+            //         if (!tx || input.prevout.n >= tx->tx->vout.size() || !(pwallet->IsMine(tx->tx->vout[input.prevout.n]) & (coin_control.fAllowWatchOnly ? ISMINE_ALL : ISMINE_SPENDABLE))) {
+            //             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Input not found. UTXO (%s:%d) is not part of wallet.", input.prevout.hash.ToString(), input.prevout.n));
+            //         }
+            //         total_input_value += tx->tx->vout[input.prevout.n].nValue;
+            //     }
+            // } else {
+            //     for (const COutput& output : AvailableCoins(*pwallet, &coin_control, fee_rate, /*nMinimumAmount=*/0).All()) {
+            //         CHECK_NONFATAL(output.input_bytes > 0);
+            //         if (send_max && fee_rate.GetFee(output.input_bytes) > output.txout.nValue) {
+            //             continue;
+            //         }
+            //         CTxIn input(output.outpoint.hash, output.outpoint.n, CScript(), rbf ? MAX_BIP125_RBF_SEQUENCE : CTxIn::SEQUENCE_FINAL);
+            //         rawTx.vin.push_back(input);
+            //         total_input_value += output.txout.nValue;
+            //     }
+            // }
+            //
+            // // estimate final size of tx
+            // const TxSize tx_size{CalculateMaximumSignedTxSize(CTransaction(rawTx), pwallet.get())};
+            // const CAmount fee_from_size{fee_rate.GetFee(tx_size.vsize)};
+            // const CAmount effective_value{total_input_value - fee_from_size};
+            //
+            // if (fee_from_size > pwallet->GetDescaledDefaultMaxTxFee()) {
+            //     throw JSONRPCError(RPC_WALLET_ERROR, TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED).original);
+            // }
+            //
+            // if (effective_value <= 0) {
+            //     if (send_max) {
+            //         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Total value of UTXO pool too low to pay for transaction, try using lower feerate.");
+            //     } else {
+            //         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Total value of UTXO pool too low to pay for transaction. Try using lower feerate or excluding uneconomic UTXOs with 'send_max' option.");
+            //     }
+            // }
+            //
+            // // If this transaction is too large, e.g. because the wallet has many UTXOs, it will be rejected by the node's mempool.
+            // if (tx_size.weight > MAX_STANDARD_TX_WEIGHT) {
+            //     throw JSONRPCError(RPC_WALLET_ERROR, "Transaction too large.");
+            // }
+            //
+            // CAmount output_amounts_claimed{0};
+            // for (const CTxOut& out : rawTx.vout) {
+            //     output_amounts_claimed += out.nValue;
+            // }
+            //
+            // if (output_amounts_claimed > total_input_value) {
+            //     throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Assigned more value to outputs than available funds.");
+            // }
+            //
+            // const CAmount remainder{effective_value - output_amounts_claimed};
+            // if (remainder < 0) {
+            //     throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient funds for fees after creating specified outputs.");
+            // }
+            //
+            // const CAmount per_output_without_amount{remainder / (long)addresses_without_amount.size()};
+            //
+            // bool gave_remaining_to_first{false};
+            // for (CTxOut& out : rawTx.vout) {
+            //     CTxDestination dest;
+            //     ExtractDestination(out.scriptPubKey, dest);
+            //     std::string addr{EncodeDestination(dest)};
+            //     if (addresses_without_amount.count(addr) > 0) {
+            //         out.nValue = per_output_without_amount;
+            //         if (!gave_remaining_to_first) {
+            //             out.nValue += remainder % addresses_without_amount.size();
+            //             gave_remaining_to_first = true;
+            //         }
+            //         if (IsDust(out, pwallet->chain().relayDustFee())) {
+            //             // Dynamically generated output amount is dust
+            //             throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Dynamically assigned remainder results in dust output.");
+            //         }
+            //     } else {
+            //         if (IsDust(out, pwallet->chain().relayDustFee())) {
+            //             // Specified output amount is dust
+            //             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Specified output amount to %s is below dust threshold.", addr));
+            //         }
+            //     }
+            // }
+            //
+            // const bool lock_unspents{options.exists("lock_unspents") ? options["lock_unspents"].get_bool() : false};
+            // if (lock_unspents) {
+            //     for (const CTxIn& txin : rawTx.vin) {
+            //         pwallet->LockCoin(txin.prevout);
+            //     }
+            // }
+            //
+            // return FinishTransaction(pwallet, options, rawTx);
         }
     };
 }
@@ -1585,13 +1594,12 @@ RPCHelpMan walletcreatefundedpsbt()
                             {"", RPCArg::Type::OBJ_USER_KEYS, RPCArg::Optional::OMITTED, "",
                                 {
                                     {"address", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "A key-value pair. The key (string) is the bitcoin address, the value (float or string) is the amount in " + CURRENCY_UNIT + ""},
-                                    {"amountType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of amount output ('cash' or 'bond')."},
+                                    {"amountType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of output amount ('cash' or 'bond')."},
                                 },
                                 },
                             {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
                                 {
                                     {"data", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "A key-value pair. The key must be \"data\", the value is hex-encoded data"},
-                                    {"amountType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of amount output ('cash' or 'bond')."},
                                 },
                             },
                         },
@@ -1665,7 +1673,8 @@ RPCHelpMan walletcreatefundedpsbt()
         RPCTypeCheckArgument(replaceable_arg, UniValue::VBOOL);
         rbf = replaceable_arg.isTrue();
     }
-    CMutableTransaction rawTx = ConstructTransaction(request.params[0], request.params[1], request.params[2], rbf);
+    CAmountScaleFactor scaleFactor = pwallet->chain().getLastScaleFactor();
+    CMutableTransaction rawTx = ConstructTransaction(request.params[0], request.params[1], request.params[2], rbf, scaleFactor);
     CCoinControl coin_control;
     // Automatically select coins, unless at least one is manually selected. Can
     // be overridden by options.add_inputs.

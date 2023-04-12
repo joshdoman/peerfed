@@ -840,7 +840,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
     unsigned int outputs_to_subtract_fee_from = 0; // The number of outputs which we are subtracting the fee from
     for (const auto& recipient : vecSend) {
         if (recipients_sum > 0 && recipient.amountType != amount_type)
-            return util::Error{strprintf(_("Recipients receiving different types of outputs is not currently allowed."))};
+            return util::Error{strprintf(_("Recipients receiving different types of outputs is not yet supported."))};
         amount_type = recipient.amountType;
         recipients_sum += recipient.nAmount;
 
