@@ -1030,6 +1030,7 @@ static RPCHelpMan gettxout()
             RPCResult{"Otherwise", RPCResult::Type::OBJ, "", "", {
                 {RPCResult::Type::STR_HEX, "bestblock", "The hash of the block at the tip of the chain"},
                 {RPCResult::Type::NUM, "confirmations", "The number of confirmations"},
+                {RPCResult::Type::STR, "amountType", "The type of output amount ('cash' or 'bond')"},
                 {RPCResult::Type::STR_AMOUNT, "value", "The transaction value in " + CURRENCY_UNIT},
                 {RPCResult::Type::OBJ, "scriptPubKey", "", {
                     {RPCResult::Type::STR, "asm", "Disassembly of the public key script"},
@@ -1087,6 +1088,7 @@ static RPCHelpMan gettxout()
     } else {
         ret.pushKV("confirmations", (int64_t)(pindex->nHeight - coin.nHeight + 1));
     }
+    ret.pushKV("amountType", ValueFromAmountType(coin.out.amountType));
     ret.pushKV("value", ValueFromAmount(coin.out.nValue));
     UniValue o(UniValue::VOBJ);
     ScriptToUniv(coin.out.scriptPubKey, /*out=*/o, /*include_hex=*/true, /*include_address=*/true);
