@@ -2086,11 +2086,13 @@ static RPCHelpMan scantxoutset()
                         {RPCResult::Type::NUM, "vout", "The vout value"},
                         {RPCResult::Type::STR_HEX, "scriptPubKey", "The script key"},
                         {RPCResult::Type::STR, "desc", "A specialized descriptor for the matched scriptPubKey"},
-                        {RPCResult::Type::STR_AMOUNT, "amount", "The total amount in " + CURRENCY_UNIT + " of the unspent output"},
+                        {RPCResult::Type::STR, "amountType", "The type of output amount ('cash' or 'bond')"},
+                        {RPCResult::Type::STR_AMOUNT, "amount", "The unscaled total amount in " + CURRENCY_UNIT + " of the unspent output"},
                         {RPCResult::Type::NUM, "height", "Height of the unspent transaction output"},
                     }},
                 }},
-                {RPCResult::Type::STR_AMOUNT, "total_amount", "The total amount of all found unspent outputs in " + CURRENCY_UNIT},
+                {RPCResult::Type::STR_AMOUNT, "total_cash_amount", "The unscaled total amount of all found unspent cash outputs in " + CURRENCY_UNIT},
+                {RPCResult::Type::STR_AMOUNT, "total_bond_amount", "The unscaled total amount of all found unspent bond outputs in " + CURRENCY_UNIT},
             }},
             RPCResult{"when action=='abort'", RPCResult::Type::BOOL, "success", "True if scan will be aborted (not necessarily before this RPC returns), or false if there is no scan to abort"},
             RPCResult{"when action=='status' and a scan is currently in progress", RPCResult::Type::OBJ, "", "",
@@ -2141,7 +2143,7 @@ static RPCHelpMan scantxoutset()
 
         std::set<CScript> needles;
         std::map<CScript, std::string> descriptors;
-        CAmount total_in = 0;
+        CAmounts total_in = {0};
 
         // loop through the scan objects
         for (const UniValue& scanobject : request.params[1].get_array().getValues()) {
@@ -2182,20 +2184,22 @@ static RPCHelpMan scantxoutset()
             const Coin& coin = it.second;
             const CTxOut& txo = coin.out;
             input_txos.push_back(txo);
-            total_in += txo.nValue;
+            total_in[txo.amountType] += txo.nValue;
 
             UniValue unspent(UniValue::VOBJ);
             unspent.pushKV("txid", outpoint.hash.GetHex());
             unspent.pushKV("vout", (int32_t)outpoint.n);
             unspent.pushKV("scriptPubKey", HexStr(txo.scriptPubKey));
             unspent.pushKV("desc", descriptors[txo.scriptPubKey]);
+            unspent.pushKV("amountType", ValueFromAmountType(txo.amountType));
             unspent.pushKV("amount", ValueFromAmount(txo.nValue));
             unspent.pushKV("height", (int32_t)coin.nHeight);
 
             unspents.push_back(unspent);
         }
         result.pushKV("unspents", unspents);
-        result.pushKV("total_amount", ValueFromAmount(total_in));
+        result.pushKV("total_cash_amount", ValueFromAmount(total_in[CASH]));
+        result.pushKV("total_bond_amount", ValueFromAmount(total_in[BOND]));
     } else {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid command");
     }
