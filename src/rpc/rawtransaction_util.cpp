@@ -181,8 +181,14 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
                         throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated bond address: ") + name_);
                     }
 
+                    // Optional flag to indicate if amount is unscaled
+                    bool isScaledAmount = true;
+                    if (!output["isScaledAmount"].isNull()) {
+                        isScaledAmount = output["isScaledAmount"].get_bool();
+                    }
+
                     CScript scriptPubKey = GetScriptForDestination(destination);
-                    CAmount nAmount = DescaleAmount(AmountFromValue(output[name_]), scaleFactor);
+                    CAmount nAmount = isScaledAmount ? DescaleAmount(AmountFromValue(output[name_]), scaleFactor) : AmountFromValue(output[name_]);
 
                     CTxOut out(amountType, nAmount, scriptPubKey);
                     rawTx.vout.push_back(out);

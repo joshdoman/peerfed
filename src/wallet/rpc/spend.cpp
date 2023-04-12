@@ -219,6 +219,7 @@ RPCHelpMan sendtoaddress()
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin address to send to."},
                     {"amount_type", RPCArg::Type::STR, RPCArg::Optional::NO, "The amount type to send ('cash' or 'bond')."},
                     {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The amount in " + CURRENCY_UNIT + " to send. eg 0.1"},
+                    {"is_scaled_amount", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if sending a scaled amount (false if sending unscaled cash or bonds)."},
                     {"comment", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "A comment used to store what the transaction is for.\n"
                                          "This is not part of the transaction, just kept in your wallet."},
                     {"comment_to", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "A comment to store the name of the person or organization\n"
@@ -252,10 +253,12 @@ RPCHelpMan sendtoaddress()
                     + HelpExampleCli("sendtoaddress", "\"" + EXAMPLE_ADDRESS[0] + "\" cash 0.1") +
                     "\nSend 0.1 BOND\n"
                     + HelpExampleCli("sendtoaddress", "\"" + EXAMPLE_ADDRESS[0] + "\" bond 0.1") +
+                    "\nSend 0.1 Unscaled BOND\n"
+                    + HelpExampleCli("sendtoaddress", "\"" + EXAMPLE_ADDRESS[0] + "\" bond 0.1 false") +
                     "\nSend 0.1 CASH with a confirmation target of 6 blocks in economical fee estimate mode using positional arguments\n"
-                    + HelpExampleCli("sendtoaddress", "\"" + EXAMPLE_ADDRESS[0] + "\" cash 0.1 \"donation\" \"sean's outpost\" false true 6 economical") +
+                    + HelpExampleCli("sendtoaddress", "\"" + EXAMPLE_ADDRESS[0] + "\" cash 0.1 true \"donation\" \"sean's outpost\" false true 6 economical") +
                     "\nSend 0.1 CASH with a fee rate of 1.1 " + CURRENCY_ATOM + "/vB, subtract fee from amount, BIP125-replaceable, using positional arguments\n"
-                    + HelpExampleCli("sendtoaddress", "\"" + EXAMPLE_ADDRESS[0] + "\" cash 0.1 \"drinks\" \"room77\" true true null \"unset\" null 1.1") +
+                    + HelpExampleCli("sendtoaddress", "\"" + EXAMPLE_ADDRESS[0] + "\" cash 0.1 true \"drinks\" \"room77\" true true null \"unset\" null 1.1") +
                     "\nSend 0.2 CASH with a confirmation target of 6 blocks in economical fee estimate mode using named arguments\n"
                     + HelpExampleCli("-named sendtoaddress", "address=\"" + EXAMPLE_ADDRESS[0] + "\" amountType=\"cash\" amount=0.2 conf_target=6 estimate_mode=\"economical\"") +
                     "\nSend 0.5 CASH with a fee rate of 25 " + CURRENCY_ATOM + "/vB using named arguments\n"
@@ -275,26 +278,26 @@ RPCHelpMan sendtoaddress()
 
     // Wallet comments
     mapValue_t mapValue;
-    if (!request.params[3].isNull() && !request.params[3].get_str().empty())
-        mapValue["comment"] = request.params[3].get_str();
     if (!request.params[4].isNull() && !request.params[4].get_str().empty())
-        mapValue["to"] = request.params[4].get_str();
+        mapValue["comment"] = request.params[4].get_str();
+    if (!request.params[4].isNull() && !request.params[5].get_str().empty())
+        mapValue["to"] = request.params[5].get_str();
 
     bool fSubtractFeeFromAmount = false;
-    if (!request.params[5].isNull()) {
-        fSubtractFeeFromAmount = request.params[5].get_bool();
+    if (!request.params[6].isNull()) {
+        fSubtractFeeFromAmount = request.params[6].get_bool();
     }
 
     CCoinControl coin_control;
-    if (!request.params[6].isNull()) {
-        coin_control.m_signal_bip125_rbf = request.params[6].get_bool();
+    if (!request.params[7].isNull()) {
+        coin_control.m_signal_bip125_rbf = request.params[7].get_bool();
     }
 
-    coin_control.m_avoid_address_reuse = GetAvoidReuseFlag(*pwallet, request.params[9]);
+    coin_control.m_avoid_address_reuse = GetAvoidReuseFlag(*pwallet, request.params[10]);
     // We also enable partial spend avoidance if reuse avoidance is set.
     coin_control.m_avoid_partial_spends |= coin_control.m_avoid_address_reuse;
 
-    SetFeeEstimateMode(*pwallet, coin_control, /*conf_target=*/request.params[7], /*estimate_mode=*/request.params[8], /*fee_rate=*/request.params[10], /*override_min_fee=*/false);
+    SetFeeEstimateMode(*pwallet, coin_control, /*conf_target=*/request.params[8], /*estimate_mode=*/request.params[9], /*fee_rate=*/request.params[11], /*override_min_fee=*/false);
 
     EnsureWalletIsUnlocked(*pwallet);
 
@@ -307,12 +310,16 @@ RPCHelpMan sendtoaddress()
         subtractFeeFromAmount.push_back(address);
     }
 
-    // Parse recipients and descale amounts using latest scale factor
-    CAmountScaleFactor scaleFactor = pwallet->chain().getLastScaleFactor();
+    bool sendingScaledAmount = true;
+    if (!request.params[3].isNull()) {
+        sendingScaledAmount = request.params[3].get_bool();
+    }
+
+    // Parse recipients and descale amounts using latest scale factor, unless sending an unscaled amount
+    CAmountScaleFactor scaleFactor = sendingScaledAmount ? pwallet->chain().getLastScaleFactor() : BASE_FACTOR;
     std::vector<CRecipient> recipients;
     ParseRecipients(amountType, address_amounts, subtractFeeFromAmount, recipients, scaleFactor);
-    const bool verbose{request.params[11].isNull() ? false : request.params[11].get_bool()};
-
+    const bool verbose{request.params[12].isNull() ? false : request.params[12].get_bool()};
     return SendMoney(*pwallet, coin_control, recipients, mapValue, verbose);
 },
     };
@@ -330,7 +337,7 @@ RPCHelpMan sendmany()
                             {"address", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The bitcoin address is the key, the numeric amount (can be string) in " + CURRENCY_UNIT + " is the value"},
                         },
                     },
-                    {"minconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Ignored dummy value"},
+                    {"is_scaled_amount", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if sending a scaled amount (false if sending unscaled cash or bonds)."},
                     {"comment", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "A comment"},
                     {"subtractfeefrom", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "The addresses.\n"
                                        "The fee will be equally deducted from the amount of each selected address.\n"
@@ -364,12 +371,16 @@ RPCHelpMan sendmany()
                 RPCExamples{
             "\nSend two amounts to two different addresses:\n"
             + HelpExampleCli("sendmany", "cash \"{\\\"" + EXAMPLE_ADDRESS[0] + "\\\":0.01,\\\"" + EXAMPLE_ADDRESS[1] + "\\\":0.02}\"") +
-            "\nSend two amounts to two different addresses setting the confirmation and comment:\n"
-            + HelpExampleCli("sendmany", "cash \"{\\\"" + EXAMPLE_ADDRESS[0] + "\\\":0.01,\\\"" + EXAMPLE_ADDRESS[1] + "\\\":0.02}\" 6 \"testing\"") +
+            "\nSend two amounts to two different addresses:\n"
+            + HelpExampleCli("sendmany", "cash \"{\\\"" + EXAMPLE_ADDRESS[0] + "\\\":0.01,\\\"" + EXAMPLE_ADDRESS[1] + "\\\":0.02}\"") +
+            "\nSend two unscaled amounts to two different addresses:\n"
+            + HelpExampleCli("sendmany", "cash \"{\\\"" + EXAMPLE_ADDRESS[0] + "\\\":0.01,\\\"" + EXAMPLE_ADDRESS[1] + "\\\":0.02}\" false") +
+            "\nSend two unscaled amounts to two different addresses with comment:\n"
+            + HelpExampleCli("sendmany", "cash \"{\\\"" + EXAMPLE_ADDRESS[0] + "\\\":0.01,\\\"" + EXAMPLE_ADDRESS[1] + "\\\":0.02}\" false \"testing\"") +
             "\nSend two amounts to two different addresses, subtract fee from amount:\n"
-            + HelpExampleCli("sendmany", "cash \"{\\\"" + EXAMPLE_ADDRESS[0] + "\\\":0.01,\\\"" + EXAMPLE_ADDRESS[1] + "\\\":0.02}\" 1 \"\" \"[\\\"" + EXAMPLE_ADDRESS[0] + "\\\",\\\"" + EXAMPLE_ADDRESS[1] + "\\\"]\"") +
+            + HelpExampleCli("sendmany", "cash \"{\\\"" + EXAMPLE_ADDRESS[0] + "\\\":0.01,\\\"" + EXAMPLE_ADDRESS[1] + "\\\":0.02}\" true \"\" \"[\\\"" + EXAMPLE_ADDRESS[0] + "\\\",\\\"" + EXAMPLE_ADDRESS[1] + "\\\"]\"") +
             "\nAs a JSON-RPC call\n"
-            + HelpExampleRpc("sendmany", "\"cash\", {\"" + EXAMPLE_ADDRESS[0] + "\":0.01,\"" + EXAMPLE_ADDRESS[1] + "\":0.02}, 6, \"testing\"")
+            + HelpExampleRpc("sendmany", "\"cash\", {\"" + EXAMPLE_ADDRESS[0] + "\":0.01,\"" + EXAMPLE_ADDRESS[1] + "\":0.02}, true, \"testing\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -400,8 +411,13 @@ RPCHelpMan sendmany()
 
     SetFeeEstimateMode(*pwallet, coin_control, /*conf_target=*/request.params[6], /*estimate_mode=*/request.params[7], /*fee_rate=*/request.params[8], /*override_min_fee=*/false);
 
-    // Parse recipients and descale amounts using latest scale factor
-    CAmountScaleFactor scaleFactor = pwallet->chain().getLastScaleFactor();
+    bool sendingScaledAmount = true;
+    if (!request.params[2].isNull()) {
+        sendingScaledAmount = request.params[2].get_bool();
+    }
+
+    // Parse recipients and descale amounts using latest scale factor, unless amount is unscaled
+    CAmountScaleFactor scaleFactor = sendingScaledAmount ? pwallet->chain().getLastScaleFactor() : BASE_FACTOR;
     std::vector<CRecipient> recipients;
     ParseRecipients(amountType, sendTo, subtractFeeFromAmount, recipients, scaleFactor);
     const bool verbose{request.params[9].isNull() ? false : request.params[9].get_bool()};
@@ -1132,6 +1148,7 @@ RPCHelpMan send()
                         {
                             {"address", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "A key-value pair. The key (string) is the bitcoin address, the value (float or string) is the amount in " + CURRENCY_UNIT + ""},
                             {"amountType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of output amount ('cash' or 'bond')."},
+                            {"isScaledAmount", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if sending a scaled amount (false if sending unscaled cash or bonds)."},
                         },
                         },
                     {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
