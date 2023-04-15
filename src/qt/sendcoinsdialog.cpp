@@ -901,11 +901,11 @@ void SendCoinsDialog::updateFeeMinimizedLabel()
 
 void SendCoinsDialog::updateCoinControlState()
 {
+    if (!model)
+        return;
     if (ui->radioCustomFee->isChecked()) {
-        if (clientModel && model && model->getOptionsModel()->getShowScaledAmount(getSendAmountType()))
-            m_coin_control->m_feerate = CFeeRate(ui->customFee->value()).Descaled(clientModel->getBestScaleFactor());
-        else
-            m_coin_control->m_feerate = CFeeRate(ui->customFee->value());
+        m_coin_control->fIsScaledFeeRate = model->getOptionsModel()->getShowScaledAmount(getSendAmountType());
+        m_coin_control->m_feerate = CFeeRate(ui->customFee->value());
     } else {
         m_coin_control->m_feerate.reset();
     }

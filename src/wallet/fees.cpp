@@ -42,6 +42,9 @@ CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_contr
     CFeeRate feerate_needed;
     if (coin_control.m_feerate) { // 1.
         feerate_needed = *(coin_control.m_feerate);
+        // Descale fee rate if fee rate is scaled
+        if (coin_control.fIsScaledFeeRate)
+            feerate_needed = feerate_needed.Descaled(wallet.chain().getLastScaleFactor());
         if (feeCalc) feeCalc->reason = FeeReason::PAYTXFEE;
         // Allow to override automatic min/max check over coin control instance
         if (coin_control.fOverrideFeeRate) return feerate_needed;

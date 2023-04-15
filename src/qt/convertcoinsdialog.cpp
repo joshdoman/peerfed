@@ -870,11 +870,11 @@ void ConvertCoinsDialog::updateFeeMinimizedLabel()
 
 void ConvertCoinsDialog::updateCoinControlState()
 {
+    if (!model)
+        return;
     if (ui->radioCustomFee->isChecked()) {
-        if (clientModel && model && model->getOptionsModel()->getShowScaledAmount(getFeeType()))
-            m_coin_control->m_feerate = CFeeRate(ui->customFee->value()).Descaled(clientModel->getBestScaleFactor());
-        else
-            m_coin_control->m_feerate = CFeeRate(ui->customFee->value());
+        m_coin_control->fIsScaledFeeRate = model->getOptionsModel()->getShowScaledAmount(getFeeType());
+        m_coin_control->m_feerate = CFeeRate(ui->customFee->value());
     } else {
         m_coin_control->m_feerate.reset();
     }
