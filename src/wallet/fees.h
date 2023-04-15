@@ -42,7 +42,7 @@ CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_contr
 /**
  * Return the maximum feerate for discarding change.
  */
-CFeeRate GetDiscardRate(const CWallet& wallet);
+CFeeRate GetDiscardRate(const CWallet& wallet, const CAmountType& amountType);
 } // namespace wallet
 
 #endif // BITCOIN_WALLET_FEES_H

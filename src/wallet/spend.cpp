@@ -869,7 +869,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
     }
 
     // Set discard feerate
-    coin_selection_params.m_discard_feerate = GetDiscardRate(wallet);
+    coin_selection_params.m_discard_feerate = GetDiscardRate(wallet, nFeeTypeRet);
 
     // Get the fee rate to use effective values in coin selection
     FeeCalculation feeCalc;
@@ -889,11 +889,10 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
         return util::Error{_("Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.")};
     }
 
-    // If fee is in bonds, convert normalized long term and discard fee rates
+    // If fee is in bonds, convert normalized effective and long term fee rates to equivalent bond fee rates
     if (nFeeTypeRet == BOND) {
         coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
         coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
-        coin_selection_params.m_discard_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
     }
 
     // Calculate the cost of change
@@ -1175,8 +1174,8 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         coin_selection_params.change_spend_size = (size_t)change_spend_size;
     }
 
-    // Set discard feerate
-    coin_selection_params.m_discard_feerate = GetDiscardRate(wallet);
+    // Set discard feerate for input type
+    coin_selection_params.m_discard_feerate = GetDiscardRate(wallet, tx_details.inputType);
 
     // Get the fee rate to use effective values in coin selection
     FeeCalculation feeCalc;
@@ -1196,11 +1195,10 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         return util::Error{_("Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.")};
     }
 
-    // If fee is in bonds, convert normalized discard fee rate
+    // If fee is in bonds, convert normalized effective and long term fee rates to equivalent bond fee rates
     if (nFeeTypeRet == BOND) {
         coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
         coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
-        coin_selection_params.m_discard_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
     }
 
     // Calculate the cost of change
