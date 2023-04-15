@@ -20,6 +20,11 @@ CFeeRate::CFeeRate(const CAmount& nFeePaid, uint32_t num_bytes)
     }
 }
 
+CFeeRate CFeeRate::Scaled(const CAmountScaleFactor& scaleFactor) const
+{
+    return CFeeRate(ScaleAmount(GetFeePerK(), scaleFactor));
+}
+
 CFeeRate CFeeRate::Descaled(const CAmountScaleFactor& scaleFactor) const
 {
     return CFeeRate(DescaleAmount(GetFeePerK(), scaleFactor));

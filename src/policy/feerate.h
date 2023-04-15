@@ -53,6 +53,11 @@ public:
     CFeeRate(const CAmount& nFeePaid, uint32_t num_bytes);
 
     /**
+     * Return a scaled version of the fee rate.
+     */
+    CFeeRate Scaled(const CAmountScaleFactor& scaleFactor) const;
+
+    /**
      * Return a descaled version of the fee rate.
      */
     CFeeRate Descaled(const CAmountScaleFactor& scaleFactor) const;
