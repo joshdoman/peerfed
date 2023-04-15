@@ -875,7 +875,7 @@ RPCHelpMan signrawtransactionwithwallet()
                                     {"scriptPubKey", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "script key"},
                                     {"redeemScript", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "(required for P2SH) redeem script"},
                                     {"witnessScript", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "(required for P2WSH or P2SH-P2WSH) witness script"},
-                                    {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "(required for Segwit inputs) the amount spent"},
+                                    {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::OMITTED, "(required for Segwit inputs) the amount spent (unscaled)"},
                                     {"amountType", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "(required for Segwit inputs) the amount type spent ('cash' or 'bond')"},
                                 },
                             },
@@ -1299,6 +1299,7 @@ RPCHelpMan sendall()
                         {
                             {"address", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "A key-value pair. The key (string) is the bitcoin address, the value (float or string) is the amount in " + CURRENCY_UNIT + ""},
                             {"amountType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of output amount ('cash' or 'bond')."},
+                            {"isScaledAmount", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if sending a scaled amount (false if sending unscaled cash or bonds)."},
                         },
                     },
                 },
@@ -1635,6 +1636,7 @@ RPCHelpMan walletcreatefundedpsbt()
                                 {
                                     {"address", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "A key-value pair. The key (string) is the bitcoin address, the value (float or string) is the amount in " + CURRENCY_UNIT + ""},
                                     {"amountType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of output amount ('cash' or 'bond')."},
+                                    {"isScaledAmount", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if sending a scaled amount (false if sending unscaled cash or bonds)."},
                                 },
                                 },
                             {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
