@@ -55,7 +55,7 @@ static void ParseRecipients(const UniValue& amount_type, const UniValue& address
     }
 }
 
-static void InterpretFeeEstimationInstructions(const UniValue& conf_target, const UniValue& estimate_mode, const UniValue& fee_rate, UniValue& options)
+static void InterpretFeeEstimationInstructions(const UniValue& conf_target, const UniValue& estimate_mode, const UniValue& fee_rate, const UniValue& is_scaled_fee_rate, UniValue& options)
 {
     if (options.exists("conf_target") || options.exists("estimate_mode")) {
         if (!conf_target.isNull() || !estimate_mode.isNull()) {
@@ -71,6 +71,7 @@ static void InterpretFeeEstimationInstructions(const UniValue& conf_target, cons
         }
     } else {
         options.pushKV("fee_rate", fee_rate);
+        options.pushKV("is_scaled_fee_rate", is_scaled_fee_rate);
     }
     if (!options["conf_target"].isNull() && (options["estimate_mode"].isNull() || (options["estimate_mode"].get_str() == "unset"))) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Specify estimate_mode");
@@ -176,17 +177,18 @@ UniValue SendMoney(CWallet& wallet, const CCoinControl &coin_control, std::vecto
 /**
  * Update coin control with fee estimation based on the given parameters
  *
- * @param[in]     wallet            Wallet reference
- * @param[in,out] cc                Coin control to be updated
- * @param[in]     conf_target       UniValue integer; confirmation target in blocks, values between 1 and 1008 are valid per policy/fees.h;
- * @param[in]     estimate_mode     UniValue string; fee estimation mode, valid values are "unset", "economical" or "conservative";
- * @param[in]     fee_rate          UniValue real; fee rate in sat/vB;
- *                                      if present, both conf_target and estimate_mode must either be null, or "unset"
- * @param[in]     override_min_fee  bool; whether to set fOverrideFeeRate to true to disable minimum fee rate checks and instead
- *                                      verify only that fee_rate is greater than 0
+ * @param[in]     wallet                Wallet reference
+ * @param[in,out] cc                    Coin control to be updated
+ * @param[in]     conf_target           UniValue integer; confirmation target in blocks, values between 1 and 1008 are valid per policy/fees.h;
+ * @param[in]     estimate_mode         UniValue string; fee estimation mode, valid values are "unset", "economical" or "conservative";
+ * @param[in]     fee_rate              UniValue real; fee rate in sat/vB;
+ *                                          if present, both conf_target and estimate_mode must either be null, or "unset"
+ * @param[in]     is_scaled_fee_rate    UniValue bool; true if fee rate is a scaled amount
+ * @param[in]     override_min_fee      bool; whether to set fOverrideFeeRate to true to disable minimum fee rate checks and instead
+ *                                          verify only that fee_rate is greater than 0
  * @throws a JSONRPCError if conf_target, estimate_mode, or fee_rate contain invalid values or are in conflict
  */
-static void SetFeeEstimateMode(const CWallet& wallet, CCoinControl& cc, const UniValue& conf_target, const UniValue& estimate_mode, const UniValue& fee_rate, bool override_min_fee)
+static void SetFeeEstimateMode(const CWallet& wallet, CCoinControl& cc, const UniValue& conf_target, const UniValue& estimate_mode, const UniValue& fee_rate, const UniValue& is_scaled_fee_rate, bool override_min_fee)
 {
     if (!fee_rate.isNull()) {
         if (!conf_target.isNull()) {
@@ -201,6 +203,9 @@ static void SetFeeEstimateMode(const CWallet& wallet, CCoinControl& cc, const Un
         // Default RBF to true for explicit fee_rate, if unset.
         if (!cc.m_signal_bip125_rbf) cc.m_signal_bip125_rbf = true;
         return;
+    }
+    if (!is_scaled_fee_rate.isNull()) {
+        cc.fIsScaledFeeRate == is_scaled_fee_rate.get_bool();
     }
     if (!estimate_mode.isNull() && !FeeModeFromString(estimate_mode.get_str(), cc.m_fee_mode)) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, InvalidEstimateModeErrorMessage());
@@ -234,6 +239,7 @@ RPCHelpMan sendtoaddress()
                     {"avoid_reuse", RPCArg::Type::BOOL, RPCArg::Default{true}, "(only available if avoid_reuse wallet flag is set) Avoid spending from dirty addresses; addresses are considered\n"
                                          "dirty if they have previously been used in a transaction. If true, this also activates avoidpartialspends, grouping outputs by their addresses."},
                     {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
+                    {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if fee rate is a scaled amount."},
                     {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "If true, return extra information about the transaction."},
                 },
                 {
@@ -297,7 +303,7 @@ RPCHelpMan sendtoaddress()
     // We also enable partial spend avoidance if reuse avoidance is set.
     coin_control.m_avoid_partial_spends |= coin_control.m_avoid_address_reuse;
 
-    SetFeeEstimateMode(*pwallet, coin_control, /*conf_target=*/request.params[8], /*estimate_mode=*/request.params[9], /*fee_rate=*/request.params[11], /*override_min_fee=*/false);
+    SetFeeEstimateMode(*pwallet, coin_control, /*conf_target=*/request.params[8], /*estimate_mode=*/request.params[9], /*fee_rate=*/request.params[11], /*is_scaled_fee_rate=*/request.params[12], /*override_min_fee=*/false);
 
     EnsureWalletIsUnlocked(*pwallet);
 
@@ -319,7 +325,7 @@ RPCHelpMan sendtoaddress()
     CAmountScaleFactor scaleFactor = sendingScaledAmount ? pwallet->chain().getLastScaleFactor() : BASE_FACTOR;
     std::vector<CRecipient> recipients;
     ParseRecipients(amountType, address_amounts, subtractFeeFromAmount, recipients, scaleFactor);
-    const bool verbose{request.params[12].isNull() ? false : request.params[12].get_bool()};
+    const bool verbose{request.params[13].isNull() ? false : request.params[13].get_bool()};
     return SendMoney(*pwallet, coin_control, recipients, mapValue, verbose);
 },
     };
@@ -352,6 +358,7 @@ RPCHelpMan sendmany()
                     {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"unset"}, "The fee estimate mode, must be one of (case insensitive):\n"
                      "\"" + FeeModes("\"\n\"") + "\""},
                     {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
+                    {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if fee rate is a scaled amount."},
                     {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "If true, return extra infomration about the transaction."},
                 },
                 {
@@ -409,7 +416,7 @@ RPCHelpMan sendmany()
         coin_control.m_signal_bip125_rbf = request.params[5].get_bool();
     }
 
-    SetFeeEstimateMode(*pwallet, coin_control, /*conf_target=*/request.params[6], /*estimate_mode=*/request.params[7], /*fee_rate=*/request.params[8], /*override_min_fee=*/false);
+    SetFeeEstimateMode(*pwallet, coin_control, /*conf_target=*/request.params[6], /*estimate_mode=*/request.params[7], /*fee_rate=*/request.params[8], /*is_scaled_fee_rate=*/request.params[9], /*override_min_fee=*/false);
 
     bool sendingScaledAmount = true;
     if (!request.params[2].isNull()) {
@@ -420,7 +427,7 @@ RPCHelpMan sendmany()
     CAmountScaleFactor scaleFactor = sendingScaledAmount ? pwallet->chain().getLastScaleFactor() : BASE_FACTOR;
     std::vector<CRecipient> recipients;
     ParseRecipients(amountType, sendTo, subtractFeeFromAmount, recipients, scaleFactor);
-    const bool verbose{request.params[9].isNull() ? false : request.params[9].get_bool()};
+    const bool verbose{request.params[10].isNull() ? false : request.params[10].get_bool()};
 
     return SendMoney(*pwallet, coin_control, recipients, std::move(mapValue), verbose);
 },
@@ -546,6 +553,7 @@ void FundTransaction(CWallet& wallet, CMutableTransaction& tx, CAmount& fee_out,
                 {"locktime", UniValueType(UniValue::VNUM)},
                 {"fee_rate", UniValueType()}, // will be checked by AmountFromValue() in SetFeeEstimateMode()
                 {"feeRate", UniValueType()}, // will be checked by AmountFromValue() below
+                {"is_scaled_fee_rate", UniValueType(UniValue::VBOOL)},
                 {"psbt", UniValueType(UniValue::VBOOL)},
                 {"solving_data", UniValueType(UniValue::VOBJ)},
                 {"subtractFeeFromOutputs", UniValueType(UniValue::VARR)},
@@ -618,7 +626,7 @@ void FundTransaction(CWallet& wallet, CMutableTransaction& tx, CAmount& fee_out,
         if (options.exists("replaceable")) {
             coinControl.m_signal_bip125_rbf = options["replaceable"].get_bool();
         }
-        SetFeeEstimateMode(wallet, coinControl, options["conf_target"], options["estimate_mode"], options["fee_rate"], override_min_fee);
+        SetFeeEstimateMode(wallet, coinControl, options["conf_target"], options["estimate_mode"], options["fee_rate"], options["is_scaled_fee_rate"], override_min_fee);
       }
     } else {
         // if options is null and not a bool
@@ -778,6 +786,7 @@ RPCHelpMan fundrawtransaction()
                             {"lockUnspents", RPCArg::Type::BOOL, RPCArg::Default{false}, "Lock selected unspent outputs"},
                             {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
                             {"feeRate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_UNIT + "/kvB."},
+                            {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if fee rate is a scaled amount."},
                             {"subtractFeeFromOutputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "The integers.\n"
                                                           "The fee will be equally deducted from the amount of each specified output.\n"
                                                           "Those recipients will receive less bitcoins than you enter in their corresponding amount field.\n"
@@ -984,6 +993,7 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
                              "\nSpecify a fee rate in " + CURRENCY_ATOM + "/vB instead of relying on the built-in fee estimator.\n"
                              "Must be at least " + incremental_fee + " higher than the current transaction fee rate.\n"
                              "WARNING: before version 0.21, fee_rate was in " + CURRENCY_UNIT + "/kvB. As of 0.21, fee_rate is in " + CURRENCY_ATOM + "/vB.\n"},
+                    {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if fee rate is a scaled amount."},
                     {"replaceable", RPCArg::Type::BOOL, RPCArg::Default{true}, "Whether the new transaction should still be\n"
                              "marked bip-125 replaceable. If true, the sequence numbers in the transaction will\n"
                              "be left unchanged from the original. If false, any input sequence numbers in the\n"
@@ -1048,6 +1058,7 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
                 {"confTarget", UniValueType(UniValue::VNUM)},
                 {"conf_target", UniValueType(UniValue::VNUM)},
                 {"fee_rate", UniValueType()}, // will be checked by AmountFromValue() in SetFeeEstimateMode()
+                {"is_scaled_fee_rate", UniValueType(UniValue::VBOOL)},
                 {"replaceable", UniValueType(UniValue::VBOOL)},
                 {"estimate_mode", UniValueType(UniValue::VSTR)},
             },
@@ -1062,7 +1073,7 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
         if (options.exists("replaceable")) {
             coin_control.m_signal_bip125_rbf = options["replaceable"].get_bool();
         }
-        SetFeeEstimateMode(*pwallet, coin_control, conf_target, options["estimate_mode"], options["fee_rate"], /*override_min_fee=*/false);
+        SetFeeEstimateMode(*pwallet, coin_control, conf_target, options["estimate_mode"], options["fee_rate"], options["is_scaled_fee_rate"], /*override_min_fee=*/false);
     }
 
     // Make sure the results are valid at least up to the most recent block
@@ -1186,6 +1197,7 @@ RPCHelpMan send()
             {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"unset"}, "The fee estimate mode, must be one of (case insensitive):\n"
              "\"" + FeeModes("\"\n\"") + "\""},
             {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
+            {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if fee rate is a scaled amount."},
             {"options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED_NAMED_ARG, "",
                 Cat<std::vector<RPCArg>>(
                 {
@@ -1198,6 +1210,7 @@ RPCHelpMan send()
                     {"change_position", RPCArg::Type::NUM, RPCArg::DefaultHint{"random"}, "The index of the change output"},
                     {"change_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -changetype"}, "The output type to use. Only valid if change_address is not specified. Options are \"legacy\", \"p2sh-segwit\", \"bech32\" and \"bech32m\"."},
                     {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
+                    {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if fee rate is a scaled amount."},
                     {"include_watching", RPCArg::Type::BOOL, RPCArg::DefaultHint{"true for watch-only wallets, otherwise false"}, "Also select inputs which are watch only.\n"
                                           "Only solvable inputs can be used. Watch-only destinations are solvable if the public key and/or output script was imported,\n"
                                           "e.g. with 'importpubkey' or 'importmulti' with the 'pubkeys' or 'desc' field."},
@@ -1243,28 +1256,29 @@ RPCHelpMan send()
         "Send 0.2 BTC with a fee rate of 1.1 " + CURRENCY_ATOM + "/vB using positional arguments\n"
         + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.2, \"amountType\": \"cash\"}' null \"unset\" 1.1\n") +
         "Send 0.2 BTC with a fee rate of 1 " + CURRENCY_ATOM + "/vB using the options argument\n"
-        + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.2, \"amountType\": \"cash\"}' null \"unset\" null '{\"fee_rate\": 1}'\n") +
+        + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.2, \"amountType\": \"cash\"}' null \"unset\" null null '{\"fee_rate\": 1}'\n") +
         "Send 0.3 BTC with a fee rate of 25 " + CURRENCY_ATOM + "/vB using named arguments\n"
         + HelpExampleCli("-named send", "outputs='{\"" + EXAMPLE_ADDRESS[0] + "\": 0.3, \"amountType\": \"cash\"}' fee_rate=25\n") +
         "Create a transaction that should confirm the next block, with a specific input, and return result without adding to wallet or broadcasting to the network\n"
-        + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.1, \"amountType\": \"cash\"}' 1 economical '{\"add_to_wallet\": false, \"inputs\": [{\"txid\":\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\", \"vout\":1}]}'")
+        + HelpExampleCli("send", "'{\"" + EXAMPLE_ADDRESS[0] + "\": 0.1, \"amountType\": \"cash\"}' 1 economical null null '{\"add_to_wallet\": false, \"inputs\": [{\"txid\":\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\", \"vout\":1}]}'")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
             RPCTypeCheck(request.params, {
-                UniValueType(), // outputs (ARR or OBJ, checked later)
-                UniValue::VNUM, // conf_target
-                UniValue::VSTR, // estimate_mode
-                UniValueType(), // fee_rate, will be checked by AmountFromValue() in SetFeeEstimateMode()
-                UniValue::VOBJ, // options
+                UniValueType(),  // outputs (ARR or OBJ, checked later)
+                UniValue::VNUM,  // conf_target
+                UniValue::VSTR,  // estimate_mode
+                UniValueType(),  // fee_rate, will be checked by AmountFromValue() in SetFeeEstimateMode()
+                UniValue::VBOOL, // is_scaled_fee_rate
+                UniValue::VOBJ,  // options
                 }, true
             );
 
             std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;
 
-            UniValue options{request.params[4].isNull() ? UniValue::VOBJ : request.params[4]};
-            InterpretFeeEstimationInstructions(/*conf_target=*/request.params[1], /*estimate_mode=*/request.params[2], /*fee_rate=*/request.params[3], options);
+            UniValue options{request.params[5].isNull() ? UniValue::VOBJ : request.params[5]};
+            InterpretFeeEstimationInstructions(/*conf_target=*/request.params[1], /*estimate_mode=*/request.params[2], /*fee_rate=*/request.params[3], /*is_scaled_fee_rate=*/request.params[4], options);
             PreventOutdatedOptions(options);
 
             CAmount fee;
@@ -1662,6 +1676,7 @@ RPCHelpMan walletcreatefundedpsbt()
                             {"lockUnspents", RPCArg::Type::BOOL, RPCArg::Default{false}, "Lock selected unspent outputs"},
                             {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
                             {"feeRate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_UNIT + "/kvB."},
+                            {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if fee rate is a scaled amount."},
                             {"subtractFeeFromOutputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "The outputs to subtract the fee from.\n"
                                                           "The fee will be equally deducted from the amount of each specified output.\n"
                                                           "Those recipients will receive less bitcoins than you enter in their corresponding amount field.\n"
