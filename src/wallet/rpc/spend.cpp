@@ -1001,8 +1001,18 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
                 std::vector<RPCResult>{{RPCResult::Type::STR, "psbt", "The base64-encoded unsigned PSBT of the new transaction."}} :
                 std::vector<RPCResult>{{RPCResult::Type::STR_HEX, "txid", "The id of the new transaction."}},
             {
-                {RPCResult::Type::STR_AMOUNT, "origfee", "The fee of the replaced transaction."},
-                {RPCResult::Type::STR_AMOUNT, "fee", "The fee of the new transaction."},
+                {RPCResult::Type::OBJ, "scaled", "Amounts scaled using the current scale factor", {
+                    {RPCResult::Type::STR_AMOUNT, "origfeecash", "The cash portion of the fee of the replaced transaction."},
+                    {RPCResult::Type::STR_AMOUNT, "origfeebond", "The bond portin of fee of the replaced transaction."},
+                    {RPCResult::Type::STR_AMOUNT, "feecash", "The cash portion of the fee of the new transaction."},
+                    {RPCResult::Type::STR_AMOUNT, "feebond", "The bond portion of the fee of the new transaction."},
+                }},
+                {RPCResult::Type::OBJ, "unscaled", "Amounts left unscaled", {
+                    {RPCResult::Type::STR_AMOUNT, "origfeecash", "The cash portion of the fee of the replaced transaction."},
+                    {RPCResult::Type::STR_AMOUNT, "origfeebond", "The bond portin of fee of the replaced transaction."},
+                    {RPCResult::Type::STR_AMOUNT, "feecash", "The cash portion of the fee of the new transaction."},
+                    {RPCResult::Type::STR_AMOUNT, "feebond", "The bond portion of the fee of the new transaction."},
+                }},
                 {RPCResult::Type::ARR, "errors", "Errors encountered during processing (may be empty).",
                 {
                     {RPCResult::Type::STR, "", ""},
@@ -1116,10 +1126,23 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
         result.pushKV("psbt", EncodeBase64(ssTx.str()));
     }
 
-    result.pushKV("origfeecash", ValueFromAmount(old_fees[CASH]));
-    result.pushKV("origfeebond", ValueFromAmount(old_fees[BOND]));
-    result.pushKV("feecash", ValueFromAmount(new_fees[CASH]));
-    result.pushKV("feebond", ValueFromAmount(new_fees[BOND]));
+    UniValue scaled(UniValue::VOBJ);
+    UniValue unscaled(UniValue::VOBJ);
+
+    CAmountScaleFactor scaleFactor = pwallet->chain().getLastScaleFactor();
+    scaled.pushKV("origfeecash", ValueFromAmount(ScaleAmount(old_fees[CASH], scaleFactor)));
+    scaled.pushKV("origfeebond", ValueFromAmount(ScaleAmount(old_fees[BOND], scaleFactor)));
+    scaled.pushKV("feecash", ValueFromAmount(ScaleAmount(new_fees[CASH], scaleFactor)));
+    scaled.pushKV("feebond", ValueFromAmount(ScaleAmount(new_fees[BOND], scaleFactor)));
+
+    unscaled.pushKV("origfeecash", ValueFromAmount(old_fees[CASH]));
+    unscaled.pushKV("origfeebond", ValueFromAmount(old_fees[BOND]));
+    unscaled.pushKV("feecash", ValueFromAmount(new_fees[CASH]));
+    unscaled.pushKV("feebond", ValueFromAmount(new_fees[BOND]));
+
+    result.pushKV("scaled", scaled);
+    result.pushKV("unscaled", unscaled);
+
     UniValue result_errors(UniValue::VARR);
     for (const bilingual_str& error : errors) {
         result_errors.push_back(error.original);
