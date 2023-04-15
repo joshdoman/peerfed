@@ -63,7 +63,7 @@ static feebumper::Result PreconditionChecks(const CWallet& wallet, const CWallet
 }
 
 //! Check if the user provided a valid feeRate
-static feebumper::Result CheckFeeRate(const CWallet& wallet, const CWalletTx& wtx, const CAmountType& newFeeType, const CFeeRate& newFeerate, const int64_t maxTxSize, CAmounts old_fees, std::vector<bilingual_str>& errors)
+static feebumper::Result CheckFeeRate(const CWallet& wallet, const CWalletTx& wtx, const const CFeeRate& newFeerate, const int64_t maxTxSize, CAmounts old_fees, std::vector<bilingual_str>& errors)
 {
     // check that fee rate is higher than mempool's minimum fee
     // (no point in bumping fee if we know that the new tx won't be accepted to the mempool)
@@ -80,8 +80,7 @@ static feebumper::Result CheckFeeRate(const CWallet& wallet, const CWalletTx& wt
         return feebumper::Result::WALLET_ERROR;
     }
 
-    CAmount new_total_fee = newFeerate.GetFee(maxTxSize);
-    CAmount normalized_new_total_fee = newFeeType == CASH ? new_total_fee : wallet.chain().estimateConversionOutputAmount(new_total_fee, BOND);
+    CAmount normalized_new_total_fee = newFeerate.GetFee(maxTxSize);
 
     CFeeRate incrementalRelayFee = std::max(wallet.chain().relayIncrementalFee(), CFeeRate(WALLET_INCREMENTAL_RELAY_FEE));
 
@@ -94,7 +93,7 @@ static feebumper::Result CheckFeeRate(const CWallet& wallet, const CWalletTx& wt
 
     if (normalized_new_total_fee < minNormalizedTotalFee) {
         errors.push_back(strprintf(Untranslated("Insufficient normalized total fee %s, must be at least %s (normalizedOldFee %s + incrementalFee %s)"),
-            FormatMoney(new_total_fee), FormatMoney(minNormalizedTotalFee), FormatMoney(nNormalizedOldFeeRate.GetFee(maxTxSize)), FormatMoney(incrementalRelayFee.GetFee(maxTxSize))));
+            FormatMoney(normalized_new_total_fee), FormatMoney(minNormalizedTotalFee), FormatMoney(nNormalizedOldFeeRate.GetFee(maxTxSize)), FormatMoney(incrementalRelayFee.GetFee(maxTxSize))));
         return feebumper::Result::INVALID_PARAMETER;
     }
 
@@ -108,8 +107,8 @@ static feebumper::Result CheckFeeRate(const CWallet& wallet, const CWalletTx& wt
     // Check that in all cases the new fee doesn't violate maxTxFee
     const CAmount max_tx_fee = wallet.GetDescaledDefaultMaxTxFee();
     if (normalized_new_total_fee > max_tx_fee) {
-        errors.push_back(strprintf(Untranslated("Specified or calculated fee %s is too high (cannot be higher than -maxtxfee %s on normalized basis)"),
-            FormatMoney(new_total_fee), FormatMoney(max_tx_fee)));
+        errors.push_back(strprintf(Untranslated("Specified or calculated normalized fee %s is too high (cannot be higher than -maxtxfee %s on normalized basis)"),
+            FormatMoney(normalized_new_total_fee), FormatMoney(max_tx_fee)));
         return feebumper::Result::WALLET_ERROR;
     }
 
@@ -140,14 +139,8 @@ static CFeeRate EstimateFeeRate(const CWallet& wallet, const CWalletTx& wtx, con
     // Fee rate must also be at least the wallet's GetMinimumFeeRate
     CFeeRate min_feerate(GetMinimumFeeRate(wallet, coin_control, /*feeCalc=*/nullptr));
 
-    // De-normalize fee rate (since min_feerate is denormalized)
-    CFeeRate feerate = normalizedfeerate;
-    if (coin_control.m_fee_type == BOND) {
-        feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(feerate.GetFeePerK(), CASH));
-    }
-
     // Set the required fee rate for the replacement transaction in coin control.
-    return std::max(feerate, min_feerate);
+    return std::max(normalizedfeerate, min_feerate);
 }
 
 namespace feebumper {
@@ -284,7 +277,7 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
             txin.scriptWitness.SetNull();
         }
         const int64_t maxTxSize{CalculateMaximumSignedTxSize(CTransaction(mtx), &wallet, &new_coin_control).vsize};
-        Result res = CheckFeeRate(wallet, wtx, *new_coin_control.m_fee_type, *new_coin_control.m_feerate, maxTxSize, old_fees, errors);
+        Result res = CheckFeeRate(wallet, wtx, *new_coin_control.m_feerate, maxTxSize, old_fees, errors);
         if (res != Result::OK) {
             return res;
         }

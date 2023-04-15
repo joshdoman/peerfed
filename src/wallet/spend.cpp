@@ -887,6 +887,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
 
     // If fee is in bonds, convert normalized long term and discard fee rates
     if (nFeeTypeRet == BOND) {
+        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
         coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
         coin_selection_params.m_discard_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
     }
@@ -904,7 +905,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
     // The smallest change amount should be:
     // 1. at least equal to dust threshold
     // 2. at least 1 sat greater than fees to spend it at m_discard_feerate
-    const auto dust = GetDustThreshold(change_prototype_txout, coin_selection_params.m_discard_feerate);
+    const auto dust = GetDustThreshold(change_prototype_txout, coin_selection_params.m_discard_feerate); // TODO: Use consistent definition of dust
     const auto change_spend_fee = coin_selection_params.m_discard_feerate.GetFee(coin_selection_params.change_spend_size);
     coin_selection_params.min_viable_change = std::max(change_spend_fee + 1, dust);
 
@@ -1188,6 +1189,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
 
     // If fee is in bonds, convert normalized discard fee rate
     if (nFeeTypeRet == BOND) {
+        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
         coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
         coin_selection_params.m_discard_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_discard_feerate.GetFeePerK(), CASH));
     }

@@ -45,7 +45,7 @@ using wallet::DEFAULT_PAY_TX_FEE;
 using wallet::DEFAULT_PAY_TX_FEE_TYPE;
 
 static constexpr std::array confTargets{2, 4, 6, 12, 24, 48, 144, 504, 1008};
-int getConversionConvertConfTargetForIndex(int index) {
+int getConversionConfTargetForIndex(int index) {
     if (index+1 > static_cast<int>(confTargets.size())) {
         return confTargets.back();
     }
@@ -155,16 +155,14 @@ ConvertCoinsDialog::ConvertCoinsDialog(const PlatformStyle *_platformStyle, QWid
     QSettings settings;
     if (!settings.contains("fConvertFeeSectionMinimized"))
         settings.setValue("fConvertFeeSectionMinimized", true);
-    if (!settings.contains("nConvertFeeRadio") && settings.contains("nConvertTransactionFeeCash") && settings.value("nConvertTransactionFeeCash").toLongLong() > 0 && settings.contains("nConvertTransactionFeeBond") && settings.value("nConvertTransactionFeeBond").toLongLong() > 0) // compatibility
+    if (!settings.contains("nConvertFeeRadio") && settings.contains("nConvertTransactionFee") && settings.value("nConvertTransactionFee").toLongLong() > 0) // compatibility
         settings.setValue("nConvertFeeRadio", 1); // custom
     if (!settings.contains("nConvertFeeRadio"))
         settings.setValue("nConvertFeeRadio", 0); // recommended
     if (!settings.contains("nSmartFeeSliderPosition"))
         settings.setValue("nSmartFeeSliderPosition", 0);
-    if (!settings.contains("nConvertTransactionFeeCash"))
-        settings.setValue("nConvertTransactionFeeCash", (qint64)DEFAULT_PAY_TX_FEE);
-    if (!settings.contains("nConvertTransactionFeeBond"))
-        settings.setValue("nConvertTransactionFeeBond", (qint64)DEFAULT_PAY_TX_FEE);
+    if (!settings.contains("nConvertTransactionFee"))
+        settings.setValue("nConvertTransactionFee", (qint64)DEFAULT_PAY_TX_FEE);
     ui->groupFee->setId(ui->radioSmartFee, 0);
     ui->groupFee->setId(ui->radioCustomFee, 1);
     ui->groupFee->button((int)std::max(0, std::min(1, settings.value("nConvertFeeRadio").toInt())))->setChecked(true);
@@ -218,8 +216,6 @@ void ConvertCoinsDialog::setModel(WalletModel *_model)
         connect(ui->optInRBF, &QCheckBox::stateChanged, this, &ConvertCoinsDialog::updateSmartFeeLabel);
         connect(ui->optInRBF, &QCheckBox::stateChanged, this, &ConvertCoinsDialog::coinControlUpdateLabels);
         CAmount requiredFee = model->wallet().getRequiredFee(1000);
-        if (getFeeType() == BOND)
-            requiredFee = _model->wallet().safelyEstimateConvertedAmount(requiredFee, CASH);
         if (_model->getOptionsModel()->getShowScaledAmount(getFeeType()))
             requiredFee = ScaleAmount(requiredFee, model->getBestScaleFactor());
         ui->customFee->SetMinValue(requiredFee);
@@ -269,12 +265,9 @@ ConvertCoinsDialog::~ConvertCoinsDialog()
     QSettings settings;
     settings.setValue("fConvertFeeSectionMinimized", fFeeMinimized);
     settings.setValue("nConvertFeeRadio", ui->groupFee->checkedId());
-    settings.setValue("nConvertConfTarget", getConversionConvertConfTargetForIndex(ui->confTargetSelector->currentIndex()));
+    settings.setValue("nConvertConfTarget", getConversionConfTargetForIndex(ui->confTargetSelector->currentIndex()));
     settings.setValue("fConvertAmountType", getFeeType());
-    if (getFeeType() == CASH)
-        settings.setValue("nConvertTransactionFeeCash", (qint64)ui->customFee->value());
-    else
-        settings.setValue("nConvertTransactionFeeBond", (qint64)ui->customFee->value());
+    settings.setValue("nConvertTransactionFee", (qint64)ui->customFee->value());
     settings.setValue("nExpiry", getDeadlineForIndex(ui->expirySelector->currentIndex()) + 1); // Offset by one so that zero deadline is properly saved and not confused with not set
     delete ui;
 }
@@ -313,24 +306,6 @@ void ConvertCoinsDialog::updateConversionType()
     calculatingInput = false;  // Set to false because setType() does not call onInputChanged on first load
     calculatingOutput = false; // Set to false because setType() does not call onOutputChanged on first load
 
-    // Save current custom fee value
-    QSettings settings;
-    if (getFeeType() == CASH)
-        settings.setValue("nConvertTransactionFeeBond", (qint64)ui->customFee->value());
-    else
-        settings.setValue("nConvertTransactionFeeCash", (qint64)ui->customFee->value());
-    // Update min value for required fee of new fee type
-    CAmount requiredFee = model->wallet().getRequiredFee(1000);
-    if (getFeeType() == BOND)
-        requiredFee = model->wallet().safelyEstimateConvertedAmount(requiredFee, CASH);
-    if (model->getOptionsModel()->getShowScaledAmount(getFeeType()))
-        requiredFee = ScaleAmount(requiredFee, model->getBestScaleFactor());
-    ui->customFee->SetMinValue(requiredFee);
-    ui->customFee->setSingleStep(requiredFee);
-    // See the custom fee to the saved value
-    CAmount customFeeValue = getFeeType() == CASH ? settings.value("nConvertTransactionFeeCash").toLongLong() : settings.value("nConvertTransactionFeeBond").toLongLong();
-    ui->customFee->setValue(customFeeValue > 0 ? customFeeValue : requiredFee);
-    ui->customFee->setType(getFeeType());
     // Update smart fee label
     updateSmartFeeLabel();
     // Clear coin control selection
@@ -867,8 +842,21 @@ void ConvertCoinsDialog::updateFeeMinimizedLabel()
     if (ui->radioSmartFee->isChecked())
         ui->labelFeeMinimized->setText(ui->labelSmartFee->text());
     else {
+        // Display de-normalized custom fee
         BitcoinUnit unit = model->getOptionsModel()->getDisplayUnit(getFeeType());
-        ui->labelFeeMinimized->setText(BitcoinUnits::formatWithUnit(unit, ui->customFee->value()) + "/kvB");
+        CAmount customFee = ui->customFee->value();
+        if (getFeeType() == BOND) {
+            // Descale custom fee before applying estimated conversion rate
+            if (clientModel && model->getOptionsModel()->getShowScaledAmount(getFeeType())) {
+                customFee = DescaleAmount((CAmount)customFee, clientModel->getBestScaleFactor());
+            }
+            customFee = model->wallet().safelyEstimateConvertedAmount(customFee, CASH);
+            // Apply scale factor to custom fee before displaying
+            if (clientModel && model->getOptionsModel()->getShowScaledAmount(getFeeType())) {
+                customFee = ScaleAmount((CAmount)customFee, clientModel->getBestScaleFactor());
+            }
+        }
+        ui->labelFeeMinimized->setText(BitcoinUnits::formatWithUnit(unit, customFee) + "/kvB");
     }
 }
 
@@ -886,7 +874,7 @@ void ConvertCoinsDialog::updateCoinControlState()
     m_coin_control->m_conversion_deadline = getDeadlineForIndex(ui->expirySelector->currentIndex());
     // Avoid using global defaults when sending money from the GUI
     // Either custom fee will be used or if not selected, the confirmation target from dropdown box
-    m_coin_control->m_confirm_target = getConversionConvertConfTargetForIndex(ui->confTargetSelector->currentIndex());
+    m_coin_control->m_confirm_target = getConversionConfTargetForIndex(ui->confTargetSelector->currentIndex());
     m_coin_control->m_signal_bip125_rbf = ui->optInRBF->isChecked();
     // Include watch-only for wallets without private key
     m_coin_control->fAllowWatchOnly = model->wallet().privateKeysDisabled() && !model->wallet().hasExternalSigner();

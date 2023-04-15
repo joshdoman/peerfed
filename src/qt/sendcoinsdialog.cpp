@@ -121,27 +121,22 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *_platformStyle, QWidget *p
     QSettings settings;
     if (!settings.contains("fFeeSectionMinimized"))
         settings.setValue("fFeeSectionMinimized", true);
-    if (!settings.contains("nFeeRadio") && settings.contains("nTransactionFeeCash") && settings.value("nTransactionFeeCash").toLongLong() > 0 && settings.contains("nTransactionFeeBond") && settings.value("nTransactionFeeBond").toLongLong() > 0) // compatibility
+    if (!settings.contains("nFeeRadio") && settings.contains("nTransactionFee") && settings.value("nTransactionFee").toLongLong() > 0) // compatibility
         settings.setValue("nFeeRadio", 1); // custom
     if (!settings.contains("nFeeRadio"))
         settings.setValue("nFeeRadio", 0); // recommended
     if (!settings.contains("nSmartFeeSliderPosition"))
         settings.setValue("nSmartFeeSliderPosition", 0);
-    if (!settings.contains("nTransactionFeeCash"))
-        settings.setValue("nTransactionFeeCash", (qint64)DEFAULT_PAY_TX_FEE);
-    if (!settings.contains("nTransactionFeeBond"))
-        settings.setValue("nTransactionFeeBond", (qint64)DEFAULT_PAY_TX_FEE);
+    if (!settings.contains("nTransactionFee"))
+        settings.setValue("nTransactionFee", (qint64)DEFAULT_PAY_TX_FEE);
     if (!settings.contains("fSendAmountType"))
         settings.setValue("fSendAmountType", (bool)DEFAULT_PAY_TX_FEE_TYPE);
     ui->groupFee->setId(ui->radioSmartFee, 0);
     ui->groupFee->setId(ui->radioCustomFee, 1);
     ui->groupFee->button((int)std::max(0, std::min(1, settings.value("nFeeRadio").toInt())))->setChecked(true);
     ui->customFee->SetAllowEmpty(false);
-    ui->customFee->setType((CAmountType)settings.value("fSendAmountType").toBool());
-    if (settings.value("fSendAmountType") == CASH)
-        ui->customFee->setValue(settings.value("nTransactionFeeCash").toLongLong());
-    else
-        ui->customFee->setValue(settings.value("nTransactionFeeBond").toLongLong());
+    ui->customFee->setType(CASH);
+    ui->customFee->setValue(settings.value("nTransactionFee").toLongLong());
     minimizeFeeSection(settings.value("fFeeSectionMinimized").toBool());
 
     ui->sendTypeSelector->addItem("Cash         ");
@@ -207,8 +202,6 @@ void SendCoinsDialog::setModel(WalletModel *_model)
         connect(ui->optInRBF, &QCheckBox::stateChanged, this, &SendCoinsDialog::updateSmartFeeLabel);
         connect(ui->optInRBF, &QCheckBox::stateChanged, this, &SendCoinsDialog::coinControlUpdateLabels);
         CAmount requiredFee = model->wallet().getRequiredFee(1000);
-        if (getSendAmountType() == BOND)
-            requiredFee = _model->wallet().safelyEstimateConvertedAmount(requiredFee, CASH);
         if (_model->getOptionsModel()->getShowScaledAmount(getSendAmountType()))
             requiredFee = ScaleAmount(requiredFee, model->getBestScaleFactor());
         ui->customFee->SetMinValue(requiredFee);
@@ -261,10 +254,7 @@ SendCoinsDialog::~SendCoinsDialog()
     settings.setValue("nFeeRadio", ui->groupFee->checkedId());
     settings.setValue("nConfTarget", getConfTargetForIndex(ui->confTargetSelector->currentIndex()));
     settings.setValue("fSendAmountType", getSendAmountType());
-    if (getSendAmountType() == CASH)
-        settings.setValue("nTransactionFeeCash", (qint64)ui->customFee->value());
-    else
-        settings.setValue("nTransactionFeeBond", (qint64)ui->customFee->value());
+    settings.setValue("nTransactionFee", (qint64)ui->customFee->value());
 
     delete ui;
 }
@@ -606,24 +596,6 @@ void SendCoinsDialog::onSendAmountTypeChanged()
             entry->setAmountType(getSendAmountType());
         }
     }
-    // Save current custom fee then update custom fee label and fee rate to new type
-    QSettings settings;
-    if (getSendAmountType() == CASH)
-        settings.setValue("nTransactionFeeBond", (qint64)ui->customFee->value());
-    else
-        settings.setValue("nTransactionFeeCash", (qint64)ui->customFee->value());
-    ui->customFee->setValue(getSendAmountType() == CASH ? settings.value("nTransactionFeeCash").toLongLong() : settings.value("nTransactionFeeBond").toLongLong());
-    ui->customFee->setType(getSendAmountType());
-    // Update min value for required fee of new send type
-    if (model) {
-        CAmount requiredFee = model->wallet().getRequiredFee(1000);
-        if (getSendAmountType() == BOND)
-            requiredFee = model->wallet().safelyEstimateConvertedAmount(requiredFee, CASH);
-        if (model->getOptionsModel()->getShowScaledAmount(getSendAmountType()))
-            requiredFee = ScaleAmount(requiredFee, model->getBestScaleFactor());
-        ui->customFee->SetMinValue(requiredFee);
-        ui->customFee->setSingleStep(requiredFee);
-    }
     // Update smart fee label
     updateSmartFeeLabel();
     // Clear coin control selection
@@ -905,7 +877,19 @@ void SendCoinsDialog::updateFeeMinimizedLabel()
         ui->labelFeeMinimized->setText(ui->labelSmartFee->text());
     else {
         BitcoinUnit unit = model->getOptionsModel()->getDisplayUnit(getSendAmountType());
-        ui->labelFeeMinimized->setText(BitcoinUnits::formatWithUnit(unit, ui->customFee->value()) + "/kvB");
+        CAmount customFee = ui->customFee->value();
+        if (getSendAmountType() == BOND) {
+            // Descale custom fee before applying estimated conversion rate
+            if (clientModel && model->getOptionsModel()->getShowScaledAmount(getSendAmountType())) {
+                customFee = DescaleAmount((CAmount)customFee, clientModel->getBestScaleFactor());
+            }
+            customFee = model->wallet().safelyEstimateConvertedAmount(customFee, CASH);
+            // Scale custom fee using current scale factor
+            if (clientModel && model->getOptionsModel()->getShowScaledAmount(getSendAmountType())) {
+                customFee = ScaleAmount((CAmount)customFee, clientModel->getBestScaleFactor());
+            }
+        }
+        ui->labelFeeMinimized->setText(BitcoinUnits::formatWithUnit(unit, customFee) + "/kvB");
     }
 }
 
