@@ -71,13 +71,10 @@ public:
     int getNumConnections(unsigned int flags = CONNECTIONS_ALL) const;
     int getNumBlocks() const;
     uint256 getBestBlockHash() EXCLUSIVE_LOCKS_REQUIRED(!m_cached_tip_mutex);
-    CAmounts getBestTotalSupply() EXCLUSIVE_LOCKS_REQUIRED(!m_cached_tip_mutex);
     CAmountScaleFactor getBestScaleFactor() const;
     int64_t getBestInterestRate() const;
     int getHeaderTipHeight() const;
     int64_t getHeaderTipTime() const;
-
-    void updateBestSupplyPostConversion(CAmount expectedInput, CAmount expectedOutput, CAmountType inputType, CAmountType outputType);
 
     //! Returns enum BlockSource of the current importing/syncing state
     enum BlockSource getBlockSource() const;
@@ -102,7 +99,6 @@ public:
 
     Mutex m_cached_tip_mutex;
     uint256 m_cached_tip_blocks GUARDED_BY(m_cached_tip_mutex){};
-    CAmounts m_cached_tip_supply GUARDED_BY(m_cached_tip_mutex){};
 
 private:
     interfaces::Node& m_node;

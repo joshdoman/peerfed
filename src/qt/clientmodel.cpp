@@ -148,29 +148,6 @@ uint256 ClientModel::getBestBlockHash()
     return m_cached_tip_blocks;
 }
 
-CAmounts ClientModel::getBestTotalSupply()
-{
-    CAmounts tip{WITH_LOCK(m_cached_tip_mutex, return m_cached_tip_supply)};
-
-    if ((tip[CASH] + tip[BOND] > 0) && MoneyRange(tip[CASH]) && MoneyRange(tip[BOND])) {
-        return tip;
-    }
-
-    // Lock order must be: first `cs_main`, then `m_cached_tip_mutex`.
-    // The following will lock `cs_main` (and release it), so we must not
-    // own `m_cached_tip_mutex` here.
-    tip = m_node.getBestTotalSupply();
-
-    LOCK(m_cached_tip_mutex);
-    // We checked that `m_cached_tip_supply` is valid above, but then we
-    // released the mutex `m_cached_tip_mutex`, so it could have changed in the
-    // meantime. Thus, check again.
-    if (!(m_cached_tip_supply[CASH] + m_cached_tip_supply[BOND] > 0) || !MoneyRange(m_cached_tip_supply[CASH]) || !MoneyRange(m_cached_tip_supply[BOND])) {
-        m_cached_tip_supply = tip;
-    }
-    return m_cached_tip_supply;
-}
-
 CAmountScaleFactor ClientModel::getBestScaleFactor() const
 {
     if (m_cached_scale_factor == 0) {
@@ -254,16 +231,6 @@ QString ClientModel::blocksDir() const
     return GUIUtil::PathToQString(gArgs.GetBlocksDirPath());
 }
 
-void ClientModel::updateBestSupplyPostConversion(CAmount expectedInput, CAmount expectedOutput, CAmountType inputType, CAmountType outputType)
-{
-    CAmounts tip{WITH_LOCK(m_cached_tip_mutex, return m_cached_tip_supply)};
-
-    tip[inputType] -= expectedInput;
-    tip[outputType] += expectedOutput;
-
-    WITH_LOCK(m_cached_tip_mutex, m_cached_tip_supply = tip;);
-}
-
 void ClientModel::TipChanged(SynchronizationState sync_state, interfaces::BlockTip tip, double verification_progress, SyncType synctype)
 {
     if (synctype == SyncType::HEADER_SYNC) {
@@ -275,7 +242,6 @@ void ClientModel::TipChanged(SynchronizationState sync_state, interfaces::BlockT
         m_cached_scale_factor = tip.block_scale_factor;
         m_cached_interest_rate = tip.block_interest_rate;
         WITH_LOCK(m_cached_tip_mutex, m_cached_tip_blocks = tip.block_hash;);
-        WITH_LOCK(m_cached_tip_mutex, m_cached_tip_supply = tip.block_supply;);
     }
 
     // Throttle GUI notifications about (a) blocks during initial sync, and (b) both blocks and headers during reindex.

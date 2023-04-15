@@ -286,7 +286,6 @@ struct BlockTip {
     int block_height;
     int64_t block_time;
     uint256 block_hash;
-    CAmounts block_supply;
     CAmountScaleFactor block_scale_factor;
     int64_t block_interest_rate;
 };

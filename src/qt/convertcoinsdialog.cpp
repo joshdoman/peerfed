@@ -686,8 +686,6 @@ void ConvertCoinsDialog::convertButtonClicked([[maybe_unused]] bool checked)
             // now send the prepared transaction
             model->convertCoins(*m_current_transaction);
             Q_EMIT coinsConverted(m_current_transaction->getWtx()->GetHash());
-            // update the cached total supply so that a follow-up transaction is calculated properly
-            clientModel->updateBestSupplyPostConversion(ui->reqAmountIn->value(), ui->reqAmountOut->value(), getInputType(), getOutputType());
         }
     }
     if (!send_failure) {
