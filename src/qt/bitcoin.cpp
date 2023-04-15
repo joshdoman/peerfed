@@ -299,6 +299,9 @@ void BitcoinApplication::createWindow(const NetworkStyle *networkStyle)
     window = new BitcoinGUI(node(), platformStyle, networkStyle, nullptr);
     connect(window, &BitcoinGUI::quitRequested, this, &BitcoinApplication::requestShutdown);
 
+    // Ensure window is in focus on launch
+    window->setFocus();
+
     pollShutdownTimer = new QTimer(window);
     connect(pollShutdownTimer, &QTimer::timeout, [this]{
         if (!QApplication::activeModalWidget()) {
