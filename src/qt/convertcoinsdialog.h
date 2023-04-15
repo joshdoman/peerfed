@@ -91,7 +91,6 @@ private:
      * @returns false if any failure occurred, which may include the user rejection of a transaction on the device.
      */
     bool signWithExternalSigner(PartiallySignedTransaction& psbt, CMutableTransaction& mtx, bool& complete);
-    void updateFeeMinimizedLabel();
     void updateCoinControlState();
 
 private Q_SLOTS:
@@ -114,6 +113,7 @@ private Q_SLOTS:
     void onInputChanged();
     void onOutputChanged();
     void recalculate();
+    void updateFeeMinimizedLabel();
     void updateFeeSectionControls();
     void updateNumberOfBlocks(int count, const QDateTime& blockDate, double nVerificationProgress, SyncType synctype, SynchronizationState sync_state);
     void updateSmartFeeLabel();

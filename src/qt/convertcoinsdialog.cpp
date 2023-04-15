@@ -167,7 +167,10 @@ ConvertCoinsDialog::ConvertCoinsDialog(const PlatformStyle *_platformStyle, QWid
     ui->groupFee->setId(ui->radioCustomFee, 1);
     ui->groupFee->button((int)std::max(0, std::min(1, settings.value("nConvertFeeRadio").toInt())))->setChecked(true);
     ui->customFee->SetAllowEmpty(false);
+    ui->customFee->setValue(settings.value("nConvertTransactionFee").toLongLong());
     minimizeFeeSection(settings.value("fConvertFeeSectionMinimized").toBool());
+
+    connect(ui->customFee, &BitcoinAmountField::valueChanged, this, &ConvertCoinsDialog::updateFeeMinimizedLabel);
 
     GUIUtil::ExceptionSafeConnect(ui->convertButton, &QPushButton::clicked, this, &ConvertCoinsDialog::convertButtonClicked);
 }
@@ -207,9 +210,11 @@ void ConvertCoinsDialog::setModel(WalletModel *_model)
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
         connect(ui->groupFee, &QButtonGroup::idClicked, this, &ConvertCoinsDialog::updateFeeSectionControls);
         connect(ui->groupFee, &QButtonGroup::idClicked, this, &ConvertCoinsDialog::coinControlUpdateLabels);
+        connect(ui->groupFee, &QButtonGroup::idClicked, this, &ConvertCoinsDialog::updateFeeMinimizedLabel);
 #else
         connect(ui->groupFee, qOverload<int>(&QButtonGroup::buttonClicked), this, &ConvertCoinsDialog::updateFeeSectionControls);
         connect(ui->groupFee, qOverload<int>(&QButtonGroup::buttonClicked), this, &ConvertCoinsDialog::coinControlUpdateLabels);
+        connect(ui->groupFee, qOverload<int>(&QButtonGroup::buttonClicked), this, &ConvertCoinsDialog::updateFeeMinimizedLabel);
 #endif
 
         connect(ui->customFee, &BitcoinAmountField::valueChanged, this, &ConvertCoinsDialog::coinControlUpdateLabels);
@@ -803,7 +808,6 @@ void ConvertCoinsDialog::processConvertCoinsReturn(const WalletModel::ConvertCoi
 
 void ConvertCoinsDialog::minimizeFeeSection(bool fMinimize)
 {
-    ui->labelFeeMinimized->setVisible(fMinimize);
     ui->buttonChooseFee  ->setVisible(fMinimize);
     ui->buttonMinimizeFee->setVisible(!fMinimize);
     ui->frameFeeSelection->setVisible(!fMinimize);
@@ -844,7 +848,11 @@ void ConvertCoinsDialog::updateFeeMinimizedLabel()
     else {
         // Display de-normalized custom fee
         BitcoinUnit unit = model->getOptionsModel()->getDisplayUnit(getFeeType());
-        CAmount customFee = ui->customFee->value();
+        // Ensure displayed fee is at least the required fee (if user types in zero and then selects another field, the custom fee will default to the required fee rate but updateFeeMinimizedLabel will not be triggered)
+        CAmount requiredFee = model->wallet().getRequiredFee(1000);
+        if (model->getOptionsModel()->getShowScaledAmount(getFeeType()))
+            requiredFee = ScaleAmount(requiredFee, model->getBestScaleFactor());
+        CAmount customFee = std::max(ui->customFee->value(), requiredFee);
         if (getFeeType() == BOND) {
             // Descale custom fee before applying estimated conversion rate
             if (clientModel && model->getOptionsModel()->getShowScaledAmount(getFeeType())) {

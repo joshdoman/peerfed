@@ -135,9 +135,10 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *_platformStyle, QWidget *p
     ui->groupFee->setId(ui->radioCustomFee, 1);
     ui->groupFee->button((int)std::max(0, std::min(1, settings.value("nFeeRadio").toInt())))->setChecked(true);
     ui->customFee->SetAllowEmpty(false);
-    ui->customFee->setType(CASH);
     ui->customFee->setValue(settings.value("nTransactionFee").toLongLong());
     minimizeFeeSection(settings.value("fFeeSectionMinimized").toBool());
+
+    connect(ui->customFee, &BitcoinAmountField::valueChanged, this, &SendCoinsDialog::updateFeeMinimizedLabel);
 
     ui->sendTypeSelector->addItem("Cash         ");
     ui->sendTypeSelector->addItem("Bond         ");
@@ -193,9 +194,11 @@ void SendCoinsDialog::setModel(WalletModel *_model)
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
         connect(ui->groupFee, &QButtonGroup::idClicked, this, &SendCoinsDialog::updateFeeSectionControls);
         connect(ui->groupFee, &QButtonGroup::idClicked, this, &SendCoinsDialog::coinControlUpdateLabels);
+        connect(ui->groupFee, &QButtonGroup::idClicked, this, &SendCoinsDialog::updateFeeMinimizedLabel);
 #else
         connect(ui->groupFee, qOverload<int>(&QButtonGroup::buttonClicked), this, &SendCoinsDialog::updateFeeSectionControls);
         connect(ui->groupFee, qOverload<int>(&QButtonGroup::buttonClicked), this, &SendCoinsDialog::coinControlUpdateLabels);
+        connect(ui->groupFee, qOverload<int>(&QButtonGroup::buttonClicked), this, &SendCoinsDialog::updateFeeMinimizedLabel);
 #endif
 
         connect(ui->customFee, &BitcoinAmountField::valueChanged, this, &SendCoinsDialog::coinControlUpdateLabels);
@@ -814,7 +817,6 @@ void SendCoinsDialog::processSendCoinsReturn(const WalletModel::SendCoinsReturn 
 
 void SendCoinsDialog::minimizeFeeSection(bool fMinimize)
 {
-    ui->labelFeeMinimized->setVisible(fMinimize);
     ui->buttonChooseFee  ->setVisible(fMinimize);
     ui->buttonMinimizeFee->setVisible(!fMinimize);
     ui->frameFeeSelection->setVisible(!fMinimize);
@@ -877,7 +879,11 @@ void SendCoinsDialog::updateFeeMinimizedLabel()
         ui->labelFeeMinimized->setText(ui->labelSmartFee->text());
     else {
         BitcoinUnit unit = model->getOptionsModel()->getDisplayUnit(getSendAmountType());
-        CAmount customFee = ui->customFee->value();
+        // Ensure displayed fee is at least the required fee (if user types in zero and then selects another field, the custom fee will default to the required fee rate but updateFeeMinimizedLabel will not be triggered)
+        CAmount requiredFee = model->wallet().getRequiredFee(1000);
+        if (model->getOptionsModel()->getShowScaledAmount(getSendAmountType()))
+            requiredFee = ScaleAmount(requiredFee, model->getBestScaleFactor());
+        CAmount customFee = std::max(ui->customFee->value(), requiredFee);
         if (getSendAmountType() == BOND) {
             // Descale custom fee before applying estimated conversion rate
             if (clientModel && model->getOptionsModel()->getShowScaledAmount(getSendAmountType())) {
