@@ -1154,6 +1154,11 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
     const OutputType change_type = wallet.TransactionChangeType(coin_control.m_change_type ? *coin_control.m_change_type : wallet.m_default_change_type, {} /* vecSend */);
     ReserveDestination reservedest(&wallet, change_type);
     coin_selection_params.m_subtract_fee_outputs = tx_details.outputType == coin_control.m_fee_type;
+    if (coin_selection_params.m_subtract_fee_outputs) {
+        // TODO: Handle subtract fees from outputs
+        // Subtracting fee from conversion outputs is not yet supported
+        return util::Error{_("Subtracting fee from outputs not yet supported in conversion. Fee type must be the same as the input type.")};
+    }
 
     // Create change script that will be used if we need change
     CScript scriptChange;
@@ -1275,7 +1280,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         txNew.vout.push_back(txout);
     }
 
-    // Include the fees for things that aren't inputs, excluding the change output
+    // Include the fees for things that aren't inputs, excluding the change output (TODO: don't add not_input_fees to selection target if subtracting fees from output)
     const CAmount not_input_fees = coin_selection_params.m_effective_feerate.GetFee(coin_selection_params.tx_noinputs_size);
     CAmount selection_target = tx_details.maxInput + not_input_fees;
 
@@ -1368,7 +1373,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
                 continue;
             CTxOut& txout = txNew.vout[i];
 
-            if (!txout.scriptPubKey.IsConversionScript()) {
+            if (txout.amountType == tx_details.outputType && !txout.scriptPubKey.IsConversionScript()) {
                 txout.nValue -= fee_needed; // Subtract fee_needed from minimum output
 
                 // Error if this output is reduced to be below dust
