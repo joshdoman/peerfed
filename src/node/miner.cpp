@@ -569,7 +569,8 @@ bool static ScanHash(const CBlockHeader *pblock, uint32_t& nNonce, uint256& phas
 static bool ProcessBlockFound(ChainstateManager* chainman, const CBlock* pblock)
 {
     LogPrintf("%s\n", pblock->ToString());
-    LogPrintf("generated %s\n", FormatMoney(pblock->vtx[0]->vout[0].nValue));
+    LogPrintf("generated %s cash (unscaled)\n", FormatMoney(pblock->vtx[0]->vout[CASH].nValue));
+    LogPrintf("generated %s bonds (unscaled)\n", FormatMoney(pblock->vtx[0]->vout[BOND].nValue));
 
     // Found a solution
     {
@@ -621,8 +622,11 @@ void static BitcoinMiner(ChainstateManager* chainman, CConnman* connman)
             //
             // Create new block
             //
-            LOCK(cs_main);
-            CBlockIndex* pindexPrev = chainman->ActiveTip();
+            CBlockIndex* pindexPrev;
+            {
+                LOCK(cs_main);
+                pindexPrev = chainman->ActiveTip();
+            }
             CTxMemPool* mempool = chainman->ActiveChainstate().GetMempool();
             unsigned int nTransactionsUpdatedLast = mempool->GetTransactionsUpdated();
 
@@ -680,8 +684,12 @@ void static BitcoinMiner(ChainstateManager* chainman, CConnman* connman)
                     break;
                 if (mempool->GetTransactionsUpdated() != nTransactionsUpdatedLast && GetTime() - nStart > 60)
                     break;
-                if (pindexPrev != chainman->ActiveTip())
-                    break;
+                    
+                {
+                    LOCK(cs_main);
+                    if (pindexPrev != chainman->ActiveTip())
+                        break;
+                }
 
                 // Update nTime every few seconds
                 if (UpdateTime(pblock, chainman->GetParams().GetConsensus(), pindexPrev) < 0)
