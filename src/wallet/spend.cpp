@@ -1232,9 +1232,14 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
     // Create conversion output with dummy fee
     {
         CScript remainderScript;
+        bool hasRemainderOutput = true;
         if (tx_details.remainderDest) {
             // Set remainder script
             remainderScript = GetScriptForDestination(tx_details.remainderDest.value());
+            // If remainder destination is CNoDestination, remainder is sent to miner and there is not a remainder output
+            if (!IsValidDestination(tx_details.remainderDest.value()) {
+                hasRemainderOutput = false;
+            }
         } else {
             // Send remainder to self
             GetChangeScript(reservedest, coin_control, remainderScript, error);
@@ -1257,6 +1262,12 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         // Include the fee cost for output.
         if (!coin_selection_params.m_subtract_fee_outputs) {
             coin_selection_params.tx_noinputs_size += ::GetSerializeSize(txout, PROTOCOL_VERSION);
+        }
+
+        // Include the fee cost of the remainder output, unless remainder is sent to the miner
+        if (hasRemainderOutput) {
+            CTxOut dummyRemainderOut(tx_details.remainderType, 0, remainderScript);
+            coin_selection_params.tx_noinputs_size += ::GetSerializeSize(dummyRemainderOut, PROTOCOL_VERSION);
         }
 
         txNew.vout.push_back(txout);
