@@ -11,6 +11,7 @@
 #include <consensus/consensus.h>
 #include <primitives/transaction.h>
 #include <primitives/block.h>
+#include <script/standard.h>
 
 /** Index marker for when no witness commitment is present in a coinbase transaction. */
 static constexpr int NO_WITNESS_COMMITMENT{-1};
@@ -147,9 +148,23 @@ class BlockValidationState : public ValidationState<BlockValidationResult> {};
 // using only serialization with and without witness data. As witness_size
 // is equal to total_size - stripped_size, this formula is identical to:
 // weight = (stripped_size * 3) + total_size.
+// If conversion, transaction weight includes weight of remainder output that appears in coinbase transaction (unless remainder sent to miner)
 static inline int64_t GetTransactionWeight(const CTransaction& tx)
 {
-    return ::GetSerializeSize(tx, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(tx, PROTOCOL_VERSION);
+    int64_t remainderOutputWeight = 0;
+    for (const auto& txout : tx.vout)
+    {
+        CTxConversionInfo conversionInfo;
+        if (ExtractConversionInfo(txout.scriptPubKey, conversionInfo)) {
+            if (IsValidDestination(conversionInfo.destination)) {
+                CScript remainderScript = GetScriptForDestination(conversionInfo.destination);
+                CTxOut dummyRemainderOut(0, 0, remainderScript);
+                remainderOutputWeight += ::GetSerializeSize(dummyRemainderOut, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(dummyRemainderOut, PROTOCOL_VERSION);
+            }
+            break;
+        }
+    }
+    return remainderOutputWeight + ::GetSerializeSize(tx, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(tx, PROTOCOL_VERSION);
 }
 static inline int64_t GetBlockWeight(const CBlock& block)
 {
