@@ -1237,7 +1237,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
             // Set remainder script
             remainderScript = GetScriptForDestination(tx_details.remainderDest.value());
             // If remainder destination is CNoDestination, remainder is sent to miner and there is not a remainder output
-            if (!IsValidDestination(tx_details.remainderDest.value()) {
+            if (!IsValidDestination(tx_details.remainderDest.value())) {
                 hasRemainderOutput = false;
             }
         } else {
