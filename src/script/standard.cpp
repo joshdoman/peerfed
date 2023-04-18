@@ -306,35 +306,49 @@ bool ExtractConversionInfo(const CScript& script, CTxConversionInfo& conversionI
 {
     if (script.size() >= 3 && script[0] == OP_CONVERT) {
         conversionInfoRet.slippageType = (bool)script[1];
-        // Get scriptPubKey for remainder
-        uint scriptLength = script[2];
-        if (scriptLength == 0) {
+
+        CScript::const_iterator pc = script.begin() + 2;
+
+        std::vector<unsigned char> remainderData;
+        opcodetype opcode1;
+        if (!script.GetOp(pc, opcode1, remainderData))
+            return false;
+
+        if (opcode1 == 0) {
             conversionInfoRet.destination = CNoDestination();
-        } else if (script.size() >= 3 + scriptLength) {
-            CScript scriptPubKey(script.begin() + 3, script.begin() + 3 + scriptLength);
+        } else if (opcode1 <= OP_PUSHDATA4) {
+            CScript remainderScript(pc - remainderData.size(), pc);
             CTxDestination destination;
-            if (ExtractDestination(scriptPubKey, destination)) {
+            if (ExtractDestination(remainderScript, destination)) {
                 conversionInfoRet.destination = destination;
             } else {
                 // Not a valid destination -> return false to prevent data stuffing
                 return false;
             }
-        }
-        // Get deadline
-        if (script.size() > 4 + scriptLength) {
-            std::vector<unsigned char> deadlineBytes(script.begin()+scriptLength+4, script.end());
-            try {
-                CScriptNum deadlineScriptNum = CScriptNum(deadlineBytes, /** fRequireMinimal **/ true);
-                conversionInfoRet.nDeadline = (uint32_t)deadlineScriptNum.GetInt64();
-                return true;
-            } catch (...) {
-                // Script number overflow (too many bytes) or not minimally encoded
-                return false;
-            }
         } else {
-            // No deadline provided
+            // Invalid op code (push only)
+            return false;
+        }
+
+        // Check if no deadline was provided
+        if (pc >= script.end()) {
             conversionInfoRet.nDeadline = 0;
             return true;
+        }
+
+        std::vector<unsigned char> deadlineData;
+        opcodetype opcode2;
+        if (!script.GetOp(pc, opcode2, deadlineData))
+            return false;
+
+        // Get deadline
+        try {
+            CScriptNum deadlineScriptNum = CScriptNum(deadlineData, /** fRequireMinimal **/ true);
+            conversionInfoRet.nDeadline = (uint32_t)deadlineScriptNum.GetInt64();
+            return true;
+        } catch (...) {
+            // Script number overflow (too many bytes) or not minimally encoded
+            return false;
         }
     }
     return false;

@@ -285,11 +285,8 @@ bool CScript::HasValidOps() const
 
 bool CScript::IsConversionScript() const
 {
-    // TODO: Apply GetOp to get remainder subscript OR just check that first byte is OP_CONVERT
     // Extra-fast test for conversion CScripts:
-    return (this->size() >= 3 &&
-            (*this)[0] == OP_CONVERT &&
-            this->size() <= (*this)[2] + 4 + sizeof(std::uint32_t));    // (*this)[2] is the length of the scriptPubKey for the remainder, optional deadline consisting of opcode and max 4 bytes
+    return (this->size() >= 3 && (*this)[0] == OP_CONVERT);
 }
 
 bool GetScriptOp(CScriptBase::const_iterator& pc, CScriptBase::const_iterator end, opcodetype& opcodeRet, std::vector<unsigned char>* pvchRet)
