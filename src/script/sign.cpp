@@ -295,6 +295,7 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
     switch (whichTypeRet) {
     case TxoutType::NONSTANDARD:
     case TxoutType::NULL_DATA:
+    case TxoutType::CONVERSION_DATA:
     case TxoutType::WITNESS_UNKNOWN:
         return false;
     case TxoutType::PUBKEY:

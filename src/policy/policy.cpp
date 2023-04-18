@@ -129,6 +129,7 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
     }
 
     unsigned int nDataOut = 0;
+    unsigned int nConversionOut = 0;
     TxoutType whichType;
     for (const CTxOut& txout : tx.vout) {
         if (!::IsStandard(txout.scriptPubKey, max_datacarrier_bytes, whichType)) {
@@ -138,6 +139,8 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
 
         if (whichType == TxoutType::NULL_DATA)
             nDataOut++;
+        else if (whichType == TxoutType::CONVERSION_DATA)
+            nConversionOut++;
         else if ((whichType == TxoutType::MULTISIG) && (!permit_bare_multisig)) {
             reason = "bare-multisig";
             return false;
@@ -150,6 +153,11 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
     // only one OP_RETURN txout is permitted
     if (nDataOut > 1) {
         reason = "multi-op-return";
+        return false;
+    }
+
+    if (nConversionOut > 1) {
+        reason = "multi-op-convert";
         return false;
     }
 

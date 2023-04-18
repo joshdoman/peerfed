@@ -57,6 +57,7 @@ enum class TxoutType {
     SCRIPTHASH,
     MULTISIG,
     NULL_DATA, //!< unspendable OP_RETURN script that carries data
+    CONVERSION_DATA, //!< unspendable OP_CONVERT script that carries conversion data
     WITNESS_V0_SCRIPTHASH,
     WITNESS_V0_KEYHASH,
     WITNESS_V1_TAPROOT,

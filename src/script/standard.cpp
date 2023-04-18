@@ -52,6 +52,7 @@ std::string GetTxnOutputType(TxoutType t)
     case TxoutType::SCRIPTHASH: return "scripthash";
     case TxoutType::MULTISIG: return "multisig";
     case TxoutType::NULL_DATA: return "nulldata";
+    case TxoutType::CONVERSION_DATA: return "conversiondata";
     case TxoutType::WITNESS_V0_KEYHASH: return "witness_v0_keyhash";
     case TxoutType::WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
     case TxoutType::WITNESS_V1_TAPROOT: return "witness_v1_taproot";
@@ -206,9 +207,18 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
     // So long as script passes the IsUnspendable() test and all but the first
     // byte passes the IsPushOnly() test we don't care what exactly is in the
     // script.
-    if (scriptPubKey.size() >= 1 && (scriptPubKey[0] == OP_RETURN || scriptPubKey[0] == OP_CONVERT) && scriptPubKey.IsPushOnly(scriptPubKey.begin()+1)) {
+    if (scriptPubKey.size() >= 1 && (scriptPubKey[0] == OP_RETURN) && scriptPubKey.IsPushOnly(scriptPubKey.begin()+1)) {
         // TODO: Add TxoutType for OP_CONVERT
         return TxoutType::NULL_DATA;
+    }
+
+    // Provably prunable, conversion output
+    //
+    // So long as script passes the IsUnspendable() test and the conversion info
+    // is extractable
+    CTxConversionInfo conversionInfo;
+    if (scriptPubKey.size() >= 1 && (scriptPubKey[0] == OP_CONVERT) && ExtractConversionInfo(scriptPubKey, conversionInfo)) {
+        return TxoutType::CONVERSION_DATA;
     }
 
     std::vector<unsigned char> data;
@@ -285,6 +295,7 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
     }
     case TxoutType::MULTISIG:
     case TxoutType::NULL_DATA:
+    case TxoutType::CONVERSION_DATA:
     case TxoutType::NONSTANDARD:
         return false;
     } // no default case, so the compiler can warn about missing cases
@@ -295,7 +306,7 @@ bool ExtractConversionInfo(const CScript& script, CTxConversionInfo& conversionI
 {
     if (script.size() >= 3 && script[0] == OP_CONVERT) {
         conversionInfoRet.slippageType = (bool)script[1];
-        // Get scriptPubKey
+        // Get scriptPubKey for remainder
         uint scriptLength = script[2];
         if (scriptLength == 0) {
             conversionInfoRet.destination = CNoDestination();
@@ -304,6 +315,9 @@ bool ExtractConversionInfo(const CScript& script, CTxConversionInfo& conversionI
             CTxDestination destination;
             if (ExtractDestination(scriptPubKey, destination)) {
                 conversionInfoRet.destination = destination;
+            } else {
+                // Not a valid destination -> return false to prevent data stuffing
+                return false;
             }
         }
         // Get deadline
