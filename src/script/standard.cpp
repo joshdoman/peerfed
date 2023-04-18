@@ -214,10 +214,10 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
 
     // Provably prunable, conversion output
     //
-    // So long as script passes the IsUnspendable() test and the conversion info
-    // is extractable
+    // So long as script passes the IsUnspendable() test, all but the first byte
+    // passes the IsPushOnly() test, and the conversion info is extractable
     CTxConversionInfo conversionInfo;
-    if (scriptPubKey.size() >= 1 && (scriptPubKey[0] == OP_CONVERT) && ExtractConversionInfo(scriptPubKey, conversionInfo)) {
+    if (scriptPubKey.size() >= 1 && (scriptPubKey[0] == OP_CONVERT) && scriptPubKey.IsPushOnly(scriptPubKey.begin()+1) && ExtractConversionInfo(scriptPubKey, conversionInfo)) {
         return TxoutType::CONVERSION_DATA;
     }
 

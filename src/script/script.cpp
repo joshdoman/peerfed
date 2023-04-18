@@ -285,6 +285,7 @@ bool CScript::HasValidOps() const
 
 bool CScript::IsConversionScript() const
 {
+    // TODO: Apply GetOp to get remainder subscript OR just check that first byte is OP_CONVERT
     // Extra-fast test for conversion CScripts:
     return (this->size() >= 3 &&
             (*this)[0] == OP_CONVERT &&
