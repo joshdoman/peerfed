@@ -203,8 +203,8 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
     // If available, use Undo data to calculate the fee. Note that txundo == nullptr
     // for coinbase transactions and for transactions where undo data is unavailable.
     const bool have_undo = txundo != nullptr;
-    CAmount amt_total_in = 0;
-    CAmount amt_total_out = 0;
+    CAmounts amt_total_in = {0};
+    CAmounts amt_total_out = {0};
 
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
         const CTxIn& txin = tx.vin[i];
@@ -230,7 +230,7 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
             const Coin& prev_coin = txundo->vprevout[i];
             const CTxOut& prev_txout = prev_coin.out;
 
-            amt_total_in += prev_txout.nValue;
+            amt_total_in[prev_txout.amountType] += prev_txout.nValue;
 
             if (verbosity == TxVerbosity::SHOW_DETAILS_AND_PREVOUT) {
                 UniValue o_script_pub_key(UniValue::VOBJ);
@@ -266,15 +266,27 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
         vout.push_back(out);
 
         if (have_undo) {
-            amt_total_out += txout.nValue;
+            amt_total_out[txout.amountType] += txout.nValue;
         }
     }
     entry.pushKV("vout", vout);
 
     if (have_undo) {
-        const CAmount fee = amt_total_in - amt_total_out;
-        CHECK_NONFATAL(MoneyRange(fee));
-        entry.pushKV("fee", ValueFromAmount(fee));
+        if (tx.IsConversion()) {
+            const CTxOut& txout = tx.vout[tx.GetConversionOutputN()];
+            const CAmount feeCash = txout.amountType == CASH ? txout.nValue : 0;
+            const CAmount feeBond = txout.amountType == BOND ? txout.nValue : 0;
+            entry.pushKV("feecash", ValueFromAmount(feeCash));
+            entry.pushKV("feebond", ValueFromAmount(feeBond));
+        } else {
+            const CAmount feeCash = amt_total_in[CASH] - amt_total_out[CASH];
+            CHECK_NONFATAL(MoneyRange(feeCash));
+            entry.pushKV("feecash", ValueFromAmount(feeCash));
+
+            const CAmount feeBond = amt_total_in[BOND] - amt_total_out[BOND];
+            CHECK_NONFATAL(MoneyRange(feeBond));
+            entry.pushKV("feebond", ValueFromAmount(feeBond));
+        }
     }
 
     if (!block_hash.IsNull()) {
