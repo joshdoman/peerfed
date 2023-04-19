@@ -1116,7 +1116,8 @@ util::Result<CreatedTransactionResult> CreateTransaction(
         tmp_cc.m_avoid_partial_spends = true;
         auto txr_grouped = CreateTransactionInternal(wallet, vecSend, change_pos, tmp_cc, sign);
         // if fee of this alternative one is within the range of the max fee, we use this one
-        const bool use_aps{txr_grouped.has_value() ? (txr_grouped->fee <= txr_ungrouped.fee + wallet.m_max_aps_fee) : false};
+        CAmount max_aps_fee = txr_ungrouped.feeType == BOND ? wallet.chain().safelyEstimateConvertedAmount(wallet.m_max_aps_fee, CASH) : wallet.m_max_aps_fee;
+        const bool use_aps{txr_grouped.has_value() ? (txr_grouped->fee <= txr_ungrouped.fee + max_aps_fee) : false};
         TRACE5(coin_selection, aps_create_tx_internal, wallet.GetName().c_str(), use_aps, txr_grouped.has_value(),
                txr_grouped.has_value() ? txr_grouped->fee : 0, txr_grouped.has_value() ? txr_grouped->change_pos : 0);
         if (txr_grouped) {
@@ -1479,7 +1480,8 @@ util::Result<CreatedTransactionResult> CreateConversionTransaction(
         tmp_cc.m_avoid_partial_spends = true;
         auto txr_grouped = CreateConversionTransactionInternal(wallet, tx_details, change_pos, tmp_cc, sign);
         // if fee of this alternative one is within the range of the max fee, we use this one
-        const bool use_aps{txr_grouped.has_value() ? (txr_grouped->fee <= txr_ungrouped.fee + wallet.m_max_aps_fee) : false};
+        CAmount max_aps_fee = txr_ungrouped.feeType == BOND ? wallet.chain().safelyEstimateConvertedAmount(wallet.m_max_aps_fee, CASH) : wallet.m_max_aps_fee;
+        const bool use_aps{txr_grouped.has_value() ? (txr_grouped->fee <= txr_ungrouped.fee + max_aps_fee) : false};
         TRACE5(coin_selection, aps_create_tx_internal, wallet.GetName().c_str(), use_aps, txr_grouped.has_value(),
                txr_grouped.has_value() ? txr_grouped->fee : 0, txr_grouped.has_value() ? txr_grouped->change_pos : 0);
         if (txr_grouped) {
