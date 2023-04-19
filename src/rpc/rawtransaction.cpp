@@ -930,7 +930,8 @@ static RPCHelpMan decodepsbt()
                         }},
                         decodepsbt_inputs,
                         decodepsbt_outputs,
-                        {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "The transaction fee paid if all UTXOs slots in the PSBT have been filled."},
+                        {RPCResult::Type::STR_AMOUNT, "feecash", /*optional=*/true, "The unscaled cash transaction fee paid if all UTXOs slots in the PSBT have been filled."},
+                        {RPCResult::Type::STR_AMOUNT, "feebond", /*optional=*/true, "The unscaled bond transaction fee paid if all UTXOs slots in the PSBT have been filled."},
                     }
                 },
                 RPCExamples{
@@ -994,7 +995,7 @@ static RPCHelpMan decodepsbt()
     result.pushKV("unknown", unknowns);
 
     // inputs
-    CAmount total_in = 0;
+    CAmounts total_in = {0};
     bool have_all_utxos = true;
     UniValue inputs(UniValue::VARR);
     for (unsigned int i = 0; i < psbtx.inputs.size(); ++i) {
@@ -1027,8 +1028,8 @@ static RPCHelpMan decodepsbt()
             have_a_utxo = true;
         }
         if (have_a_utxo) {
-            if (MoneyRange(txout.nValue) && MoneyRange(total_in + txout.nValue)) {
-                total_in += txout.nValue;
+            if (MoneyRange(txout.nValue) && MoneyRange(total_in[txout.amountType] + txout.nValue)) {
+                total_in[txout.amountType] += txout.nValue;
             } else {
                 // Hack to just not show fee later
                 have_all_utxos = false;
@@ -1222,7 +1223,8 @@ static RPCHelpMan decodepsbt()
     result.pushKV("inputs", inputs);
 
     // outputs
-    CAmount output_value = 0;
+    int conversion_output_n = -1;
+    CAmounts output_value = {0};
     UniValue outputs(UniValue::VARR);
     for (unsigned int i = 0; i < psbtx.outputs.size(); ++i) {
         const PSBTOutput& output = psbtx.outputs[i];
@@ -1315,16 +1317,30 @@ static RPCHelpMan decodepsbt()
         outputs.push_back(out);
 
         // Fee calculation
-        if (MoneyRange(psbtx.tx->vout[i].nValue) && MoneyRange(output_value + psbtx.tx->vout[i].nValue)) {
-            output_value += psbtx.tx->vout[i].nValue;
+        if (MoneyRange(psbtx.tx->vout[i].nValue) && MoneyRange(output_value[psbtx.tx->vout[i].amountType] + psbtx.tx->vout[i].nValue)) {
+            output_value[psbtx.tx->vout[i].amountType] += psbtx.tx->vout[i].nValue;
         } else {
             // Hack to just not show fee later
             have_all_utxos = false;
         }
+
+        if (psbtx.tx->vout[i].scriptPubKey.IsConversionScript()) {
+            conversion_output_n = i;
+        }
     }
     result.pushKV("outputs", outputs);
     if (have_all_utxos) {
-        result.pushKV("fee", ValueFromAmount(total_in - output_value));
+        if (conversion_output_n >= 0) {
+            // Contains conversion output -> fee equals output amount
+            const CTxOut& txout = psbtx.tx->vout[conversion_output_n];
+            const CAmount feeCash = txout.amountType == CASH ? txout.nValue : 0;
+            const CAmount feeBond = txout.amountType == BOND ? txout.nValue : 0;
+            result.pushKV("feecash", ValueFromAmount(feeCash));
+            result.pushKV("feebond", ValueFromAmount(feeBond));
+        } else {
+            result.pushKV("feecash", ValueFromAmount(total_in[CASH] - output_value[CASH]));
+            result.pushKV("feebond", ValueFromAmount(total_in[BOND] - output_value[BOND]));
+        }
     }
 
     return result;
