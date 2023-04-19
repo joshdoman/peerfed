@@ -34,7 +34,8 @@ static const bool DEFAULT_PRINTPRIORITY = false;
 struct CBlockTemplate
 {
     CBlock block;
-    std::vector<CAmount> vTxFees;
+    std::vector<CAmount> vTxFeesCash;
+    std::vector<CAmount> vTxFeesBond;
     std::vector<int64_t> vTxSigOpsCost;
     std::vector<unsigned char> vchCoinbaseCommitment;
 };

@@ -145,7 +145,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Add dummy coinbase tx as first transaction
     pblock->vtx.emplace_back();
-    pblocktemplate->vTxFees.push_back(-1); // updated at end
+    pblocktemplate->vTxFeesCash.push_back(-1); // updated at end
+    pblocktemplate->vTxFeesBond.push_back(-1); // updated at end
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
 
     LOCK(::cs_main);
@@ -201,7 +202,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = m_chainstate.m_chainman.GenerateCoinbaseCommitment(*pblock, pindexPrev);
-    pblocktemplate->vTxFees[0] = -(nFees[CASH] + nFees[BOND]); // TODO: Implement vTxFees
+    pblocktemplate->vTxFeesCash[0] = -nFees[CASH];
+    pblocktemplate->vTxFeesBond[0] = -nFees[BOND];
 
     LogPrintf("CreateNewBlock(): block weight: %u txs: %u fees: %ld sigops %d\n", GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
 
@@ -281,7 +283,8 @@ bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& packa
 void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
 {
     pblocktemplate->block.vtx.emplace_back(iter->GetSharedTx());
-    pblocktemplate->vTxFees.push_back(iter->GetNormalizedFee());
+    pblocktemplate->vTxFeesCash.push_back(iter->GetFees()[CASH]);
+    pblocktemplate->vTxFeesBond.push_back(iter->GetFees()[BOND]);
     pblocktemplate->vTxSigOpsCost.push_back(iter->GetSigOpCost());
     nBlockWeight += iter->GetTxWeight();
     ++nBlockTx;
@@ -684,7 +687,7 @@ void static BitcoinMiner(ChainstateManager* chainman, CConnman* connman)
                     break;
                 if (mempool->GetTransactionsUpdated() != nTransactionsUpdatedLast && GetTime() - nStart > 60)
                     break;
-                    
+
                 {
                     LOCK(cs_main);
                     if (pindexPrev != chainman->ActiveTip())

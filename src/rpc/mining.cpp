@@ -633,7 +633,8 @@ static RPCHelpMan getblocktemplate()
                         {
                             {RPCResult::Type::NUM, "", "transactions before this one (by 1-based index in 'transactions' list) that must be present in the final block if this one is"},
                         }},
-                        {RPCResult::Type::NUM, "fee", "difference in value between transaction inputs and outputs (in satoshis); for coinbase transactions, this is a negative Number of the total collected block fees (ie, not including the block subsidy); if key is not present, fee is unknown and clients MUST NOT assume there isn't one"},
+                        {RPCResult::Type::NUM, "feecash", "difference in unscaled cash value between transaction inputs and outputs (in satoshis); for coinbase transactions, this is a negative Number of the total collected block fees (ie, not including the block subsidy); if key is not present, fee is unknown and clients MUST NOT assume there isn't one"},
+                        {RPCResult::Type::NUM, "feebond", "difference in unscaled bond value between transaction inputs and outputs (in satoshis); for coinbase transactions, this is a negative Number of the total collected block fees (ie, not including the block subsidy); if key is not present, fee is unknown and clients MUST NOT assume there isn't one"},
                         {RPCResult::Type::NUM, "sigops", "total SigOps cost, as counted for purposes of block limits; if key is not present, sigop cost is unknown and clients MUST NOT assume it is zero"},
                         {RPCResult::Type::NUM, "weight", "total transaction weight, as counted for purposes of block limits"},
                     }},
@@ -642,8 +643,8 @@ static RPCHelpMan getblocktemplate()
                 {
                     {RPCResult::Type::STR_HEX, "key", "values must be in the coinbase (keys may be ignored)"},
                 }},
-                {RPCResult::Type::NUM, "coinbasecashvalue", "maximum allowable cash input to coinbase transaction, including the generation award and transaction fees (in satoshis) and excluding any conversion remainders"},
-                {RPCResult::Type::NUM, "coinbasebondvalue", "maximum allowable bond input to coinbase transaction, including the generation award and transaction fees (in satoshis) and excluding any conversion remainders"},
+                {RPCResult::Type::NUM, "coinbasecashvalue", "maximum allowable unscaled cash input to coinbase transaction, including the generation award and transaction fees (in satoshis) and excluding any conversion remainders"},
+                {RPCResult::Type::NUM, "coinbasebondvalue", "maximum allowable unscaled bond input to coinbase transaction, including the generation award and transaction fees (in satoshis) and excluding any conversion remainders"},
                 {RPCResult::Type::STR, "longpollid", "an id to include with a request to longpoll on an update to this template"},
                 {RPCResult::Type::STR, "target", "The hash target"},
                 {RPCResult::Type::NUM_TIME, "mintime", "The minimum timestamp appropriate for the next block time, expressed in " + UNIX_EPOCH_TIME},
@@ -867,7 +868,8 @@ static RPCHelpMan getblocktemplate()
         entry.pushKV("depends", deps);
 
         int index_in_template = i - 1;
-        entry.pushKV("fee", pblocktemplate->vTxFees[index_in_template]);
+        entry.pushKV("feecash", pblocktemplate->vTxFeesCash[index_in_template]);
+        entry.pushKV("feebond", pblocktemplate->vTxFeesBond[index_in_template]);
         int64_t nTxSigOps = pblocktemplate->vTxSigOpsCost[index_in_template];
         if (fPreSegWit) {
             CHECK_NONFATAL(nTxSigOps % WITNESS_SCALE_FACTOR == 0);
