@@ -3006,7 +3006,7 @@ std::shared_ptr<CWallet> CWallet::Create(WalletContext& context, const std::stri
         if (!fallback_fee) {
             error = strprintf(_("Invalid amount for -fallbackfee=<amount>: '%s'"), args.GetArg("-fallbackfee", ""));
             return nullptr;
-        } else if (fallback_fee.value() > HIGH_TX_FEE_PER_KB) {
+        } else if (fallback_fee.value() > SCALED_HIGH_TX_FEE_PER_KB) {
             warnings.push_back(AmountHighWarn("-fallbackfee") + Untranslated(" ") +
                                _("This is the transaction fee you may pay when fee estimates are not available."));
         }

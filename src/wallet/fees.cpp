@@ -91,12 +91,15 @@ CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_contr
 CFeeRate GetDiscardRate(const CWallet& wallet, const CAmountType& amountType)
 {
     unsigned int highest_target = wallet.chain().estimateMaxBlocks();
+    CFeeRate wallet_discard_rate = wallet.m_discard_rate;
     CFeeRate discard_rate = wallet.chain().estimateSmartFee(highest_target, false /* conservative */);
-    // Convert normalized smart feerate to equivalent bond fee rate if amount is in bonds
-    if (amountType == BOND)
+    // Convert normalized fee rates to equivalent bond fee rates if amount is in bonds
+    if (amountType == BOND) {
+        wallet_discard_rate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(wallet_discard_rate.GetFeePerK(), CASH));
         discard_rate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(discard_rate.GetFeePerK(), CASH));
+    }
     // Don't let discard_rate be greater than longest possible fee estimate if we get a valid fee estimate
-    discard_rate = (discard_rate == CFeeRate(0)) ? wallet.m_discard_rate : std::min(discard_rate, wallet.m_discard_rate);
+    discard_rate = (discard_rate == CFeeRate(0)) ? wallet_discard_rate : std::min(discard_rate, wallet_discard_rate);
     // Discard rate must be at least dust relay feerate (cash and bonds have the same dust relay feerate)
     discard_rate = std::max(discard_rate, wallet.chain().relayDustFee());
     return discard_rate;
