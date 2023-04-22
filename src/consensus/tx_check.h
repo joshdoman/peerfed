@@ -5,6 +5,8 @@
 #ifndef BITCOIN_CONSENSUS_TX_CHECK_H
 #define BITCOIN_CONSENSUS_TX_CHECK_H
 
+#include <util/strencodings.h>
+
 #include <string>
 
 /**
@@ -20,6 +22,6 @@ class CTxOut;
 
 bool CheckTransaction(const CTransaction& tx, TxValidationState& state);
 
-bool CheckTransactionContainsOutputs(const CTransaction& tx, std::vector<CTxOut> outputs, std::string& missingOutput);
+bool CheckTransactionContainsOutputs(const CTransaction& tx, std::vector<CTxOut> outputs, std::string& addressWithIncorrectAmount);
 
 #endif // BITCOIN_CONSENSUS_TX_CHECK_H

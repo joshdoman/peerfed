@@ -71,27 +71,45 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
     return true;
 }
 
-bool CheckTransactionContainsOutputs(const CTransaction& tx, std::vector<CTxOut> outputs, std::string& missingOutput)
+bool CheckTransactionContainsOutputs(const CTransaction& tx, std::vector<CTxOut> outputs, std::string& addressWithIncorrectAmount)
 {
     // Create mapping of output string to # of occurrences of output in transaction
-    std::map<std::string, int> txOutputCount;
+    std::map<std::string, CAmount> addressToActualCashAmount;
+    std::map<std::string, CAmount> addressToActualBondAmount;
     for (const auto& txout : tx.vout)
     {
-        ++txOutputCount[txout.ToString()];
+        if (txout.amountType == CASH) {
+            addressToActualCashAmount[HexStr(txout.scriptPubKey)] += txout.nValue;
+        } else if (txout.amountType == BOND) {
+            addressToActualBondAmount[HexStr(txout.scriptPubKey)] += txout.nValue;
+        }
     }
 
     // Create mapping of output string to # of occurrences in outputs list
-    std::map<std::string, int> outputsCount;
+    std::map<std::string, CAmount> addressToExpectedCashAmount;
+    std::map<std::string, CAmount> addressToExpectedBondAmount;
     for (const auto& output : outputs)
     {
-        ++outputsCount[output.ToString()];
+        if (output.amountType == CASH) {
+            addressToExpectedCashAmount[HexStr(output.scriptPubKey)] += output.nValue;
+        } else if (output.amountType == BOND) {
+            addressToExpectedBondAmount[HexStr(output.scriptPubKey)] += output.nValue;
+        }
     }
 
-    // Check that every output in the outputs list occurs at least as many times in the transaction
-    for (const auto& [outputStr, count] : outputsCount)
+    // Check that every scriptPubKey receives correct cash amount
+    for (const auto& [hexStr, cashAmount] : addressToExpectedCashAmount)
     {
-        if (txOutputCount[outputStr] < count) {
-            missingOutput = outputStr;
+        if (addressToExpectedCashAmount[hexStr] != addressToActualCashAmount[hexStr]) {
+            addressWithIncorrectAmount = hexStr;
+            return false;
+        }
+    }
+    // Check that every scriptPubKey receives correct cash amount
+    for (const auto& [hexStr, bondAmount] : addressToExpectedBondAmount)
+    {
+        if (addressToExpectedBondAmount[hexStr] != addressToActualBondAmount[hexStr]) {
+            addressWithIncorrectAmount = hexStr;
             return false;
         }
     }

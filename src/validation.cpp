@@ -2390,9 +2390,9 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
     // Verify that the coinbase transaction contains all prescribed conversion outputs
     const CTransaction &coinbaseTx = *(block.vtx[0]);
-    std::string missingOutput;
-    if (!CheckTransactionContainsOutputs(coinbaseTx, conversionOutputs, missingOutput)) {
-        LogPrintf("ERROR: ConnectBlock(): coinbase tx is missing conversion output %s\n", missingOutput);
+    std::string addressWithIncorrectAmount;
+    if (!CheckTransactionContainsOutputs(coinbaseTx, conversionOutputs, addressWithIncorrectAmount)) {
+        LogPrintf("ERROR: ConnectBlock(): coinbase tx assigns incorrect conversion remainder to scriptPubKey=%s\n", addressWithIncorrectAmount);
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-missing-conversion-output");
     }
 
