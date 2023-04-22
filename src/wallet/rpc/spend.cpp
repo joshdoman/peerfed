@@ -205,7 +205,7 @@ static void SetFeeEstimateMode(const CWallet& wallet, CCoinControl& cc, const Un
         return;
     }
     if (!is_scaled_fee_rate.isNull()) {
-        cc.fIsScaledFeeRate == is_scaled_fee_rate.get_bool();
+        cc.fIsScaledFeeRate = is_scaled_fee_rate.get_bool();
     }
     if (!estimate_mode.isNull() && !FeeModeFromString(estimate_mode.get_str(), cc.m_fee_mode)) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, InvalidEstimateModeErrorMessage());

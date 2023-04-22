@@ -56,7 +56,7 @@ struct CoinsResult {
     void Filter(CAmountType amountType);
 
     /** Sum of all available coins */
-    mutable CAmount total_amount[2]{0};
+    mutable CAmounts total_amount{{0}};
 };
 
 /**
