@@ -11,6 +11,7 @@
 #include <coins.h>
 #include <consensus/amount.h>
 #include <consensus/params.h>
+#include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <core_io.h>
 #include <deploymentinfo.h>
@@ -31,6 +32,7 @@
 #include <rpc/server_util.h>
 #include <rpc/util.h>
 #include <script/descriptor.h>
+#include <script/standard.h>
 #include <streams.h>
 #include <sync.h>
 #include <txdb.h>
@@ -1788,7 +1790,9 @@ static RPCHelpMan getblockstats()
                 {RPCResult::Type::NUM, "swtotal_weight", /*optional=*/true, "Total weight of all segwit transactions"},
                 {RPCResult::Type::NUM, "swtxs", /*optional=*/true, "The number of segwit transactions"},
                 {RPCResult::Type::NUM, "time", /*optional=*/true, "The block time"},
-                {RPCResult::Type::NUM, "total_out", /*optional=*/true, "Total amount in all outputs (excluding coinbase and thus reward [ie subsidy + totalfee])"},
+                {RPCResult::Type::NUM, "total_out_unscaled_cash", /*optional=*/true, "Unscaled total cash amount in all outputs (excluding coinbase and thus reward [ie subsidy + totalfee])"},
+                {RPCResult::Type::NUM, "total_out_unscaled_bond", /*optional=*/true, "Unscaled total bond amount in all outputs (excluding coinbase and thus reward [ie subsidy + totalfee])"},
+                {RPCResult::Type::NUM, "total_out_normalized", /*optional=*/true, "Normalized unscaled total amount in all outputs (excluding coinbase and thus reward [ie subsidy + totalfee])"},
                 {RPCResult::Type::NUM, "total_size", /*optional=*/true, "Total size of all non-coinbase transactions"},
                 {RPCResult::Type::NUM, "total_weight", /*optional=*/true, "Total weight of all non-coinbase transactions"},
                 {RPCResult::Type::NUM, "totalfee", /*optional=*/true, "The fee total"},
@@ -1836,7 +1840,7 @@ static RPCHelpMan getblockstats()
     CAmount maxfeerate = 0;
     CAmount minfee = MAX_MONEY;
     CAmount minfeerate = MAX_MONEY;
-    CAmount total_out = 0;
+    CAmounts total_out = {0};
     CAmount totalfee = 0;
     int64_t inputs = 0;
     int64_t maxtxsize = 0;
@@ -1856,11 +1860,17 @@ static RPCHelpMan getblockstats()
         const auto& tx = block.vtx.at(i);
         outputs += tx->vout.size();
 
-        CAmount tx_total_out = 0;
+        std::optional<CTxOut> conversion_out;
+        CAmounts tx_total_out = {0};
         if (loop_outputs) {
             for (const CTxOut& out : tx->vout) {
-                tx_total_out += out.nValue;
                 utxo_size_inc += GetSerializeSize(out, PROTOCOL_VERSION) + PER_UTXO_OVERHEAD;
+                if (out.scriptPubKey.IsConversionScript()) {
+                    // Do not count the conversion output amount because it is a fee for the miner
+                    conversion_out = out;
+                } else {
+                    tx_total_out[out.amountType] += out.nValue;
+                }
             }
         }
 
@@ -1868,12 +1878,14 @@ static RPCHelpMan getblockstats()
             continue;
         }
 
+        // TODO: Count conversion remainders
+
         inputs += tx->vin.size(); // Don't count coinbase's fake input
-        total_out += tx_total_out; // Don't count coinbase reward
+        total_out[CASH] += tx_total_out[CASH]; // Don't count coinbase reward
+        total_out[BOND] += tx_total_out[BOND]; // Don't count coinbase reward
 
         int64_t tx_size = 0;
         if (do_calculate_size) {
-
             tx_size = tx->GetTotalSize();
             if (do_mediantxsize) {
                 txsize_array.push_back(tx_size);
@@ -1896,16 +1908,25 @@ static RPCHelpMan getblockstats()
         }
 
         if (loop_inputs) {
-            CAmount tx_total_in = 0;
+            CAmounts tx_total_in = {0};
             const auto& txundo = blockUndo.vtxundo.at(i - 1);
             for (const Coin& coin: txundo.vprevout) {
                 const CTxOut& prevoutput = coin.out;
 
-                tx_total_in += prevoutput.nValue;
+                tx_total_in[prevoutput.amountType] += prevoutput.nValue;
                 utxo_size_inc -= GetSerializeSize(prevoutput, PROTOCOL_VERSION) + PER_UTXO_OVERHEAD;
             }
 
-            CAmount txfee = tx_total_in - tx_total_out;
+            CAmounts txfees = {0};
+            if (conversion_out.has_value()) {
+                txfees[conversion_out.value().amountType] = conversion_out.value().nValue;
+            } else {
+                txfees[CASH] = tx_total_in[CASH] - tx_total_out[CASH];
+                txfees[BOND] = tx_total_in[BOND] - tx_total_out[BOND];
+            }
+
+            // Normalize the transaction fee
+            CAmount txfee = txfees[CASH] + Consensus::CalculateOutputAmount(block.GetTotalSupply(), txfees[BOND], BOND);
             CHECK_NONFATAL(MoneyRange(txfee));
             if (do_medianfee) {
                 fee_array.push_back(txfee);
@@ -1955,7 +1976,9 @@ static RPCHelpMan getblockstats()
     ret_all.pushKV("swtotal_weight", swtotal_weight);
     ret_all.pushKV("swtxs", swtxs);
     ret_all.pushKV("time", pindex.GetBlockTime());
-    ret_all.pushKV("total_out", total_out);
+    ret_all.pushKV("total_out_unscaled_cash", total_out[CASH]);
+    ret_all.pushKV("total_out_unscaled_bond", total_out[BOND]);
+    ret_all.pushKV("total_out_normalized", total_out[CASH] + Consensus::CalculateOutputAmount(block.GetTotalSupply(), total_out[BOND], BOND));
     ret_all.pushKV("total_size", total_size);
     ret_all.pushKV("total_weight", total_weight);
     ret_all.pushKV("totalfee", totalfee);
