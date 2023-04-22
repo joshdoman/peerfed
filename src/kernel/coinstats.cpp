@@ -103,8 +103,10 @@ static void ApplyStats(CCoinsStats& stats, const uint256& hash, const std::map<u
     stats.nTransactions++;
     for (auto it = outputs.begin(); it != outputs.end(); ++it) {
         stats.nTransactionOutputs++;
-        if (stats.total_amount.has_value()) {
-            stats.total_amount = CheckedAdd(*stats.total_amount, it->second.out.nValue);
+        if (it->second.out.amountType == CASH && stats.total_amount_cash.has_value()) {
+            stats.total_amount_cash = CheckedAdd(*stats.total_amount_cash, it->second.out.nValue);
+        } else if (it->second.out.amountType == BOND && stats.total_amount_bond.has_value()) {
+            stats.total_amount_bond = CheckedAdd(*stats.total_amount_bond, it->second.out.nValue);
         }
         stats.nBogoSize += GetBogoSize(it->second.out.scriptPubKey);
     }

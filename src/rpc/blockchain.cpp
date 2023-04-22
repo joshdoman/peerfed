@@ -887,7 +887,8 @@ static RPCHelpMan gettxoutsetinfo()
                         {RPCResult::Type::STR_HEX, "muhash", /*optional=*/true, "The serialized hash (only present if 'muhash' hash_type is chosen)"},
                         {RPCResult::Type::NUM, "transactions", /*optional=*/true, "The number of transactions with unspent outputs (not available when coinstatsindex is used)"},
                         {RPCResult::Type::NUM, "disk_size", /*optional=*/true, "The estimated size of the chainstate on disk (not available when coinstatsindex is used)"},
-                        {RPCResult::Type::STR_AMOUNT, "total_amount", "The total amount of coins in the UTXO set"},
+                        {RPCResult::Type::STR_AMOUNT, "total_amount_unscaled_cash", "The total amount of unscaled cash in the UTXO set"},
+                        {RPCResult::Type::STR_AMOUNT, "total_amount_unscaled_bond", "The total amount of unscaled bonds in the UTXO set"},
                         {RPCResult::Type::STR_AMOUNT, "total_unspendable_amount", /*optional=*/true, "The total amount of coins permanently excluded from the UTXO set (only available if coinstatsindex is used)"},
                         {RPCResult::Type::OBJ, "block_info", /*optional=*/true, "Info on amounts in the block at this block height (only available if coinstatsindex is used)",
                         {
@@ -977,8 +978,10 @@ static RPCHelpMan gettxoutsetinfo()
         if (hash_type == CoinStatsHashType::MUHASH) {
             ret.pushKV("muhash", stats.hashSerialized.GetHex());
         }
-        CHECK_NONFATAL(stats.total_amount.has_value());
-        ret.pushKV("total_amount", ValueFromAmount(stats.total_amount.value()));
+        CHECK_NONFATAL(stats.total_amount_cash.has_value());
+        ret.pushKV("total_amount_unscaled_cash", ValueFromAmount(stats.total_amount_cash.value()));
+        CHECK_NONFATAL(stats.total_amount_bond.has_value());
+        ret.pushKV("total_amount_unscaled_bond", ValueFromAmount(stats.total_amount_bond.value()));
         if (!stats.index_used) {
             ret.pushKV("transactions", static_cast<int64_t>(stats.nTransactions));
             ret.pushKV("disk_size", stats.nDiskSize);

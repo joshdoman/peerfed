@@ -37,7 +37,8 @@ struct CCoinsStats {
     uint256 hashSerialized{};
     uint64_t nDiskSize{0};
     //! The total amount, or nullopt if an overflow occurred calculating it
-    std::optional<CAmount> total_amount{0};
+    std::optional<CAmount> total_amount_cash{0};
+    std::optional<CAmount> total_amount_bond{0};
 
     //! The number of coins contained.
     uint64_t coins_count{0};

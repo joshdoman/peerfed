@@ -31,7 +31,8 @@ struct DBVal {
     uint256 muhash;
     uint64_t transaction_output_count;
     uint64_t bogo_size;
-    CAmount total_amount;
+    CAmount total_amount_cash;
+    CAmount total_amount_bond;
     CAmount total_subsidy;
     CAmount total_unspendable_amount;
     CAmount total_prevout_spent_amount;
@@ -47,7 +48,8 @@ struct DBVal {
         READWRITE(obj.muhash);
         READWRITE(obj.transaction_output_count);
         READWRITE(obj.bogo_size);
-        READWRITE(obj.total_amount);
+        READWRITE(obj.total_amount_cash);
+        READWRITE(obj.total_amount_bond);
         READWRITE(obj.total_subsidy);
         READWRITE(obj.total_unspendable_amount);
         READWRITE(obj.total_prevout_spent_amount);
@@ -181,7 +183,7 @@ bool CoinStatsIndex::CustomAppend(const interfaces::BlockInfo& block)
                 }
 
                 ++m_transaction_output_count;
-                m_total_amount += coin.out.nValue;
+                m_total_amounts[coin.out.amountType] += coin.out.nValue;
                 m_bogo_size += GetBogoSize(coin.out.scriptPubKey);
             }
 
@@ -198,7 +200,7 @@ bool CoinStatsIndex::CustomAppend(const interfaces::BlockInfo& block)
                     m_total_prevout_spent_amount += coin.out.nValue;
 
                     --m_transaction_output_count;
-                    m_total_amount -= coin.out.nValue;
+                    m_total_amounts[coin.out.amountType] -= coin.out.nValue;
                     m_bogo_size -= GetBogoSize(coin.out.scriptPubKey);
                 }
             }
@@ -221,7 +223,8 @@ bool CoinStatsIndex::CustomAppend(const interfaces::BlockInfo& block)
     value.first = block.hash;
     value.second.transaction_output_count = m_transaction_output_count;
     value.second.bogo_size = m_bogo_size;
-    value.second.total_amount = m_total_amount;
+    value.second.total_amount_cash = m_total_amounts[CASH];
+    value.second.total_amount_bond = m_total_amounts[BOND];
     value.second.total_subsidy = m_total_subsidy;
     value.second.total_unspendable_amount = m_total_unspendable_amount;
     value.second.total_prevout_spent_amount = m_total_prevout_spent_amount;
@@ -336,7 +339,8 @@ std::optional<CCoinsStats> CoinStatsIndex::LookUpStats(const CBlockIndex& block_
     stats.hashSerialized = entry.muhash;
     stats.nTransactionOutputs = entry.transaction_output_count;
     stats.nBogoSize = entry.bogo_size;
-    stats.total_amount = entry.total_amount;
+    stats.total_amount_cash = entry.total_amount_cash;
+    stats.total_amount_bond = entry.total_amount_bond;
     stats.total_subsidy = entry.total_subsidy;
     stats.total_unspendable_amount = entry.total_unspendable_amount;
     stats.total_prevout_spent_amount = entry.total_prevout_spent_amount;
@@ -378,7 +382,8 @@ bool CoinStatsIndex::CustomInit(const std::optional<interfaces::BlockKey>& block
 
         m_transaction_output_count = entry.transaction_output_count;
         m_bogo_size = entry.bogo_size;
-        m_total_amount = entry.total_amount;
+        m_total_amounts[CASH] = entry.total_amount_cash;
+        m_total_amounts[BOND] = entry.total_amount_bond;
         m_total_subsidy = entry.total_subsidy;
         m_total_unspendable_amount = entry.total_unspendable_amount;
         m_total_prevout_spent_amount = entry.total_prevout_spent_amount;
@@ -457,7 +462,7 @@ bool CoinStatsIndex::ReverseBlock(const CBlock& block, const CBlockIndex* pindex
             }
 
             --m_transaction_output_count;
-            m_total_amount -= coin.out.nValue;
+            m_total_amounts[coin.out.amountType] -= coin.out.nValue;
             m_bogo_size -= GetBogoSize(coin.out.scriptPubKey);
         }
 
@@ -474,7 +479,7 @@ bool CoinStatsIndex::ReverseBlock(const CBlock& block, const CBlockIndex* pindex
                 m_total_prevout_spent_amount -= coin.out.nValue;
 
                 m_transaction_output_count++;
-                m_total_amount += coin.out.nValue;
+                m_total_amounts[coin.out.amountType] += coin.out.nValue;
                 m_bogo_size += GetBogoSize(coin.out.scriptPubKey);
             }
         }
@@ -490,7 +495,8 @@ bool CoinStatsIndex::ReverseBlock(const CBlock& block, const CBlockIndex* pindex
     Assert(read_out.second.muhash == out);
 
     Assert(m_transaction_output_count == read_out.second.transaction_output_count);
-    Assert(m_total_amount == read_out.second.total_amount);
+    Assert(m_total_amounts[CASH] == read_out.second.total_amount_cash);
+    Assert(m_total_amounts[BOND] == read_out.second.total_amount_bond);
     Assert(m_bogo_size == read_out.second.bogo_size);
     Assert(m_total_subsidy == read_out.second.total_subsidy);
     Assert(m_total_unspendable_amount == read_out.second.total_unspendable_amount);
