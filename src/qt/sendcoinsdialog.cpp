@@ -770,7 +770,7 @@ void SendCoinsDialog::setBalance(const interfaces::WalletBalances& balances)
 void SendCoinsDialog::refreshBalance()
 {
     setBalance(model->getCachedBalance());
-    ui->customFee->setDisplayUnit(model->getOptionsModel()->getDisplayUnit());
+    ui->customFee->setDisplayUnit(model->getOptionsModel()->getDisplayUnit(CASH));
     updateSmartFeeLabel();
 }
 
