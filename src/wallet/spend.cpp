@@ -881,7 +881,11 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
         if (coin_control.fIsScaledFeeRate)
             unscaledFeeRate = unscaledFeeRate.Descaled(wallet.chain().getLastScaleFactor());
         if (coin_selection_params.m_effective_feerate > unscaledFeeRate) {
-            return util::Error{strprintf(_("Unscaled fee rate (%s) is lower than the minimum fee rate setting (%s)"), unscaledFeeRate.ToString(FeeEstimateMode::SAT_VB), coin_selection_params.m_effective_feerate.ToString(FeeEstimateMode::SAT_VB))};
+            if (coin_control.fIsScaledFeeRate) {
+                return util::Error{strprintf(_("Fee rate (%s) is lower than the scaled minimum fee rate setting (%s)"), (*coin_control.m_feerate).ToString(FeeEstimateMode::SAT_VB), coin_selection_params.m_effective_feerate.Scaled(wallet.chain().getLastScaleFactor()).ToString(FeeEstimateMode::SAT_VB))};
+            } else {
+                return util::Error{strprintf(_("Unscaled fee rate (%s) is lower than the minimum fee rate setting (%s)"), unscaledFeeRate.ToString(FeeEstimateMode::SAT_VB), coin_selection_params.m_effective_feerate.ToString(FeeEstimateMode::SAT_VB))};
+            }
         }
     }
     if (feeCalc.reason == FeeReason::FALLBACK && !wallet.m_allow_fallback_fee) {
@@ -1193,7 +1197,11 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         if (coin_control.fIsScaledFeeRate)
             unscaledFeeRate = unscaledFeeRate.Descaled(wallet.chain().getLastScaleFactor());
         if (coin_selection_params.m_effective_feerate > unscaledFeeRate) {
-            return util::Error{strprintf(_("Unscaled fee rate (%s) is lower than the minimum fee rate setting (%s)"), unscaledFeeRate.ToString(FeeEstimateMode::SAT_VB), coin_selection_params.m_effective_feerate.ToString(FeeEstimateMode::SAT_VB))};
+            if (coin_control.fIsScaledFeeRate) {
+                return util::Error{strprintf(_("Fee rate (%s) is lower than the scaled minimum fee rate setting (%s)"), (*coin_control.m_feerate).ToString(FeeEstimateMode::SAT_VB), coin_selection_params.m_effective_feerate.Scaled(wallet.chain().getLastScaleFactor()).ToString(FeeEstimateMode::SAT_VB))};
+            } else {
+                return util::Error{strprintf(_("Unscaled fee rate (%s) is lower than the minimum fee rate setting (%s)"), unscaledFeeRate.ToString(FeeEstimateMode::SAT_VB), coin_selection_params.m_effective_feerate.ToString(FeeEstimateMode::SAT_VB))};
+            }
         }
     }
     if (feeCalc.reason == FeeReason::FALLBACK && !wallet.m_allow_fallback_fee) {
