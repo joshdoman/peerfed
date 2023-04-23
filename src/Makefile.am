@@ -586,6 +586,8 @@ libbitcoin_consensus_a_SOURCES = \
   arith_uint256.h \
   consensus/amount.cpp \
   consensus/amount.h \
+  consensus/conversion.cpp \
+  consensus/conversion.h \
   consensus/merkle.cpp \
   consensus/merkle.h \
   consensus/params.h \
@@ -882,6 +884,7 @@ libbitcoinkernel_la_SOURCES = \
   coins.cpp \
   compressor.cpp \
   consensus/amount.cpp \
+  consensus/conversion.cpp \
   consensus/merkle.cpp \
   consensus/tx_check.cpp \
   consensus/tx_verify.cpp \
