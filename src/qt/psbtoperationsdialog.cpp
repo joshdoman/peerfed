@@ -175,43 +175,79 @@ void PSBTOperationsDialog::updateTransactionDisplay() {
 std::string PSBTOperationsDialog::renderTransaction(const PartiallySignedTransaction &psbtx)
 {
     QString tx_description = "";
-    CAmount totalAmount = 0;
-    BitcoinUnit unit; // TODO: Handle unit type if different outputs have different amount types
+    CAmounts totalAmount = {0};
     for (const CTxOut& out : psbtx.tx->vout) {
-        CTxDestination address;
-        ExtractDestination(out.scriptPubKey, address);
-        totalAmount += out.nValue;
-        unit = m_client_model->getOptionsModel()->getDisplayUnit(out.amountType);
+        QString toStr;
+        if (out.scriptPubKey.IsConversionScript()) {
+            toStr = tr("miner (as conversion transaction fee)");
+        } else {
+            CTxDestination address;
+            ExtractDestination(out.scriptPubKey, address);
+            toStr = QString::fromStdString(EncodeDestination(address));
+        }
+        totalAmount[out.amountType] += out.nValue;
+        BitcoinUnit unit = m_client_model->getOptionsModel()->getDisplayUnit(out.amountType);
         tx_description.append(tr(" * Sends %1 to %2")
             .arg(BitcoinUnits::formatWithUnit(unit, out.nValue))
-            .arg(QString::fromStdString(EncodeDestination(address))));
+            .arg(toStr));
         tx_description.append("<br>");
     }
 
     PSBTAnalysis analysis = AnalyzePSBT(psbtx);
     tx_description.append(" * ");
-    if (!*analysis.fee) {
+    if (!analysis.fees.has_value()) {
         // This happens if the transaction is missing input UTXO information.
         tx_description.append(tr("Unable to calculate transaction fee or total transaction amount."));
     } else {
         tx_description.append(tr("Pays transaction fee: "));
-        tx_description.append(BitcoinUnits::formatWithUnit(unit, *analysis.fee));
-
-        // add total amount in all subdivision units
-        tx_description.append("<hr />");
-        QStringList alternativeUnits;
-        for (const BitcoinUnits::Unit u : BitcoinUnits::availableUnits())
-        {
-            if(u != unit && BitcoinUnits::type(u) == BitcoinUnits::type(unit)
-                && BitcoinUnits::isShare(u) == BitcoinUnits::isShare(unit)) {
-                alternativeUnits.append(BitcoinUnits::formatHtmlWithUnit(u, totalAmount));
-            }
+        if ((*analysis.fees)[CASH] > 0) {
+            BitcoinUnit unit = m_client_model->getOptionsModel()->getDisplayUnit(CASH);
+            tx_description.append(BitcoinUnits::formatWithUnit(unit, (*analysis.fees)[CASH]));
         }
-        tx_description.append(QString("<b>%1</b>: <b>%2</b>").arg(tr("Total Amount"))
-            .arg(BitcoinUnits::formatHtmlWithUnit(m_client_model->getOptionsModel()->getDisplayUnit(), totalAmount)));
-        tx_description.append(QString("<br /><span style='font-size:10pt; font-weight:normal;'>(=%1)</span>")
-            .arg(alternativeUnits.join(" " + tr("or") + " ")));
-    }
+        if ((*analysis.fees)[CASH] > 0 && (*analysis.fees)[BOND] > 0) {
+            tx_description.append(", ");
+        }
+        if ((*analysis.fees)[BOND] > 0) {
+            BitcoinUnit unit = m_client_model->getOptionsModel()->getDisplayUnit(BOND);
+            tx_description.append(BitcoinUnits::formatWithUnit(unit, (*analysis.fees)[BOND]));
+        }
+
+        if (totalAmount[CASH] > 0) {
+            // add total amount in all subdivision units
+            tx_description.append("<hr />");
+            BitcoinUnit unit = m_client_model->getOptionsModel()->getDisplayUnit(CASH);
+            QStringList alternativeUnits;
+            for (const BitcoinUnits::Unit u : BitcoinUnits::availableUnits())
+            {
+                if(u != unit && BitcoinUnits::type(u) == BitcoinUnits::type(unit)
+                    && BitcoinUnits::isShare(u) == BitcoinUnits::isShare(unit)) {
+                    alternativeUnits.append(BitcoinUnits::formatHtmlWithUnit(u, totalAmount[CASH]));
+                }
+            }
+            tx_description.append(QString("<b>%1</b>: <b>%2</b>").arg(tr("Total Amount"))
+                .arg(BitcoinUnits::formatHtmlWithUnit(m_client_model->getOptionsModel()->getDisplayUnit(CASH), totalAmount[CASH])));
+            tx_description.append(QString("<br /><span style='font-size:10pt; font-weight:normal;'>(=%1)</span>")
+                .arg(alternativeUnits.join(" " + tr("or") + " ")));
+        }
+
+        if (totalAmount[BOND] > 0) {
+            // add total amount in all subdivision units
+            tx_description.append("<hr />");
+            BitcoinUnit unit = m_client_model->getOptionsModel()->getDisplayUnit(BOND);
+            QStringList alternativeUnits;
+            for (const BitcoinUnits::Unit u : BitcoinUnits::availableUnits())
+            {
+                if(u != unit && BitcoinUnits::type(u) == BitcoinUnits::type(unit)
+                    && BitcoinUnits::isShare(u) == BitcoinUnits::isShare(unit)) {
+                    alternativeUnits.append(BitcoinUnits::formatHtmlWithUnit(u, totalAmount[BOND]));
+                }
+            }
+            tx_description.append(QString("<b>%1</b>: <b>%2</b>").arg(tr("Total Amount"))
+                .arg(BitcoinUnits::formatHtmlWithUnit(m_client_model->getOptionsModel()->getDisplayUnit(BOND), totalAmount[BOND])));
+            tx_description.append(QString("<br /><span style='font-size:10pt; font-weight:normal;'>(=%1)</span>")
+                .arg(alternativeUnits.join(" " + tr("or") + " ")));
+        }
+}
 
     size_t num_unsigned = CountPSBTUnsignedInputs(psbtx);
     if (num_unsigned > 0) {

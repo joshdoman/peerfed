@@ -1804,8 +1804,9 @@ static RPCHelpMan analyzepsbt()
                         }},
                     }},
                     {RPCResult::Type::NUM, "estimated_vsize", /*optional=*/true, "Estimated vsize of the final signed transaction"},
-                    {RPCResult::Type::STR_AMOUNT, "estimated_feerate", /*optional=*/true, "Estimated feerate of the final signed transaction in " + CURRENCY_UNIT + "/kvB. Shown only if all UTXO slots in the PSBT have been filled"},
-                    {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "The transaction fee paid. Shown only if all UTXO slots in the PSBT have been filled"},
+                    {RPCResult::Type::STR_AMOUNT, "estimated_feerate", /*optional=*/true, "Estimated normalizd unscaled feerate of the final signed transaction in " + CURRENCY_UNIT + "/kvB. Shown only if all UTXO slots in the PSBT have been filled"},
+                    {RPCResult::Type::STR_AMOUNT, "feecash", /*optional=*/true, "The unscaled cash transaction fee paid. Shown only if all UTXO slots in the PSBT have been filled"},
+                    {RPCResult::Type::STR_AMOUNT, "feebond", /*optional=*/true, "The unscaled bond transaction fee paid. Shown only if all UTXO slots in the PSBT have been filled"},
                     {RPCResult::Type::STR, "next", "Role of the next person that this psbt needs to go to"},
                     {RPCResult::Type::STR, "error", /*optional=*/true, "Error message (if there is one)"},
                 }
@@ -1817,6 +1818,9 @@ static RPCHelpMan analyzepsbt()
 {
     RPCTypeCheck(request.params, {UniValue::VSTR});
 
+    ChainstateManager& chainman = EnsureAnyChainman(request.context);
+    LOCK(cs_main);
+
     // Unserialize the transaction
     PartiallySignedTransaction psbtx;
     std::string error;
@@ -1824,7 +1828,7 @@ static RPCHelpMan analyzepsbt()
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, strprintf("TX decode failed %s", error));
     }
 
-    PSBTAnalysis psbta = AnalyzePSBT(psbtx);
+    PSBTAnalysis psbta = AnalyzePSBT(psbtx, chainman.ActiveTip()->GetTotalSupply());
 
     UniValue result(UniValue::VOBJ);
     UniValue inputs_result(UniValue::VARR);
@@ -1869,8 +1873,9 @@ static RPCHelpMan analyzepsbt()
     if (psbta.estimated_feerate != std::nullopt) {
         result.pushKV("estimated_feerate", ValueFromAmount(psbta.estimated_feerate->GetFeePerK()));
     }
-    if (psbta.fee != std::nullopt) {
-        result.pushKV("fee", ValueFromAmount(*psbta.fee));
+    if (psbta.fees != std::nullopt) {
+        result.pushKV("feecash", ValueFromAmount((*psbta.fees)[CASH]));
+        result.pushKV("feebond", ValueFromAmount((*psbta.fees)[BOND]));
     }
     result.pushKV("next", PSBTRoleName(psbta.next));
     if (!psbta.error.empty()) {

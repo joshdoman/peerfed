@@ -4,6 +4,7 @@
 
 #include <coins.h>
 #include <consensus/amount.h>
+#include <consensus/conversion.h>
 #include <consensus/tx_verify.h>
 #include <node/psbt.h>
 #include <policy/policy.h>
@@ -13,14 +14,14 @@
 #include <numeric>
 
 namespace node {
-PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
+PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx, std::optional<CAmounts> totalSupply)
 {
     // Go through each input and build status
     PSBTAnalysis result;
 
     bool calc_fee = true;
 
-    CAmount in_amt = 0;
+    CAmounts in_amt = {0};
 
     result.inputs.resize(psbtx.tx->vin.size());
 
@@ -36,11 +37,11 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
         // Check for a UTXO
         CTxOut utxo;
         if (psbtx.GetInputUTXO(utxo, i)) {
-            if (!MoneyRange(utxo.nValue) || !MoneyRange(in_amt + utxo.nValue)) {
+            if (!MoneyRange(utxo.nValue) || !MoneyRange(in_amt[utxo.amountType] + utxo.nValue)) {
                 result.SetInvalid(strprintf("PSBT is not valid. Input %u has invalid value", i));
                 return result;
             }
-            in_amt += utxo.nValue;
+            in_amt[utxo.amountType] += utxo.nValue;
             input_analysis.has_utxo = true;
         } else {
             if (input.non_witness_utxo && psbtx.tx->vin[i].prevout.n >= input.non_witness_utxo->vout.size()) {
@@ -96,23 +97,38 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
     assert(result.next > PSBTRole::CREATOR);
 
     if (calc_fee) {
+        // Get conversion out if one is present
+        std::optional<CTxOut> conversion_out;
+        for (CTxOut txout : psbtx.tx->vout) {
+            if (txout.scriptPubKey.IsConversionScript()) {
+                conversion_out = txout;
+            }
+        }
         // Get the output amount
-        CAmount out_amt = std::accumulate(psbtx.tx->vout.begin(), psbtx.tx->vout.end(), CAmount(0),
-            [](CAmount a, const CTxOut& b) {
-                if (!MoneyRange(a) || !MoneyRange(b.nValue) || !MoneyRange(a + b.nValue)) {
-                    return CAmount(-1);
+        CAmounts out_amt = std::accumulate(psbtx.tx->vout.begin(), psbtx.tx->vout.end(), CAmounts({0}),
+            [](CAmounts a, const CTxOut& b) {
+                if (!MoneyRange(a[CASH]) || !MoneyRange(a[BOND]) || !MoneyRange(b.nValue) || !MoneyRange(a[b.amountType] + b.nValue)) {
+                    return CAmounts({-1});
                 }
-                return a += b.nValue;
+                CAmounts newA = a;
+                newA[b.amountType] += b.nValue;
+                return newA;
             }
         );
-        if (!MoneyRange(out_amt)) {
+        if (!MoneyRange(out_amt[CASH]) || !MoneyRange(out_amt[BOND])) {
             result.SetInvalid("PSBT is not valid. Output amount invalid");
             return result;
         }
 
         // Get the fee
-        CAmount fee = in_amt - out_amt;
-        result.fee = fee;
+        CAmounts fees = {0};
+        if (conversion_out.has_value()) {
+            fees[conversion_out.value().amountType] = conversion_out.value().nValue;
+        } else {
+            fees[CASH] = in_amt[CASH] - out_amt[CASH];
+            fees[BOND] = in_amt[BOND] - out_amt[BOND];
+        }
+        result.fees = fees;
 
         // Estimate the size
         CMutableTransaction mtx(*psbtx.tx);
@@ -140,8 +156,11 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
             size_t size(GetVirtualTransactionSize(ctx, GetTransactionSigOpCost(ctx, view, STANDARD_SCRIPT_VERIFY_FLAGS), ::nBytesPerSigOp));
             result.estimated_vsize = size;
             // Estimate fee rate
-            CFeeRate feerate(fee, size);
-            result.estimated_feerate = feerate;
+            if (totalSupply) {
+                CAmount normalizedFee = fees[CASH] + GetConvertedAmount(totalSupply.value(), fees[BOND], BOND);
+                CFeeRate feerate(normalizedFee, size);
+                result.estimated_feerate = feerate;
+            }
         }
 
     }
