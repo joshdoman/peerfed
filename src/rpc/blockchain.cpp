@@ -1789,6 +1789,7 @@ static RPCHelpMan getblockstats()
                 {RPCResult::Type::NUM, "swtotal_size", /*optional=*/true, "Total size of all segwit transactions"},
                 {RPCResult::Type::NUM, "swtotal_weight", /*optional=*/true, "Total weight of all segwit transactions"},
                 {RPCResult::Type::NUM, "swtxs", /*optional=*/true, "The number of segwit transactions"},
+                {RPCResult::Type::NUM, "swtxs", /*optional=*/true, "The number of conversion transactions"},
                 {RPCResult::Type::NUM, "time", /*optional=*/true, "The block time"},
                 {RPCResult::Type::NUM, "total_out_unscaled_cash", /*optional=*/true, "Unscaled total cash amount in all outputs (excluding coinbase and thus reward [ie subsidy + totalfee])"},
                 {RPCResult::Type::NUM, "total_out_unscaled_bond", /*optional=*/true, "Unscaled total bond amount in all outputs (excluding coinbase and thus reward [ie subsidy + totalfee])"},
@@ -1849,6 +1850,7 @@ static RPCHelpMan getblockstats()
     int64_t swtotal_size = 0;
     int64_t swtotal_weight = 0;
     int64_t swtxs = 0;
+    int64_t conversiontxs = 0;
     int64_t total_size = 0;
     int64_t total_weight = 0;
     int64_t utxo_size_inc = 0;
@@ -1868,6 +1870,7 @@ static RPCHelpMan getblockstats()
                 if (out.scriptPubKey.IsConversionScript()) {
                     // Do not count the conversion output amount because it is a fee for the miner
                     conversion_out = out;
+                    conversiontxs += 1;
                 } else {
                     tx_total_out[out.amountType] += out.nValue;
                 }
@@ -1975,6 +1978,7 @@ static RPCHelpMan getblockstats()
     ret_all.pushKV("swtotal_size", swtotal_size);
     ret_all.pushKV("swtotal_weight", swtotal_weight);
     ret_all.pushKV("swtxs", swtxs);
+    ret_all.pushKV("conversiontxs", conversiontxs);
     ret_all.pushKV("time", pindex.GetBlockTime());
     ret_all.pushKV("total_out_unscaled_cash", total_out[CASH]);
     ret_all.pushKV("total_out_unscaled_bond", total_out[BOND]);
