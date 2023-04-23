@@ -1211,7 +1211,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
 
     // If fee is in bonds, convert normalized effective and long term fee rates to equivalent bond fee rates
     if (nFeeTypeRet == BOND) {
-        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
         coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
     }
 
