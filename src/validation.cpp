@@ -14,6 +14,7 @@
 #include <checkqueue.h>
 #include <consensus/amount.h>
 #include <consensus/consensus.h>
+#include <consensus/conversion.h>
 #include <consensus/merkle.h>
 #include <consensus/tx_check.h>
 #include <consensus/tx_verify.h>
@@ -175,7 +176,7 @@ bool CheckFinalTxAtTip(const CBlockIndex& active_chain_tip, const CTransaction& 
     // BIP113 requires that time-locked transactions have nLockTime set to
     // less than the median time of the previous block they're contained in.
     // When the next block is created its previous block will be the current
-    // chain tip, so we use that to calculate the median time passed to
+    // chain tip, so we use that to  the median time passed to
     // IsFinalTx().
     const int64_t nBlockTime{active_chain_tip.GetMedianTimePast()};
 
@@ -905,7 +906,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     int64_t nSigOpsCost = GetTransactionSigOpCost(tx, m_view, STANDARD_SCRIPT_VERIFY_FLAGS);
 
     CAmounts totalSupply = m_active_chainstate.m_chain.Tip()->GetTotalSupply();
-    ws.m_normalized_base_fees = ws.m_base_fees[CASH] + Consensus::CalculateOutputAmount(totalSupply, ws.m_base_fees[BOND], BOND);
+    ws.m_normalized_base_fees = ws.m_base_fees[CASH] + GetConvertedAmount(totalSupply, ws.m_base_fees[BOND], BOND);
     // ws.m_modified_fees includes any fee deltas from PrioritiseTransaction
     ws.m_modified_fees = ws.m_normalized_base_fees;
     m_pool.ApplyDelta(hash, ws.m_modified_fees);

@@ -21,7 +21,7 @@ CAmount GetMinimumFee(const CWallet& wallet, unsigned int nTxBytes, const CCoinC
     // De-normalize minimum fee rate if fee is to be paid in bonds
     CAmount minFee = GetMinimumFeeRate(wallet, coin_control, feeCalc).GetFee(nTxBytes);
     if (coin_control.m_fee_type == BOND)
-        minFee = wallet.chain().safelyEstimateConvertedAmount(minFee, CASH);
+        minFee = wallet.chain().estimateConvertedAmount(minFee, CASH);
     return minFee;
 }
 
@@ -95,8 +95,8 @@ CFeeRate GetDiscardRate(const CWallet& wallet, const CAmountType& amountType)
     CFeeRate discard_rate = wallet.chain().estimateSmartFee(highest_target, false /* conservative */);
     // Convert normalized fee rates to equivalent bond fee rates if amount is in bonds
     if (amountType == BOND) {
-        wallet_discard_rate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(wallet_discard_rate.GetFeePerK(), CASH));
-        discard_rate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(discard_rate.GetFeePerK(), CASH));
+        wallet_discard_rate = CFeeRate(wallet.chain().estimateConvertedAmount(wallet_discard_rate.GetFeePerK(), CASH));
+        discard_rate = CFeeRate(wallet.chain().estimateConvertedAmount(discard_rate.GetFeePerK(), CASH));
     }
     // Don't let discard_rate be greater than longest possible fee estimate if we get a valid fee estimate
     discard_rate = (discard_rate == CFeeRate(0)) ? wallet_discard_rate : std::min(discard_rate, wallet_discard_rate);

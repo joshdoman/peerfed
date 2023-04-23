@@ -889,7 +889,7 @@ void SendCoinsDialog::updateFeeMinimizedLabel()
             if (clientModel && model->getOptionsModel()->getShowScaledAmount(getSendAmountType())) {
                 customFee = DescaleAmount((CAmount)customFee, clientModel->getBestScaleFactor());
             }
-            customFee = model->wallet().safelyEstimateConvertedAmount(customFee, CASH);
+            customFee = model->wallet().estimateConvertedAmount(customFee, CASH);
             // Scale custom fee using current scale factor
             if (clientModel && model->getOptionsModel()->getShowScaledAmount(getSendAmountType())) {
                 customFee = ScaleAmount((CAmount)customFee, clientModel->getBestScaleFactor());

@@ -86,7 +86,7 @@ static feebumper::Result CheckFeeRate(const CWallet& wallet, const CWalletTx& wt
 
     // Given old total fee and transaction size, calculate the old feeRate
     const int64_t txSize = GetVirtualTransactionSize(*(wtx.tx));
-    CAmount normalizedOldFee = old_fees[CASH] + wallet.chain().estimateConversionOutputAmount(old_fees[BOND], BOND);
+    CAmount normalizedOldFee = old_fees[CASH] + wallet.chain().estimateConvertedAmount(old_fees[BOND], BOND);
     CFeeRate nNormalizedOldFeeRate(normalizedOldFee, txSize);
     // Min total fee is old fee + relay fee
     CAmount minNormalizedTotalFee = nNormalizedOldFeeRate.GetFee(maxTxSize) + incrementalRelayFee.GetFee(maxTxSize);
@@ -121,7 +121,7 @@ static CFeeRate EstimateFeeRate(const CWallet& wallet, const CWalletTx& wtx, con
     // the tx fee/vsize, so it may have been rounded down. Add 1 satoshi to the
     // result.
     int64_t txSize = GetVirtualTransactionSize(*(wtx.tx));
-    CAmount normalizedOldFee = old_fees[CASH] + wallet.chain().estimateConversionOutputAmount(old_fees[BOND], BOND);
+    CAmount normalizedOldFee = old_fees[CASH] + wallet.chain().estimateConvertedAmount(old_fees[BOND], BOND);
     CFeeRate normalizedfeerate(normalizedOldFee, txSize);
     normalizedfeerate += CFeeRate(1);
 

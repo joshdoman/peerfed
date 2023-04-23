@@ -34,15 +34,15 @@ CAmount CalculateInputAmount(const CAmounts& totalSupply, const CAmount& outputA
     return totalSupply[!outputType] - new_input; // ΔA = A - A'
 }
 
-CAmount NormalizedBondAmount(const CAmounts& totalSupply, const CAmount& bondAmount) {
-    if (totalSupply[CASH] == 0) {
-        // Use expected output amount converting bond amount
-        return CalculateOutputAmount(totalSupply, bondAmount, BOND);
-    } else if (totalSupply[BOND] == 0) {
-        // Use required input amount to obtain bond amount
-        return CalculateInputAmount(totalSupply, bondAmount, BOND);
+CAmount GetConvertedAmount(const CAmounts& totalSupply, const CAmount& amount, const CAmountType& amountType) {
+    if (totalSupply[!amountType] == 0) {
+        // Use expected output amount upon conversion
+        return CalculateOutputAmount(totalSupply, amount, amountType);
+    } else if (totalSupply[amountType] == 0) {
+        // Use required input amount in a conversion
+        return CalculateInputAmount(totalSupply, amount, amountType);
     } else {
-        // Multiple bond amount by marginal conversion rate B / M
-        return ((int256_t)bondAmount * (int256_t)totalSupply[BOND] / ((int256_t)totalSupply[CASH])).convert_to<CAmount>();
+        // Multiple amount by marginal conversion rate
+        return ((int256_t)amount * (int256_t)totalSupply[amountType] / ((int256_t)totalSupply[!amountType])).convert_to<CAmount>();
     }
 }

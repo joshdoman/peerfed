@@ -17,7 +17,7 @@ CAmount CalculateOutputAmount(const CAmounts& totalSupply, const CAmount& inputA
 CAmount CalculateInputAmount(const CAmounts& totalSupply, const CAmount& outputAmount, const CAmountType& outputType);
 
 /**
- * Calculate equivalent cash amount at marginal conversion rate.
+ * Calculate equivalent amount of the other amount type at the marginal conversion rate.
  * Not consensus critical.
  */
-CAmount NormalizedBondAmount(const CAmounts& totalSupply, const CAmount& bondAmount);
+CAmount GetConvertedAmount(const CAmounts& totalSupply, const CAmount& amount, const CAmountType& amountType);

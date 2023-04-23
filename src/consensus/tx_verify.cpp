@@ -278,29 +278,3 @@ bool Consensus::IsValidConversion(CAmounts& totalSupply, const CAmounts inputs, 
     totalSupply[remainderType] += remainder;
     return true;
 }
-
-CAmount Consensus::CalculateOutputAmount(CAmounts totalSupply, CAmount inputAmount, CAmountType inputType)
-{
-    if (inputAmount > totalSupply[inputType])
-        // Input amount exceeds total supply
-        return 0;
-
-    // Calculate sum-of-squares invariant and determine new output
-    int128_t invariant_sq_in = pow((int128_t)totalSupply[CASH], 2) + pow((int128_t)totalSupply[BOND], 2); // K^2
-    int128_t new_input_sq = pow((int128_t)totalSupply[inputType] - (int128_t)inputAmount, 2); // (A - ΔA)^2
-    CAmount new_output = sqrt(invariant_sq_in - new_input_sq).convert_to<CAmount>(); // B' = sqrt(K^2 - (A - ΔA)^2)
-    return new_output - totalSupply[!inputType]; // ΔB = B' - B
-}
-
-CAmount Consensus::CalculateInputAmount(CAmounts totalSupply, CAmount outputAmount, CAmountType outputType)
-{
-    // Calculate sum-of-squares invariant
-    int128_t invariant_sq_in = pow((int128_t)totalSupply[CASH], 2) + pow((int128_t)totalSupply[BOND], 2); // K^2
-    int128_t new_output_sq = pow((int128_t)totalSupply[outputType] + (int128_t)outputAmount, 2); // (B + ΔB)^2
-    if (new_output_sq > invariant_sq_in)
-        // New output amount exceeds maximum available with current total supply
-        return 0;
-
-    CAmount new_input = sqrt(invariant_sq_in - new_output_sq).convert_to<CAmount>(); // A' = sqrt(K^2 - (B + ΔB)^2)
-    return totalSupply[!outputType] - new_input; // ΔA = A - A'
-}

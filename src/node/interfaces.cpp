@@ -6,7 +6,7 @@
 #include <banman.h>
 #include <chain.h>
 #include <chainparams.h>
-#include <consensus/tx_verify.h>
+#include <consensus/conversion.h>
 #include <deploymentstatus.h>
 #include <external_signer.h>
 #include <init.h>
@@ -651,14 +651,13 @@ public:
         return tip ? tip->GetTotalSupply() : chainman().GetParams().GenesisBlock().GetTotalSupply();
     }
     CAmount estimateConversionOutputAmount(const CAmount& inputAmount, const CAmountType& inputType) override {
-        return Consensus::CalculateOutputAmount(getLastTotalSupply(), inputAmount, inputType);
+        return CalculateOutputAmount(getLastTotalSupply(), inputAmount, inputType);
     }
     CAmount estimateConversionInputAmount(const CAmount& outputAmount, const CAmountType& outputType) override {
-        return Consensus::CalculateInputAmount(getLastTotalSupply(), outputAmount, outputType);
+        return CalculateInputAmount(getLastTotalSupply(), outputAmount, outputType);
     }
-    CAmount safelyEstimateConvertedAmount(const CAmount& amount, const CAmountType& amountType) override {
-        CAmount estimatedOutput = estimateConversionOutputAmount(amount, amountType);
-        return estimatedOutput > 0 ? estimatedOutput : estimateConversionInputAmount(amount, amountType);
+    CAmount estimateConvertedAmount(const CAmount& amount, const CAmountType& amountType) override {
+        return GetConvertedAmount(getLastTotalSupply(), amount, amountType);
     }
     CAmountScaleFactor getLastScaleFactor() override
     {

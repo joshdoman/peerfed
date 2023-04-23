@@ -8,6 +8,7 @@
 #include <chain.h>
 #include <coins.h>
 #include <consensus/consensus.h>
+#include <consensus/conversion.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <policy/fees.h>
@@ -77,20 +78,20 @@ void CTxMemPoolEntry::UpdateModifiedFee(CAmount fee_diff, CAmounts totalSupply)
 
 void CTxMemPoolEntry::UpdateNormalizedFee(CAmounts totalSupply)
 {
-    CAmount normalizedBondFee = nFees[BOND] > 0 ? Consensus::CalculateOutputAmount(totalSupply, nFees[BOND], BOND) : 0;
+    CAmount normalizedBondFee = nFees[BOND] > 0 ? GetConvertedAmount(totalSupply, nFees[BOND], BOND) : 0;
     nNormalizedFee = nFees[CASH] + normalizedBondFee;
 
     m_modified_fee = m_all_modified_fees[CASH];
     if (m_all_modified_fees[BOND] > 0) {
-        m_modified_fee = SaturatingAdd(m_modified_fee, m_all_modified_fees[BOND] == nFees[BOND] ? normalizedBondFee : Consensus::CalculateOutputAmount(totalSupply, m_all_modified_fees[BOND], BOND));
+        m_modified_fee = SaturatingAdd(m_modified_fee, m_all_modified_fees[BOND] == nFees[BOND] ? normalizedBondFee : GetConvertedAmount(totalSupply, m_all_modified_fees[BOND], BOND));
     }
     nModFeesWithDescendants = nModAllFeesWithDescendants[CASH];
     if (nModAllFeesWithDescendants[BOND] > 0) {
-        nModFeesWithDescendants = SaturatingAdd(nModFeesWithDescendants, nModAllFeesWithDescendants[BOND] == nFees[BOND] ? normalizedBondFee : Consensus::CalculateOutputAmount(totalSupply, nModAllFeesWithDescendants[BOND], BOND));
+        nModFeesWithDescendants = SaturatingAdd(nModFeesWithDescendants, nModAllFeesWithDescendants[BOND] == nFees[BOND] ? normalizedBondFee : GetConvertedAmount(totalSupply, nModAllFeesWithDescendants[BOND], BOND));
     }
     nModFeesWithAncestors = nModAllFeesWithAncestors[CASH];
     if (nModAllFeesWithAncestors[BOND] > 0) {
-        nModFeesWithAncestors = SaturatingAdd(nModFeesWithAncestors, nModAllFeesWithAncestors[BOND] == nFees[BOND] ? normalizedBondFee : Consensus::CalculateOutputAmount(totalSupply, nModAllFeesWithAncestors[BOND], BOND));
+        nModFeesWithAncestors = SaturatingAdd(nModFeesWithAncestors, nModAllFeesWithAncestors[BOND] == nFees[BOND] ? normalizedBondFee : GetConvertedAmount(totalSupply, nModAllFeesWithAncestors[BOND], BOND));
     }
 }
 
@@ -1317,5 +1318,5 @@ void CTxMemPool::SetLoadTried(bool load_tried)
 CAmount CTxMemPool::GetTotalNormalizedFee() const
 {
     AssertLockHeld(cs);
-    return m_total_fees[CASH] + Consensus::CalculateOutputAmount(total_supply, m_total_fees[BOND], BOND);
+    return m_total_fees[CASH] + GetConvertedAmount(total_supply, m_total_fees[BOND], BOND);
 }

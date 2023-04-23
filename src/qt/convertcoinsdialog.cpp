@@ -856,7 +856,7 @@ void ConvertCoinsDialog::updateFeeMinimizedLabel()
             if (clientModel && model->getOptionsModel()->getShowScaledAmount(getFeeType())) {
                 customFee = DescaleAmount((CAmount)customFee, clientModel->getBestScaleFactor());
             }
-            customFee = model->wallet().safelyEstimateConvertedAmount(customFee, CASH);
+            customFee = model->wallet().estimateConvertedAmount(customFee, CASH);
             // Apply scale factor to custom fee before displaying
             if (clientModel && model->getOptionsModel()->getShowScaledAmount(getFeeType())) {
                 customFee = ScaleAmount((CAmount)customFee, clientModel->getBestScaleFactor());

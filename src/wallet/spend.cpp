@@ -895,8 +895,8 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
 
     // If fee is in bonds, convert normalized effective and long term fee rates to equivalent bond fee rates
     if (nFeeTypeRet == BOND) {
-        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
-        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
     }
 
     // Calculate the cost of change
@@ -1064,7 +1064,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
         return util::Error{_("Transaction too large")};
     }
 
-    CAmount normalizedFee = nFeeTypeRet == CASH ? nFeeRet : wallet.chain().estimateConversionOutputAmount(nFeeRet, BOND);
+    CAmount normalizedFee = nFeeTypeRet == CASH ? nFeeRet : wallet.chain().estimateConvertedAmount(nFeeRet, BOND);
     if (normalizedFee > wallet.GetDescaledDefaultMaxTxFee()) {
         return util::Error{TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED)};
     }
@@ -1120,7 +1120,7 @@ util::Result<CreatedTransactionResult> CreateTransaction(
         tmp_cc.m_avoid_partial_spends = true;
         auto txr_grouped = CreateTransactionInternal(wallet, vecSend, change_pos, tmp_cc, sign);
         // if fee of this alternative one is within the range of the max fee, we use this one
-        CAmount max_aps_fee = txr_ungrouped.feeType == BOND ? wallet.chain().safelyEstimateConvertedAmount(wallet.m_max_aps_fee, CASH) : wallet.m_max_aps_fee;
+        CAmount max_aps_fee = txr_ungrouped.feeType == BOND ? wallet.chain().estimateConvertedAmount(wallet.m_max_aps_fee, CASH) : wallet.m_max_aps_fee;
         const bool use_aps{txr_grouped.has_value() ? (txr_grouped->fee <= txr_ungrouped.fee + max_aps_fee) : false};
         TRACE5(coin_selection, aps_create_tx_internal, wallet.GetName().c_str(), use_aps, txr_grouped.has_value(),
                txr_grouped.has_value() ? txr_grouped->fee : 0, txr_grouped.has_value() ? txr_grouped->change_pos : 0);
@@ -1211,8 +1211,8 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
 
     // If fee is in bonds, convert normalized effective and long term fee rates to equivalent bond fee rates
     if (nFeeTypeRet == BOND) {
-        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
-        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().safelyEstimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
     }
 
     // Calculate the cost of change
@@ -1428,7 +1428,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         return util::Error{_("Transaction too large")};
     }
 
-    CAmount normalizedFee = nFeeTypeRet == CASH ? nFeeRet : wallet.chain().estimateConversionOutputAmount(nFeeRet, BOND);
+    CAmount normalizedFee = nFeeTypeRet == CASH ? nFeeRet : wallet.chain().estimateConvertedAmount(nFeeRet, BOND);
     if (normalizedFee > wallet.GetDescaledDefaultMaxTxFee()) {
         return util::Error{TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED)};
     }
@@ -1488,7 +1488,7 @@ util::Result<CreatedTransactionResult> CreateConversionTransaction(
         tmp_cc.m_avoid_partial_spends = true;
         auto txr_grouped = CreateConversionTransactionInternal(wallet, tx_details, change_pos, tmp_cc, sign);
         // if fee of this alternative one is within the range of the max fee, we use this one
-        CAmount max_aps_fee = txr_ungrouped.feeType == BOND ? wallet.chain().safelyEstimateConvertedAmount(wallet.m_max_aps_fee, CASH) : wallet.m_max_aps_fee;
+        CAmount max_aps_fee = txr_ungrouped.feeType == BOND ? wallet.chain().estimateConvertedAmount(wallet.m_max_aps_fee, CASH) : wallet.m_max_aps_fee;
         const bool use_aps{txr_grouped.has_value() ? (txr_grouped->fee <= txr_ungrouped.fee + max_aps_fee) : false};
         TRACE5(coin_selection, aps_create_tx_internal, wallet.GetName().c_str(), use_aps, txr_grouped.has_value(),
                txr_grouped.has_value() ? txr_grouped->fee : 0, txr_grouped.has_value() ? txr_grouped->change_pos : 0);

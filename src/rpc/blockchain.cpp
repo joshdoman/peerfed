@@ -10,8 +10,8 @@
 #include <chainparams.h>
 #include <coins.h>
 #include <consensus/amount.h>
+#include <consensus/conversion.h>
 #include <consensus/params.h>
-#include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <core_io.h>
 #include <deploymentinfo.h>
@@ -1929,7 +1929,7 @@ static RPCHelpMan getblockstats()
             }
 
             // Normalize the transaction fee
-            CAmount txfee = txfees[CASH] + Consensus::CalculateOutputAmount(block.GetTotalSupply(), txfees[BOND], BOND);
+            CAmount txfee = txfees[CASH] + GetConvertedAmount(block.GetTotalSupply(), txfees[BOND], BOND);
             CHECK_NONFATAL(MoneyRange(txfee));
             if (do_medianfee) {
                 fee_array.push_back(txfee);
@@ -1982,7 +1982,7 @@ static RPCHelpMan getblockstats()
     ret_all.pushKV("time", pindex.GetBlockTime());
     ret_all.pushKV("total_out_unscaled_cash", total_out[CASH]);
     ret_all.pushKV("total_out_unscaled_bond", total_out[BOND]);
-    ret_all.pushKV("total_out_normalized", total_out[CASH] + Consensus::CalculateOutputAmount(block.GetTotalSupply(), total_out[BOND], BOND));
+    ret_all.pushKV("total_out_normalized", total_out[CASH] + GetConvertedAmount(block.GetTotalSupply(), total_out[BOND], BOND));
     ret_all.pushKV("total_size", total_size);
     ret_all.pushKV("total_weight", total_weight);
     ret_all.pushKV("totalfee", totalfee);
