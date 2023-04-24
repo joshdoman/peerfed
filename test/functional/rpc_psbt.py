@@ -216,7 +216,7 @@ class PSBTTest(BitcoinTestFramework):
         assert 'non_witness_utxo' in decoded['inputs'][0]
         assert 'witness_utxo' in decoded['inputs'][0]
         # Check decodepsbt fee calculation (input values shall only be counted once per UTXO)
-        assert_equal(decoded['fee'], created_psbt['fee'])
+        assert_equal(decoded['feecash'], created_psbt['fee'])
         assert_equal(walletprocesspsbt_out['complete'], True)
         self.nodes[1].sendrawtransaction(self.nodes[1].finalizepsbt(walletprocesspsbt_out['psbt'])['hex'])
 
@@ -599,7 +599,7 @@ class PSBTTest(BitcoinTestFramework):
         assert analyzed['inputs'][0]['has_utxo'] and not analyzed['inputs'][0]['is_final'] and analyzed['inputs'][0]['next'] == 'signer' and analyzed['next'] == 'signer' and analyzed['inputs'][0]['missing']['signatures'][0] == addrinfo['embedded']['witness_program']
 
         # Check fee and size things
-        assert analyzed['fee'] == Decimal('0.001') and analyzed['estimated_vsize'] == 134 and analyzed['estimated_feerate'] == Decimal('0.00746268')
+        assert analyzed['feecash'] == Decimal('0.001') and analyzed['estimated_vsize'] == 134 and analyzed['estimated_feerate'] == Decimal('0.00746268')
 
         # After signing and finalizing, needs extracting
         signed = self.nodes[1].walletprocesspsbt(updated)['psbt']
