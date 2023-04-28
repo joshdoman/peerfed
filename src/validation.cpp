@@ -652,8 +652,10 @@ private:
         CAmounts m_base_fees;
         /** Base fees normalized using current conversion rate */
         CAmount m_normalized_base_fees;
-        /** Base fees + any fee delta set by the user with prioritisetransaction. */
+        /** Normalized base fees + any fee delta set by the user with prioritisetransaction. */
         CAmount m_modified_fees;
+        /** Normalized base fees at best conversion rate over last N blocks + any fee delta set by the user with prioritisetransaction. */
+        CAmount m_max_modified_fees{0};
         /** Total modified fees of all valid transactions being replaced. */
         CAmount m_valid_conflicting_fees{0};
         /** Total virtual size of all valid transactions being replaced. */
@@ -911,6 +913,18 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     ws.m_modified_fees = ws.m_normalized_base_fees;
     m_pool.ApplyDelta(hash, ws.m_modified_fees);
 
+    // Keep track of max m_modified_fees over last N blocks
+    int checkLastNBlocks = gArgs.GetIntArg("-mempoolminfeechecklastnblocks", DEFAULT_MEMPOOL_MIN_FEE_CHECK_LAST_N_BLOCKS);
+    CBlockIndex* pindex = m_active_chainstate.m_chain.Tip();
+    for (int i = 0; i < checkLastNBlocks && pindex; i++) {
+        CAmounts totalSupply = pindex->GetTotalSupply();
+        CAmount normalized_fees = ws.m_base_fees[CASH] + GetConvertedAmount(totalSupply, ws.m_base_fees[BOND], BOND);
+        ws.m_max_modified_fees = std::max(ws.m_max_modified_fees, normalized_fees);
+        pindex = pindex->pprev;
+    }
+    // Include any fee deltas from PrioritiseTransaction
+    m_pool.ApplyDelta(hash, ws.m_max_modified_fees);
+
     // Keep track of transactions that spend a coinbase, which we re-scan
     // during reorgs to ensure COINBASE_MATURITY is still met.
     bool fSpendsCoinbase = false;
@@ -933,7 +947,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     // No individual transactions are allowed below the min relay feerate and mempool min feerate except from
     // disconnected blocks and transactions in a package. Package transactions will be checked using
     // package feerate later.
-    if (!bypass_limits && !args.m_package_feerates && !CheckFeeRate(ws.m_vsize, ws.m_modified_fees, state)) return false;
+    if (!bypass_limits && !args.m_package_feerates && !CheckFeeRate(ws.m_vsize, ws.m_max_modified_fees, state)) return false;
 
     ws.m_iters_conflicting = m_pool.GetIterSet(ws.m_conflicts);
     // Calculate in-mempool ancestors, up to a limit.
@@ -1338,12 +1352,16 @@ PackageMempoolAcceptResult MemPoolAccept::AcceptMultipleTransactions(const std::
         [](int64_t sum, auto& ws) { return sum + ws.m_vsize; });
     const auto m_total_modified_fees = std::accumulate(workspaces.cbegin(), workspaces.cend(), CAmount{0},
         [](CAmount sum, auto& ws) { return sum + ws.m_modified_fees; });
+    const auto m_total_max_modified_fees = std::accumulate(workspaces.cbegin(), workspaces.cend(), CAmount{0},
+        [](CAmount sum, auto& ws) { return sum + ws.m_max_modified_fees; });
+
     const CFeeRate package_feerate(m_total_modified_fees, m_total_vsize);
+    const CFeeRate best_package_feerate(m_total_max_modified_fees, m_total_vsize);
     TxValidationState placeholder_state;
     if (args.m_package_feerates &&
-        !CheckFeeRate(m_total_vsize, m_total_modified_fees, placeholder_state)) {
+        !CheckFeeRate(m_total_vsize, m_total_max_modified_fees, placeholder_state)) {
         package_state.Invalid(PackageValidationResult::PCKG_POLICY, "package-fee-too-low");
-        return PackageMempoolAcceptResult(package_state, package_feerate, {});
+        return PackageMempoolAcceptResult(package_state, best_package_feerate, {});
     }
 
     // Apply package mempool ancestor/descendant limits. Skip if there is only one transaction,

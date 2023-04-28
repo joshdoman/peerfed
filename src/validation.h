@@ -70,6 +70,8 @@ static constexpr bool DEFAULT_COINSTATSINDEX{false};
 static const char* const DEFAULT_BLOCKFILTERINDEX = "0";
 /** Default for -stopatheight */
 static const int DEFAULT_STOPATHEIGHT = 0;
+/** Default for -mempoolminfeechecklastnblocks */
+static const int DEFAULT_MEMPOOL_MIN_FEE_CHECK_LAST_N_BLOCKS = 3; // Require normalized fee to exceed min fee using best conversion rate across last 3 blocks
 /** Default for -mempoolnewconversionschecklastnblocks */
 static const int DEFAULT_MEMPOOL_NEW_CONVERSIONS_CHECK_LAST_N_BLOCKS = 3; // Require new conversions to be valid within last 3 blocks
 /** Default for -mempoolexistingconversionschecklastnblocks */
