@@ -71,11 +71,11 @@ static const char* const DEFAULT_BLOCKFILTERINDEX = "0";
 /** Default for -stopatheight */
 static const int DEFAULT_STOPATHEIGHT = 0;
 /** Default for -mempoolnewconversionschecklastnblocks */
-static const int DEFAULT_MEMPOOL_NEW_CONVERSIONS_CHECK_LAST_N_BLOCKS = 1; // Require new conversions to be valid at tip
+static const int DEFAULT_MEMPOOL_NEW_CONVERSIONS_CHECK_LAST_N_BLOCKS = 3; // Require new conversions to be valid within last 3 blocks
 /** Default for -mempoolexistingconversionschecklastnblocks */
 static const int DEFAULT_MEMPOOL_EXISTING_CONVERSIONS_CHECK_LAST_N_BLOCKS = 6; // Remove from mempool if invalid for six blocks
 /** Default for -mempoolconversionbuffer */
-static const int DEFAULT_MEMPOOL_CONVERSION_BUFFER = 500; // Check validity with 5% buffer (500 bips)
+static const int DEFAULT_MEMPOOL_CONVERSION_BUFFER = 100; // Check validity with 1% buffer (100 bips)
 /** Block files containing a block-height within MIN_BLOCKS_TO_KEEP of ActiveChain().Tip() will not be pruned. */
 static const unsigned int MIN_BLOCKS_TO_KEEP = 288;
 static const signed int DEFAULT_CHECKBLOCKS = 6;
