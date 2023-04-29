@@ -63,7 +63,7 @@ static feebumper::Result PreconditionChecks(const CWallet& wallet, const CWallet
 }
 
 //! Check if the user provided a valid feeRate
-static feebumper::Result CheckFeeRate(const CWallet& wallet, const CWalletTx& wtx, const const CFeeRate& newFeerate, const int64_t maxTxSize, CAmounts old_fees, std::vector<bilingual_str>& errors)
+static feebumper::Result CheckFeeRate(const CWallet& wallet, const CWalletTx& wtx, const CFeeRate& newFeerate, const int64_t maxTxSize, CAmounts old_fees, std::vector<bilingual_str>& errors)
 {
     // check that fee rate is higher than mempool's minimum fee
     // (no point in bumping fee if we know that the new tx won't be accepted to the mempool)

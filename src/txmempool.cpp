@@ -1212,7 +1212,9 @@ void CTxMemPool::TrimToSize(size_t sizelimit, std::function<bool(txiter)> check_
     unsigned nTxnRemoved = 0;
 
     // Abstract out the removeEntry logic to avoid duplication, returns number of txs removed
-    std::function<unsigned(txiter)> removeEntry = [this, nTxnRemoved, pvNoSpendsRemaining](txiter it) {
+    std::function<unsigned(txiter)> removeEntry = [this, pvNoSpendsRemaining](txiter it) EXCLUSIVE_LOCKS_REQUIRED(cs) {
+        AssertLockHeld(cs);
+
         setEntries stage;
         CalculateDescendants(it, stage);
 
