@@ -893,10 +893,10 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
         return util::Error{_("Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.")};
     }
 
-    // If fee is in bonds, convert normalized effective and long term fee rates to equivalent bond fee rates
+    // If fee is in bonds, convert normalized effective and long term fee rates to equivalent bond fee rates (rounded up 1 sat because otherwise conversion rounds down)
     if (nFeeTypeRet == BOND) {
-        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
-        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH) + 1);
+        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH) + 1);
     }
 
     // Calculate the cost of change
@@ -1209,10 +1209,10 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         return util::Error{_("Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.")};
     }
 
-    // If fee is in bonds, convert normalized effective and long term fee rates to equivalent bond fee rates
+    // If fee is in bonds, convert normalized effective and long term fee rates to equivalent bond fee rates (rounded up 1 sat because otherwise conversion rounds down)
     if (nFeeTypeRet == BOND) {
-        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH));
-        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH));
+        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH) + 1);
+        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH) + 1);
     }
 
     // Calculate the cost of change
