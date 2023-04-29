@@ -10,6 +10,7 @@
 #include <coins.h>
 #include <consensus/amount.h>
 #include <consensus/consensus.h>
+#include <consensus/conversion.h>
 #include <consensus/merkle.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
@@ -252,31 +253,75 @@ bool BlockAssembler::TestPackage(uint64_t packageSize, int64_t packageSigOpsCost
 // Perform transaction-level checks before adding to block:
 // - transaction finality (locktime)
 // - conversion validity for current block supply
-bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& package) const
+bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& package, std::optional<CTxConversionInfo>& conversionInfo) const
 {
-    // Track changes to total supply after each conversion tx in package
+    // First check that every tx is final
+    for (CTxMemPool::txiter it : package) {
+        if (!IsFinalTx(it->GetTx(), nHeight, m_lock_time_cutoff)) {
+            return false;
+        }
+    }
+
+    // Next check the validity of each conversion tx in the package.
+    // We track changes to the total supply after each conversion.
     CBlock* const pblock = &pblocktemplate->block; // pointer for convenience
     CAmounts totalSupply = {0};
     totalSupply[CASH] = pblock->cashSupply;
     totalSupply[BOND] = pblock->bondSupply;
 
     for (CTxMemPool::txiter it : package) {
-        if (!IsFinalTx(it->GetTx(), nHeight, m_lock_time_cutoff)) {
-            return false;
-        }
-
-        std::optional<CTxConversionInfo> conversionDest = it->GetConversionDest();
-        if (conversionDest) {
-            if (conversionDest.value().nDeadline && conversionDest.value().nDeadline < (uint32_t)nHeight) {
+        conversionInfo = it->GetConversionDest();
+        if (conversionInfo) {
+            if (conversionInfo.value().nDeadline && conversionInfo.value().nDeadline < (uint32_t)nHeight) {
                 return false;
             }
             CAmount remainder = 0;
-            if (!Consensus::IsValidConversion(totalSupply, conversionDest.value().inputs, conversionDest.value().minOutputs, conversionDest.value().slippageType, remainder)) {
+            if (!Consensus::IsValidConversion(totalSupply, conversionInfo.value().inputs, conversionInfo.value().minOutputs, conversionInfo.value().slippageType, remainder)) {
                 return false;
             }
         }
     }
     return true;
+}
+
+CTxMemPoolConversionEntry BlockAssembler::GetConversionEntry(const CTxMemPool::txiter& iter, const CTxConversionInfo& conversionInfo) const
+{
+    CBlock* const pblock = &pblocktemplate->block; // pointer for convenience
+    CAmounts totalSupply = {0};
+    totalSupply[CASH] = pblock->cashSupply;
+    totalSupply[BOND] = pblock->bondSupply;
+
+    CAmounts inputs = conversionInfo.inputs;
+    CAmounts minOutputs = conversionInfo.minOutputs;
+
+    CAmount inputAmount;
+    CAmount outputAmount;
+    CAmountType inputType = 0;
+
+    if (inputs[CASH] > minOutputs[CASH] && inputs[BOND] < minOutputs[BOND]) {
+        // Converting from cash to bonds
+        inputAmount = inputs[CASH] - minOutputs[CASH];
+        outputAmount = minOutputs[BOND] - inputs[BOND];
+        inputType = CASH;
+    } else if (inputs[CASH] < minOutputs[CASH] && inputs[BOND] > minOutputs[BOND]) {
+        // Converting from bonds to cash
+        inputAmount = inputs[BOND] - minOutputs[BOND];
+        outputAmount = minOutputs[CASH] - inputs[CASH];
+        inputType = BOND;
+    } else {
+        // This is just for safety but will never be triggered because a conversion like this would never enter the mempool
+        return CTxMemPoolConversionEntry(iter, std::numeric_limits<double>::max(), inputType);
+    }
+
+    // We sort the conversions in order of their conversion rate, popping off in order of the lowest rate,
+    // so we need to adjust up the conversion rate on large conversions to make them comparable to small conversions.
+    // Otherwise, we might see an invalid large conversion and incorrectly assume the small conversions that come after it are invalid too.
+    CAmount convertedOutput = CalculateOutputAmount(totalSupply, inputAmount, inputType);
+    CAmount outputAtConversionRate = GetConvertedAmount(totalSupply, inputAmount, inputType);
+    double sizeAdjustment = (double)outputAtConversionRate / (double)convertedOutput;
+    double conversionRate = sizeAdjustment * (double)outputAmount / (double)inputAmount;
+
+    return CTxMemPoolConversionEntry(iter, conversionRate, inputType);
 }
 
 void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
@@ -391,6 +436,15 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
     // Keep track of entries that failed inclusion, to avoid duplicate work
     CTxMemPool::setEntries failedTx;
 
+    // Keep track of entries that failed due to an attempt to convert at an invalid rate.
+    // invalidConversionTxCash keeps track of failed cash->bond conversions, and
+    // invalidConversionTxBond keeps track of failed bond->cash conversions.
+    // Both are sorted in order of their respective conversion rate, adjusted upwards for size.
+    //
+    // NOTE: Entries with more than one conversion in ancestor list are NOT included
+    indexed_conversion_transaction_set invalidConversionTxCash;
+    indexed_conversion_transaction_set invalidConversionTxBond;
+
     CTxMemPool::indexed_transaction_set::index<ancestor_score>::type::iterator mi = mempool.mapTx.get<ancestor_score>().begin();
     CTxMemPool::txiter iter;
 
@@ -495,11 +549,40 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
         ancestors.insert(iter);
 
         // Test if all tx's are Final, conversions are valid, and conversion deadlines haven't expired
-        if (!TestPackageTransactions(ancestors)) {
+        std::optional<CTxConversionInfo> conversionInfo;
+        if (!TestPackageTransactions(ancestors, conversionInfo)) {
             if (fUsingModified) {
                 mapModifiedTx.get<ancestor_score>().erase(modit);
                 failedTx.insert(iter);
             }
+
+            // Set conversionInfo to null if there is more than one conversion
+            // in the package
+            if (conversionInfo) {
+                bool seen_conversion = false;
+                for (CTxMemPool::txiter it : ancestors) {
+                    if (it->GetConversionDest()) {
+                        if (seen_conversion) {
+                            conversionInfo = std::nullopt;
+                            break;
+                        } else {
+                            seen_conversion = true;
+                        }
+                    }
+                }
+            }
+
+            // Create conversion entry and add it to the list of transactions
+            // that failed due an invalid conversion.
+            if (conversionInfo) {
+                CTxMemPoolConversionEntry conversionEntry = GetConversionEntry(iter, conversionInfo.value());
+                if (conversionEntry.GetConversionType() == CASH) {
+                    invalidConversionTxCash.insert(conversionEntry);
+                } else if (conversionEntry.GetConversionType() == BOND) {
+                    invalidConversionTxBond.insert(conversionEntry);
+                }
+            }
+
             continue;
         }
 

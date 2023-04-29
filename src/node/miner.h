@@ -130,6 +130,58 @@ struct update_for_parent_inclusion
     CTxMemPool::txiter iter;
 };
 
+// Container for sorting currently invalid conversion transactions
+struct CTxMemPoolConversionEntry {
+    explicit CTxMemPoolConversionEntry(CTxMemPool::txiter entry, double conversionRate_, CAmountType conversionType_)
+    {
+        iter = entry;
+        conversionRate = conversionRate_;
+        conversionType = conversionType_;
+    }
+    const CTransaction& GetTx() const { return iter->GetTx(); }
+    double GetConversionRate() const { return conversionRate; }
+    CAmountType GetConversionType() const { return conversionType; }
+
+    CTxMemPool::txiter iter;
+    double conversionRate;
+    CAmountType conversionType;
+};
+
+struct conversionentry_iter {
+    typedef CTxMemPool::txiter result_type;
+    result_type operator() (const CTxMemPoolConversionEntry &entry) const
+    {
+        return entry.iter;
+    }
+};
+
+class CompareTxMemPoolConversionEntryByConversionRate
+{
+public:
+    bool operator()(const CTxMemPoolConversionEntry& a, const CTxMemPoolConversionEntry& b) const
+    {
+        return a.GetConversionRate() < b.GetConversionRate();
+    }
+};
+
+struct index_by_conversion_rate {};
+
+typedef boost::multi_index_container<
+    CTxMemPoolConversionEntry,
+    boost::multi_index::indexed_by<
+        boost::multi_index::ordered_unique<
+            conversionentry_iter,
+            CompareCTxMemPoolIter
+        >,
+        // sorted by conversion rate
+        boost::multi_index::ordered_non_unique<
+            boost::multi_index::tag<index_by_conversion_rate>,
+            boost::multi_index::identity<CTxMemPoolConversionEntry>,
+            CompareTxMemPoolConversionEntryByConversionRate
+        >
+    >
+> indexed_conversion_transaction_set;
+
 /** Generate a new block, without valid proof-of-work */
 class BlockAssembler
 {
@@ -195,7 +247,11 @@ private:
       * locktime, premature-witness, serialized size (if necessary)
       * These checks should always succeed, and they're here
       * only as an extra check in case of suboptimal node configuration */
-    bool TestPackageTransactions(const CTxMemPool::setEntries& package) const;
+    bool TestPackageTransactions(const CTxMemPool::setEntries& package, std::optional<CTxConversionInfo>& conversionInfo) const;
+    /** Create a conversion entry with the estimated conversion rate necessary
+      * to execute the transaction.
+      */
+    CTxMemPoolConversionEntry GetConversionEntry(const CTxMemPool::txiter& iter, const CTxConversionInfo& conversionInfo) const;
     /** Sort the package in an order that is valid to appear in a block */
     void SortForBlock(const CTxMemPool::setEntries& package, std::vector<CTxMemPool::txiter>& sortedEntries);
 };
