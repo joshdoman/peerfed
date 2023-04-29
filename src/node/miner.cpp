@@ -270,9 +270,8 @@ bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& packa
             if (conversionDest.value().nDeadline && conversionDest.value().nDeadline < (uint32_t)nHeight) {
                 return false;
             }
-            CAmountType remainderType = 0;
             CAmount remainder = 0;
-            if (!Consensus::IsValidConversion(totalSupply, conversionDest.value().inputs, conversionDest.value().minOutputs, remainderType, remainder)) {
+            if (!Consensus::IsValidConversion(totalSupply, conversionDest.value().inputs, conversionDest.value().minOutputs, conversionDest.value().slippageType, remainder)) {
                 return false;
             }
         }
