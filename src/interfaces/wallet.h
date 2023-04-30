@@ -270,7 +270,7 @@ public:
 
     //! Estimate output amount if valid result. If amount exceeds total supply, estimate input amount.
     //! Required at chain start when supply of cash is zero.
-    virtual CAmount estimateConvertedAmount(const CAmount& amount, const CAmountType& amountType) = 0;
+    virtual CAmount estimateConvertedAmount(const CAmount& amount, const CAmountType& amountType, const bool& roundedUp = false) = 0;
 
     //! Get required fee.
     virtual CAmount getRequiredFee(unsigned int tx_bytes) = 0;

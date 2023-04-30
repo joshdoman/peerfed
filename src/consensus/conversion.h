@@ -20,4 +20,4 @@ CAmount CalculateInputAmount(const CAmounts& totalSupply, const CAmount& outputA
  * Calculate equivalent amount of the other amount type at the marginal conversion rate.
  * Not consensus critical.
  */
-CAmount GetConvertedAmount(const CAmounts& totalSupply, const CAmount& amount, const CAmountType& amountType);
+CAmount GetConvertedAmount(const CAmounts& totalSupply, const CAmount& amount, const CAmountType& amountType, const bool& roundedUp = false);

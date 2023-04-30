@@ -494,8 +494,8 @@ public:
     CAmount estimateConversionInputAmount(const CAmount& outputAmount, const CAmountType& outputType) override {
         return m_wallet->chain().estimateConversionInputAmount(outputAmount, outputType);
     }
-    CAmount estimateConvertedAmount(const CAmount& amount, const CAmountType& amountType) override {
-        return m_wallet->chain().estimateConvertedAmount(amount, amountType);
+    CAmount estimateConvertedAmount(const CAmount& amount, const CAmountType& amountType, const bool& roundedUp) override {
+        return m_wallet->chain().estimateConvertedAmount(amount, amountType, roundedUp);
     }
     CAmount getRequiredFee(unsigned int tx_bytes) override { return GetRequiredFee(*m_wallet, tx_bytes); }
     CAmount getMinimumFee(unsigned int tx_bytes,

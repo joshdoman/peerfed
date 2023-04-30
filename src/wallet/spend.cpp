@@ -895,8 +895,8 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
 
     // If fee is in bonds, convert normalized effective and long term fee rates to equivalent bond fee rates (rounded up 1 sat because otherwise conversion rounds down)
     if (nFeeTypeRet == BOND) {
-        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH) + 1);
-        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH) + 1);
+        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH, /** roundedUp */ true));
+        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH, /** roundedUp */ true));
     }
 
     // Calculate the cost of change
@@ -1211,8 +1211,8 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
 
     // If fee is in bonds, convert normalized effective and long term fee rates to equivalent bond fee rates (rounded up 1 sat because otherwise conversion rounds down)
     if (nFeeTypeRet == BOND) {
-        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH) + 1);
-        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH) + 1);
+        coin_selection_params.m_effective_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_effective_feerate.GetFeePerK(), CASH, /** roundedUp */ true));
+        coin_selection_params.m_long_term_feerate = CFeeRate(wallet.chain().estimateConvertedAmount(coin_selection_params.m_long_term_feerate.GetFeePerK(), CASH, /** roundedUp */ true));
     }
 
     // Calculate the cost of change

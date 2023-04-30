@@ -656,8 +656,8 @@ public:
     CAmount estimateConversionInputAmount(const CAmount& outputAmount, const CAmountType& outputType) override {
         return CalculateInputAmount(getLastTotalSupply(), outputAmount, outputType);
     }
-    CAmount estimateConvertedAmount(const CAmount& amount, const CAmountType& amountType) override {
-        return GetConvertedAmount(getLastTotalSupply(), amount, amountType);
+    CAmount estimateConvertedAmount(const CAmount& amount, const CAmountType& amountType, const bool& roundedUp) override {
+        return GetConvertedAmount(getLastTotalSupply(), amount, amountType, roundedUp);
     }
     CAmountScaleFactor getLastScaleFactor() override
     {

@@ -34,7 +34,7 @@ CAmount CalculateInputAmount(const CAmounts& totalSupply, const CAmount& outputA
     return totalSupply[!outputType] - new_input; // ΔA = A - A'
 }
 
-CAmount GetConvertedAmount(const CAmounts& totalSupply, const CAmount& amount, const CAmountType& amountType) {
+CAmount GetConvertedAmount(const CAmounts& totalSupply, const CAmount& amount, const CAmountType& amountType, const bool& roundedUp) {
     if (totalSupply[!amountType] == 0) {
         // Use expected output amount upon conversion
         return CalculateOutputAmount(totalSupply, amount, amountType);
@@ -43,6 +43,8 @@ CAmount GetConvertedAmount(const CAmounts& totalSupply, const CAmount& amount, c
         return CalculateInputAmount(totalSupply, amount, amountType);
     } else {
         // Multiple amount by marginal conversion rate
-        return ((int256_t)amount * (int256_t)totalSupply[amountType] / ((int256_t)totalSupply[!amountType])).convert_to<CAmount>();
+        CAmount convertedAmount = ((int256_t)amount * (int256_t)totalSupply[amountType] / ((int256_t)totalSupply[!amountType])).convert_to<CAmount>();
+        if (roundedUp) convertedAmount += 1;
+        return convertedAmount;
     }
 }
