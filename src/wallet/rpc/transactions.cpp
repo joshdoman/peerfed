@@ -23,7 +23,7 @@ static void WalletTxToJSON(const CWallet& wallet, const CWalletTx& wtx, UniValue
     if (wtx.IsCoinBase())
         entry.pushKV("generated", true);
     if (wtx.IsConversion())
-        entry.pushKV("converted", true);
+        entry.pushKV("conversion", true);
     if (auto* conf = wtx.state<TxStateConfirmed>())
     {
         entry.pushKV("blockhash", conf->confirmed_block_hash.GetHex());
@@ -454,7 +454,7 @@ static const std::vector<RPCResult> TransactionDescriptionString()
     return{{RPCResult::Type::NUM, "confirmations", "The number of confirmations for the transaction. Negative confirmations means the\n"
                "transaction conflicted that many blocks ago."},
            {RPCResult::Type::BOOL, "generated", /*optional=*/true, "Only present if the transaction's only input is a coinbase one."},
-           {RPCResult::Type::BOOL, "converted", /*optional=*/true, "Only present if the transaction contains a conversion output."},
+           {RPCResult::Type::BOOL, "conversion", /*optional=*/true, "Only present if the transaction contains an OP_CONVERT output."},
            {RPCResult::Type::BOOL, "trusted", /*optional=*/true, "Whether we consider the transaction to be trusted and safe to spend from.\n"
                 "Only present when the transaction has 0 confirmations (or negative confirmations, if conflicted)."},
            {RPCResult::Type::STR_HEX, "blockhash", /*optional=*/true, "The block hash containing the transaction."},
