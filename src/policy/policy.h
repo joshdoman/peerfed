@@ -22,7 +22,7 @@ class CScript;
 /** Default for -blockmaxweight, which controls the range of block weights the mining code will create **/
 static constexpr unsigned int DEFAULT_BLOCK_MAX_WEIGHT{MAX_BLOCK_WEIGHT - 4000};
 /** Default for -blockmintxfee, which sets the minimum feerate for a transaction in blocks created by mining code **/
-static constexpr unsigned int DEFAULT_BLOCK_MIN_TX_FEE{800}; // Lower than mempool min fee because the conversion rate may change and we still want min fee bond tx's to execute if there's room in the block
+static constexpr unsigned int DEFAULT_BLOCK_MIN_TX_FEE{100}; // Much lower than mempool min fee because the conversion rate may change significantly and we still want min fee bond tx's to execute if there's room in the block
 /** The maximum weight for transactions we're willing to relay/mine */
 static constexpr unsigned int MAX_STANDARD_TX_WEIGHT{400000};
 /** The minimum non-witness size for transactions we're willing to relay/mine (1 segwit input + 1 P2WPKH output = 82 bytes) */
