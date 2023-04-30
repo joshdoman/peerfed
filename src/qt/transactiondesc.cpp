@@ -36,16 +36,23 @@ QString TransactionDesc::FormatTxStatus(const interfaces::WalletTxStatus& status
 {
     int depth = status.depth_in_main_chain;
     if (depth < 0) {
-        /*: Text explaining the current status of a transaction, shown in the
-            status field of the details window for this transaction. This status
-            represents an unconfirmed transaction that conflicts with a confirmed
-            transaction. */
-        return tr("conflicted with a transaction with %1 confirmations").arg(-depth);
+        if (status.is_conflicted) {
+            /*: Text explaining the current status of a transaction, shown in the
+                status field of the details window for this transaction. This status
+                represents an unconfirmed transaction that conflicts with a confirmed
+                transaction. */
+            return tr("conflicted with a transaction with %1 confirmations").arg(-depth);
+        }
+        else {
+            /*: Text explaining the current status of a transaction, shown in the
+                status field of the details window for this transaction. This status
+                represents a conversion that has expired and was not conflicted
+                prior to expiring. */
+            return tr("expired with %1 confirmations").arg(-depth);
+        }
     } else if (depth == 0) {
         QString s;
-        if (status.is_expired) {
-            s = tr("Expired, not in memory pool");
-        } else if (inMempool) {
+        if (inMempool) {
             /*: Text explaining the current status of a transaction, shown in the
                 status field of the details window for this transaction. This status
                 represents an unconfirmed transaction that is in the memory pool. */

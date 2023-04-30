@@ -274,15 +274,16 @@ void TransactionRecord::updateStatus(const interfaces::WalletTxStatus& wtx, cons
     {
         if (status.depth < 0)
         {
-            status.status = TransactionStatus::Conflicted;
+            if (wtx.is_conflicted)
+                status.status = TransactionStatus::Conflicted;
+            else
+                status.status = TransactionStatus::Expired;
         }
         else if (status.depth == 0)
         {
             status.status = TransactionStatus::Unconfirmed;
             if (wtx.is_abandoned)
                 status.status = TransactionStatus::Abandoned;
-            if (wtx.is_expired)
-                status.status = TransactionStatus::Expired;
         }
         else if (status.depth < RecommendedNumConfirmations)
         {

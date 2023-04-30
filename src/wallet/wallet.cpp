@@ -3303,6 +3303,8 @@ int CWallet::GetTxDepthInMainChain(const CWalletTx& wtx) const
         return GetLastBlockHeight() - conf->confirmed_block_height + 1;
     } else if (auto* conf = wtx.state<TxStateConflicted>()) {
         return -1 * (GetLastBlockHeight() - conf->conflicting_block_height + 1);
+    } else if (auto* conf = wtx.state<TxStateExpired>()) {
+        return -1 * (GetLastBlockHeight() - wtx.GetConversionDeadline());
     } else {
         return 0;
     }
