@@ -573,7 +573,7 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
             }
 
             // Create conversion entry and add it to the list of transactions
-            // that failed due an invalid conversion.
+            // that failed due an invalid conversion
             if (conversionInfo) {
                 CTxMemPoolConversionEntry conversionEntry = GetConversionEntry(iter, conversionInfo.value());
                 if (conversionEntry.GetConversionType() == CASH) {
@@ -603,6 +603,133 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
 
         // Update transactions that depend on each of these
         nDescendantsUpdated += UpdatePackagesForAdded(mempool, ancestors, mapModifiedTx);
+
+        if (conversionInfo) {
+            // Conversion rate changed. Check if any transactions dependent upon
+            // a previously invalid conversion can now be executed.
+            conversionrateiter cashit = invalidConversionTxCash.get<index_by_conversion_rate>().begin();
+            conversionrateiter bondit = invalidConversionTxBond.get<index_by_conversion_rate>().begin();
+
+            // Keep track of entries that failed inclusion despite being valid, to avoid duplicate work
+            CTxMemPool::setEntries failedValidConversion;
+            // Keep track of entries that succeeded so we can remove them from the set when we're done
+            CTxMemPool::setEntries successfulTx;
+
+            while (
+                cashit != invalidConversionTxCash.get<index_by_conversion_rate>().end() ||
+                bondit != invalidConversionTxBond.get<index_by_conversion_rate>().end()
+            ) {
+                CAmountType conversionType;
+                if (cashit == invalidConversionTxCash.get<index_by_conversion_rate>().end()) {
+                    // We're out of entries in the cash conversion list. Set as bond entry.
+                    iter = bondit->iter;
+                    conversionType = BOND;
+                }
+                else if (bondit == invalidConversionTxBond.get<index_by_conversion_rate>().end()) {
+                    // We're out of entries in the bond conversion list. Set as cash entry.
+                    iter = cashit->iter;
+                    conversionType = CASH;
+                }
+                else if (CompareTxMemPoolEntryByAncestorFee()(*cashit, *bondit)) {
+                    // The cash entry has a higher score than the bond entry
+                    iter = cashit->iter;
+                    conversionType = CASH;
+                }
+                else {
+                    // The bond entry has a higher score than the cash entry
+                    iter = bondit->iter;
+                    conversionType = BOND;
+                }
+
+                // Skip if tx is already in the block or if it failed despite being a valid conversion
+                if (inBlock.count(iter) || failedValidConversion.count(iter)) {
+                    if (conversionType == CASH) {
+                        ++cashit;
+                    } else {
+                        ++bondit;
+                    }
+                    continue;
+                }
+
+                CTxMemPool::setEntries ancestors;
+                uint64_t nNoLimit = std::numeric_limits<uint64_t>::max();
+                std::string dummy;
+                mempool.CalculateMemPoolAncestors(*iter, ancestors, nNoLimit, nNoLimit, nNoLimit, nNoLimit, dummy, false);
+
+                onlyUnconfirmed(ancestors);
+                ancestors.insert(iter);
+
+                // Test if conversion in package is valid (will not fail for any other reason)
+                std::optional<CTxConversionInfo> dummyConversionInfo;
+                if (!TestPackageTransactions(ancestors, dummyConversionInfo)) {
+                    // Conversion is not valid, so assume all other conversions of this type are not either
+                    if (conversionType == CASH) {
+                        // Skip to end of iterator
+                        cashit = invalidConversionTxCash.get<index_by_conversion_rate>().end();
+                    } else {
+                        // Skip to end of iterator
+                        bondit = invalidConversionTxBond.get<index_by_conversion_rate>().end();
+                    }
+                    continue;
+                }
+
+                // TODO: Modify these values if ancestor has been added
+                uint64_t packageSize = iter->GetSizeWithAncestors();
+                CAmount packageFees = iter->GetModFeesWithAncestors();
+                int64_t packageSigOpsCost = iter->GetSigOpCostWithAncestors();
+
+                if (packageFees < blockMinFeeRate.GetFee(packageSize)) {
+                    // Transactions after this may have better fee, so skip and continue.
+                    failedValidConversion.insert(iter);
+                    continue;
+                }
+
+                if (!TestPackage(packageSize, packageSigOpsCost)) {
+                    failedValidConversion.insert(iter);
+
+                    ++nConsecutiveFailed;
+
+                    if (nConsecutiveFailed > MAX_CONSECUTIVE_FAILURES && nBlockWeight >
+                            nBlockMaxWeight - 4000) {
+                        // Give up if we're close to full and haven't succeeded in a while
+                        break;
+                    }
+                    continue;
+                }
+
+                // This transaction will make it in; reset the failed counter.
+                nConsecutiveFailed = 0;
+
+                // Package can be added. Sort the entries in a valid order.
+                std::vector<CTxMemPool::txiter> sortedEntries;
+                SortForBlock(ancestors, sortedEntries);
+
+                for (size_t i = 0; i < sortedEntries.size(); ++i) {
+                    AddToBlock(sortedEntries[i]);
+                    // Erase from the modified set, if present
+                    mapModifiedTx.erase(sortedEntries[i]);
+                    // Add to set of successful transactions to be erased later
+                    successfulTx.insert(sortedEntries[i]);
+                }
+
+                ++nPackagesSelected;
+
+                // Update transactions that depend on each of these
+                nDescendantsUpdated += UpdatePackagesForAdded(mempool, ancestors, mapModifiedTx);
+            }
+
+            // Erase failed valid conversions from their respective set
+            for (CTxMemPool::txiter it : failedValidConversion) {
+                invalidConversionTxCash.erase(it);
+                invalidConversionTxBond.erase(it);
+            }
+
+            // Erase successful transactions from the set, if present
+            for (CTxMemPool::txiter it : successfulTx) {
+                invalidConversionTxCash.erase(it);
+                invalidConversionTxBond.erase(it);
+            }
+        }
     }
 }
 

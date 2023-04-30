@@ -131,18 +131,15 @@ struct update_for_parent_inclusion
 };
 
 // Container for sorting currently invalid conversion transactions
-struct CTxMemPoolConversionEntry {
-    explicit CTxMemPoolConversionEntry(CTxMemPool::txiter entry, double conversionRate_, CAmountType conversionType_)
+struct CTxMemPoolConversionEntry : CTxMemPoolModifiedEntry {
+    explicit CTxMemPoolConversionEntry(CTxMemPool::txiter entry, double conversionRate_, CAmountType conversionType_) : CTxMemPoolModifiedEntry(entry)
     {
-        iter = entry;
         conversionRate = conversionRate_;
         conversionType = conversionType_;
     }
-    const CTransaction& GetTx() const { return iter->GetTx(); }
     double GetConversionRate() const { return conversionRate; }
     CAmountType GetConversionType() const { return conversionType; }
 
-    CTxMemPool::txiter iter;
     double conversionRate;
     CAmountType conversionType;
 };
@@ -181,6 +178,9 @@ typedef boost::multi_index_container<
         >
     >
 > indexed_conversion_transaction_set;
+
+typedef indexed_conversion_transaction_set::nth_index<0>::type::iterator conversiontxiter;
+typedef indexed_conversion_transaction_set::index<index_by_conversion_rate>::type::iterator conversionrateiter;
 
 /** Generate a new block, without valid proof-of-work */
 class BlockAssembler
