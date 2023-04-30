@@ -376,7 +376,9 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
  * of updated descendants. */
 static int UpdatePackagesForAdded(const CTxMemPool& mempool,
                                   const CTxMemPool::setEntries& alreadyAdded,
-                                  indexed_modified_transaction_set& mapModifiedTx) EXCLUSIVE_LOCKS_REQUIRED(mempool.cs)
+                                  indexed_modified_transaction_set& mapModifiedTx,
+                                  indexed_conversion_transaction_set& invalidConversionTxCash,
+                                  indexed_conversion_transaction_set& invalidConversionTxBond) EXCLUSIVE_LOCKS_REQUIRED(mempool.cs)
 {
     AssertLockHeld(mempool.cs);
 
@@ -399,6 +401,16 @@ static int UpdatePackagesForAdded(const CTxMemPool& mempool,
                 mapModifiedTx.insert(modEntry);
             } else {
                 mapModifiedTx.modify(mit, update_for_parent_inclusion(it));
+            }
+
+            conversiontxiter cashit = invalidConversionTxCash.find(desc);
+            if (cashit != invalidConversionTxCash.end()) {
+                invalidConversionTxCash.modify(cashit, update_for_parent_inclusion(it));
+            }
+
+            conversiontxiter bondit = invalidConversionTxBond.find(desc);
+            if (bondit != invalidConversionTxBond.end()) {
+                invalidConversionTxBond.modify(bondit, update_for_parent_inclusion(it));
             }
         }
     }
@@ -602,7 +614,7 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
         ++nPackagesSelected;
 
         // Update transactions that depend on each of these
-        nDescendantsUpdated += UpdatePackagesForAdded(mempool, ancestors, mapModifiedTx);
+        nDescendantsUpdated += UpdatePackagesForAdded(mempool, ancestors, mapModifiedTx, invalidConversionTxCash, invalidConversionTxBond);
 
         if (conversionInfo) {
             // Conversion rate changed. Check if any transactions dependent upon
@@ -619,27 +631,29 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
                 cashit != invalidConversionTxCash.get<index_by_conversion_rate>().end() ||
                 bondit != invalidConversionTxBond.get<index_by_conversion_rate>().end()
             ) {
+                conversionrateiter conversionit;
                 CAmountType conversionType;
                 if (cashit == invalidConversionTxCash.get<index_by_conversion_rate>().end()) {
                     // We're out of entries in the cash conversion list. Set as bond entry.
-                    iter = bondit->iter;
+                    conversionit = bondit;
                     conversionType = BOND;
                 }
                 else if (bondit == invalidConversionTxBond.get<index_by_conversion_rate>().end()) {
                     // We're out of entries in the bond conversion list. Set as cash entry.
-                    iter = cashit->iter;
+                    conversionit = cashit;
                     conversionType = CASH;
                 }
                 else if (CompareTxMemPoolEntryByAncestorFee()(*cashit, *bondit)) {
                     // The cash entry has a higher score than the bond entry
-                    iter = cashit->iter;
+                    conversionit = cashit;
                     conversionType = CASH;
                 }
                 else {
                     // The bond entry has a higher score than the cash entry
-                    iter = bondit->iter;
+                    conversionit = bondit;
                     conversionType = BOND;
                 }
+                iter = conversionit->iter;
 
                 // Skip if tx is already in the block or if it failed despite being a valid conversion
                 if (inBlock.count(iter) || failedValidConversion.count(iter)) {
@@ -673,10 +687,10 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
                     continue;
                 }
 
-                // TODO: Modify these values if ancestor has been added
-                uint64_t packageSize = iter->GetSizeWithAncestors();
-                CAmount packageFees = iter->GetModFeesWithAncestors();
-                int64_t packageSigOpsCost = iter->GetSigOpCostWithAncestors();
+                // Use values modified for parent inclusion
+                uint64_t packageSize = conversionit->nSizeWithAncestors;
+                CAmount packageFees = conversionit->nModFeesWithAncestors;
+                int64_t packageSigOpsCost = conversionit->nSigOpCostWithAncestors;
 
                 if (packageFees < blockMinFeeRate.GetFee(packageSize)) {
                     // Transactions after this may have better fee, so skip and continue.
@@ -715,7 +729,7 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
                 ++nPackagesSelected;
 
                 // Update transactions that depend on each of these
-                nDescendantsUpdated += UpdatePackagesForAdded(mempool, ancestors, mapModifiedTx);
+                nDescendantsUpdated += UpdatePackagesForAdded(mempool, ancestors, mapModifiedTx, invalidConversionTxCash, invalidConversionTxBond);
             }
 
             // Erase failed valid conversions from their respective set
