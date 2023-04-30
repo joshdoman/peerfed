@@ -212,7 +212,10 @@ public:
     virtual CAmountScaleFactor getLastScaleFactor() = 0;
 
     //! Get scale factor for confirmed block hash
-    virtual CAmountScaleFactor findScaleFactor(const uint256& block_hash) = 0;
+    virtual std::optional<CAmountScaleFactor> findScaleFactorForHash(const uint256& block_hash) = 0;
+
+    //! Get scale factor for confirmed block height
+    virtual std::optional<CAmountScaleFactor> findScaleFactorAtHeight(const int& block_height) = 0;
 
     //! Transaction is added to memory pool, if the transaction fee is below the
     //! amount specified by max_tx_fee, and broadcast to all peers if relay is set to true.

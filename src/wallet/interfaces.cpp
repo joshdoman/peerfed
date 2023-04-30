@@ -75,7 +75,7 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
     result.credit = CachedTxGetCredit(wallet, wtx, ISMINE_ALL);
     result.debit = CachedTxGetDebit(wallet, wtx, ISMINE_ALL);
     result.change = CachedTxGetChange(wallet, wtx);
-    result.scale_factor = wtx.state<TxStateConfirmed>() ? wallet.chain().findScaleFactor(wtx.state<TxStateConfirmed>()->confirmed_block_hash) : wallet.chain().getLastScaleFactor();
+    result.scale_factor = wallet.GetBestScaleFactor(wtx);
     result.time = wtx.GetTxTime();
     result.value_map = wtx.mapValue;
     result.is_coinbase = wtx.IsCoinBase();
@@ -99,10 +99,10 @@ WalletTxStatus MakeWalletTxStatus(const CWallet& wallet, const CWalletTx& wtx)
     result.depth_in_main_chain = wallet.GetTxDepthInMainChain(wtx);
     result.time_received = wtx.nTimeReceived;
     result.lock_time = wtx.tx->nLockTime;
-    result.scale_factor = wtx.state<TxStateConfirmed>() ? wallet.chain().findScaleFactor(wtx.state<TxStateConfirmed>()->confirmed_block_hash) : wallet.chain().getLastScaleFactor();
+    result.scale_factor = wallet.GetBestScaleFactor(wtx);
     result.is_trusted = CachedTxIsTrusted(wallet, wtx);
     result.is_abandoned = wtx.isAbandoned();
-    result.is_expired = wtx.isExpired();
+    result.is_expired = wallet.IsExpired(wtx);
     result.is_coinbase = wtx.IsCoinBase();
     result.is_in_main_chain = wallet.IsTxInMainChain(wtx);
     return result;

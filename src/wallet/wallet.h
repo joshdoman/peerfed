@@ -449,6 +449,18 @@ public:
     int GetTxBlocksToMaturity(const CWalletTx& wtx) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool IsTxImmatureCoinBase(const CWalletTx& wtx) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
+    /**
+     * If confirmed, returns the scale factor at the block in which it was first confirmed.
+     * If expired, returns the scale factor at the block in which it expired.
+     * Otherwise, returns the latest scale factor.
+     */
+    CAmountScaleFactor GetBestScaleFactor(const CWalletTx& wtx) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+
+    /**
+     * @return true if state is Expired or block number exceeds conversion deadline (if present)
+     */
+    bool IsExpired(const CWalletTx& wtx) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+
     //! check whether we support the named feature
     bool CanSupportFeature(enum WalletFeature wf) const override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) { AssertLockHeld(cs_wallet); return IsFeatureSupported(nWalletVersion, wf); }
 

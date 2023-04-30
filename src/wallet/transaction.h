@@ -300,11 +300,14 @@ public:
 
     int64_t GetTxTime() const;
 
+    /** Returns conversion deadline (if present), caching the result */
+    int GetConversionDeadline() const;
+
     template<typename T> const T* state() const { return std::get_if<T>(&m_state); }
     template<typename T> T* state() { return std::get_if<T>(&m_state); }
 
     bool isAbandoned() const { return state<TxStateInactive>() && state<TxStateInactive>()->abandoned; }
-    bool isExpired() const { return state<TxStateExpired>(); }
+    bool isExpired() const { return state<TxStateExpired>(); } // Returns false if conversion is replaced by fee before expiring (tx marked conflicted)
     bool isConflicted() const { return state<TxStateConflicted>(); }
     bool isUnconfirmed() const { return !isAbandoned() && !isExpired() && !isConflicted() && !isConfirmed(); }
     bool isConfirmed() const { return state<TxStateConfirmed>(); }

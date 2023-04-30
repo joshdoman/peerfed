@@ -3328,6 +3328,50 @@ bool CWallet::IsTxImmatureCoinBase(const CWalletTx& wtx) const
     return GetTxBlocksToMaturity(wtx) > 0;
 }
 
+CAmountScaleFactor CWallet::GetBestScaleFactor(const CWalletTx& wtx) const
+{
+    AssertLockHeld(cs_wallet);
+
+    std::optional<CAmountScaleFactor> scale_factor;
+    if (wtx.state<TxStateConfirmed>()) {
+        // Use scale factor at height of first confirmation
+        scale_factor = chain().findScaleFactorForHash(wtx.state<TxStateConfirmed>()->confirmed_block_hash);
+    } else if (wtx.state<TxStateExpired>()) {
+        // Use scale factor at height when it expired
+        scale_factor = chain().findScaleFactorAtHeight(wtx.GetConversionDeadline());
+    } else {
+        std::optional<int> chainHeight = chain().getHeight();
+        int conversionDeadline = wtx.GetConversionDeadline();
+        if (chainHeight && conversionDeadline > 0 && chainHeight.value() > conversionDeadline) {
+            // Use scale factor at height when it expired (We check because a
+            // replaced conversion will marked conflicted state and not expired)
+            scale_factor = chain().findScaleFactorAtHeight(conversionDeadline);
+        } else {
+            // Use latest scale factor (transaction is neither confirmed nor expired)
+            scale_factor = chain().getLastScaleFactor();
+        }
+    }
+    return scale_factor.value_or(BASE_FACTOR);
+}
+
+bool CWallet::IsExpired(const CWalletTx& wtx) const
+{
+    AssertLockHeld(cs_wallet);
+
+    bool is_expired = wtx.isExpired();
+    if (!wtx.state<TxStateConfirmed>() && !wtx.state<TxStateExpired>()) {
+        // We double check here because a replaced conversion will be in a
+        // conflicted state and not an expired state even if the deadline has
+        // passed)
+        std::optional<int> chainHeight = chain().getHeight();
+        int conversionDeadline = wtx.GetConversionDeadline();
+        if (chainHeight && conversionDeadline > 0 && chainHeight.value() > conversionDeadline) {
+            is_expired = true;
+        }
+    }
+    return is_expired;
+}
+
 bool CWallet::IsCrypted() const
 {
     return HasEncryptionKeys();

@@ -343,7 +343,7 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
 
     bool involvesWatchonly = CachedTxIsFromMe(wallet, wtx, ISMINE_WATCH_ONLY);
 
-    const CAmountScaleFactor scaleFactor = wtx.state<TxStateConfirmed>() ? wallet.chain().findScaleFactor(wtx.state<TxStateConfirmed>()->confirmed_block_hash) : wallet.chain().getLastScaleFactor();
+    const CAmountScaleFactor scaleFactor = wallet.GetBestScaleFactor(wtx);
 
     // Converted
     for (const COutputEntry& c : listConverted)
@@ -369,7 +369,7 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
         if (fLong)
             WalletTxToJSON(wallet, wtx, entry);
         entry.pushKV("abandoned", wtx.isAbandoned());
-        entry.pushKV("expired", wtx.isExpired());
+        entry.pushKV("expired", wallet.IsExpired(wtx));
         ret.push_back(entry);
     }
 
@@ -843,7 +843,7 @@ RPCHelpMan gettransaction()
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid or non-wallet transaction id");
     }
     const CWalletTx& wtx = it->second;
-    const CAmountScaleFactor scaleFactor = wtx.state<TxStateConfirmed>() ? pwallet->chain().findScaleFactor(wtx.state<TxStateConfirmed>()->confirmed_block_hash) : pwallet->chain().getLastScaleFactor();
+    const CAmountScaleFactor scaleFactor = pwallet->GetBestScaleFactor(wtx);
 
     CAmounts nCredit = CachedTxGetCredit(*pwallet, wtx, filter);
     CAmounts nDebit = CachedTxGetDebit(*pwallet, wtx, filter);

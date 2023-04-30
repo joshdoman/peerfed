@@ -24,4 +24,17 @@ int64_t CWalletTx::GetTxTime() const
     int64_t n = nTimeSmart;
     return n ? n : nTimeReceived;
 }
+
+int CWalletTx::GetConversionDeadline() const
+{
+    int conversion_n = tx->GetConversionOutputN();
+    if (conversion_n != -1) {
+        CTxOut conversion_out = tx->vout[conversion_n];
+        CTxConversionInfo conversionInfo;
+        if (ExtractConversionInfo(conversion_out.scriptPubKey, conversionInfo)) {
+            return (int)conversionInfo.nDeadline;
+        }
+    }
+    return 0;
+}
 } // namespace wallet
