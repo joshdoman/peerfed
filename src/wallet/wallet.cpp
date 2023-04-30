@@ -1271,9 +1271,10 @@ void CWallet::MarkConflicted(const uint256& hashBlock, int conflicting_height, c
         assert(it != mapWallet.end());
         CWalletTx& wtx = it->second;
         int currentconfirm = GetTxDepthInMainChain(wtx);
-        if (conflictconfirms < currentconfirm) {
+        if (conflictconfirms < currentconfirm && !wtx.isExpired()) {
             // Block is 'more conflicted' than current confirm; update.
-            // Mark transaction as conflicted with this block.
+            // Mark transaction as conflicted with this block unless
+            // transaction has already been marked 'expired'
             wtx.m_state = TxStateConflicted{hashBlock, conflicting_height};
             wtx.MarkDirty();
             batch.WriteTx(wtx);
