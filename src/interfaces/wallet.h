@@ -489,6 +489,7 @@ struct WalletTxStatus
     bool is_abandoned;
     bool is_conflicted;
     bool is_expired;
+    int expires_in;
     bool is_coinbase;
     bool is_in_main_chain;
 };

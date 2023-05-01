@@ -3304,7 +3304,7 @@ int CWallet::GetTxDepthInMainChain(const CWalletTx& wtx) const
     } else if (auto* conf = wtx.state<TxStateConflicted>()) {
         return -1 * (GetLastBlockHeight() - conf->conflicting_block_height + 1);
     } else if (auto* conf = wtx.state<TxStateExpired>()) {
-        return -1 * (GetLastBlockHeight() - wtx.GetConversionDeadline());
+        return -1 * (GetLastBlockHeight() - wtx.GetConversionDeadline() + 1);
     } else {
         return 0;
     }
@@ -3362,16 +3362,33 @@ bool CWallet::IsExpired(const CWalletTx& wtx) const
 
     bool is_expired = wtx.isExpired();
     if (!wtx.state<TxStateConfirmed>() && !wtx.state<TxStateExpired>()) {
-        // We double check here because a replaced conversion will be in a
-        // conflicted state and not an expired state even if the deadline has
-        // passed)
+        // Check in case tx is in a conflicted state (tx that is replaced before
+        // it expires will be marked conflicted and not expired even after deadline
+        // passes)
         std::optional<int> chainHeight = chain().getHeight();
         int conversionDeadline = wtx.GetConversionDeadline();
-        if (chainHeight && conversionDeadline > 0 && chainHeight.value() > conversionDeadline) {
+        if (chainHeight && conversionDeadline > 0 && chainHeight.value() >= conversionDeadline) {
             is_expired = true;
         }
     }
     return is_expired;
+}
+
+int CWallet::ExpiresIn(const CWalletTx& wtx) const
+{
+    AssertLockHeld(cs_wallet);
+
+    if (wtx.state<TxStateConfirmed>() || wtx.state<TxStateExpired>())
+        // Skip calculation if transaction is confirmed or we know it has expired
+        return -1;
+
+    std::optional<int> chainHeight = chain().getHeight();
+    int conversionDeadline = wtx.GetConversionDeadline();
+    if (chainHeight && conversionDeadline > 0 && chainHeight.value() <= conversionDeadline) {
+        return conversionDeadline - chainHeight.value();
+    } else {
+        return -1;
+    }
 }
 
 bool CWallet::IsCrypted() const

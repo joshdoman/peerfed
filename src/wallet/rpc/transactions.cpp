@@ -24,6 +24,9 @@ static void WalletTxToJSON(const CWallet& wallet, const CWalletTx& wtx, UniValue
         entry.pushKV("generated", true);
     if (wtx.IsConversion())
         entry.pushKV("conversion", true);
+    int expiresIn = wallet.ExpiresIn(wtx);
+    if (expiresIn > 0)
+        entry.pushKV("expiresIn", expiresIn);
     if (auto* conf = wtx.state<TxStateConfirmed>())
     {
         entry.pushKV("blockhash", conf->confirmed_block_hash.GetHex());
@@ -370,6 +373,9 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
             WalletTxToJSON(wallet, wtx, entry);
         entry.pushKV("abandoned", wtx.isAbandoned());
         entry.pushKV("expired", wallet.IsExpired(wtx));
+        int expiresIn = wallet.ExpiresIn(wtx);
+        if (expiresIn > 0)
+            entry.pushKV("expiresIn", expiresIn);
         ret.push_back(entry);
     }
 
@@ -455,6 +461,8 @@ static const std::vector<RPCResult> TransactionDescriptionString()
                "transaction conflicted that many blocks ago."},
            {RPCResult::Type::BOOL, "generated", /*optional=*/true, "Only present if the transaction's only input is a coinbase one."},
            {RPCResult::Type::BOOL, "conversion", /*optional=*/true, "Only present if the transaction contains an OP_CONVERT output."},
+           {RPCResult::Type::NUM, "expiresIn", /*optional=*/true, "Number of blocks until the transaction expires.\n"
+                "Only present if the transaction contains an OP_CONVERT output and has not expired."},
            {RPCResult::Type::BOOL, "trusted", /*optional=*/true, "Whether we consider the transaction to be trusted and safe to spend from.\n"
                 "Only present when the transaction has 0 confirmations (or negative confirmations, if conflicted)."},
            {RPCResult::Type::STR_HEX, "blockhash", /*optional=*/true, "The block hash containing the transaction."},
@@ -524,6 +532,9 @@ RPCHelpMan listtransactions()
                         {
                             {RPCResult::Type::BOOL, "abandoned", /*optional=*/true, "'true' if the transaction has been abandoned (inputs are respendable). Only available for the \n"
                                  "'send' and 'converted' categories of transactions."},
+                            {RPCResult::Type::BOOL, "expired", /*optional=*/true, "'true' if the transaction has expired. Only available for the 'converted' category of transactions."},
+                            {RPCResult::Type::NUM, "expiresIn", /*optional=*/true, "Number of blocks until the transaction expires. Only available for the converted' category of \n"
+                                 "transactions, provided the transaction has not expired."},
                         })},
                     }
                 },

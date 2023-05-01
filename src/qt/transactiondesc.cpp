@@ -69,6 +69,15 @@ QString TransactionDesc::FormatTxStatus(const interfaces::WalletTxStatus& status
                 status represents an abandoned transaction. */
             s += QLatin1String(", ") + tr("abandoned");
         }
+        if (status.expires_in > 0) {
+            /*: Text explaining the current status of a transaction, shown in the
+                status field of the details window for this transaction. This
+                status represents the number of blocks until the transaction expires. */
+            if (status.expires_in == 1)
+                s += QLatin1String(", ") + tr("expires in 1 block");
+            else
+                s += QLatin1String(", ") + tr("expires in %1 blocks").arg(status.expires_in);
+        }
         return s;
     } else if (depth < 6) {
         /*: Text explaining the current status of a transaction, shown in the
