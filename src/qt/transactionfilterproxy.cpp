@@ -16,7 +16,7 @@ TransactionFilterProxy::TransactionFilterProxy(QObject *parent) :
     m_search_string(),
     typeFilter(ALL_TYPES),
     watchOnlyFilter(WatchOnlyFilter_All),
-    minAmount(0),
+    minAmount({0}),
     limitRows(-1),
     showInactive(true)
 {
@@ -53,8 +53,9 @@ bool TransactionFilterProxy::filterAcceptsRow(int sourceRow, const QModelIndex &
         return false;
     }
 
+    CAmountType amountType = index.data(TransactionTableModel::AmountTypeRole).toLongLong();
     qint64 amount = llabs(index.data(TransactionTableModel::AmountRole).toLongLong());
-    if (amount < minAmount)
+    if (amount < minAmount[amountType])
         return false;
 
     return true;
@@ -80,7 +81,7 @@ void TransactionFilterProxy::setTypeFilter(quint32 modes)
     invalidateFilter();
 }
 
-void TransactionFilterProxy::setMinAmount(const CAmount& minimum)
+void TransactionFilterProxy::setMinAmount(const CAmounts& minimum)
 {
     this->minAmount = minimum;
     invalidateFilter();

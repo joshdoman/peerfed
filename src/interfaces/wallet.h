@@ -234,8 +234,8 @@ public:
     //! Get balances if possible without blocking.
     virtual bool tryGetBalances(WalletBalances& balances, uint256& block_hash) = 0;
 
-    //! Get balance.
-    virtual CAmount getBalance() = 0;
+    //! Get balance (defaults to cash balance).
+    virtual CAmount getBalance(const CAmountType& type = CASH) = 0;
 
     //! Get available balance.
     virtual CAmount getAvailableBalance(CAmountType type, const wallet::CCoinControl& coin_control) = 0;

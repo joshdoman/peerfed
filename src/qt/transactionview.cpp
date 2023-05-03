@@ -342,13 +342,18 @@ void TransactionView::changedAmount()
 {
     if(!transactionProxyModel)
         return;
-    CAmount amount_parsed = 0;
-    if (BitcoinUnits::parse(model->getOptionsModel()->getDisplayUnit(), amountWidget->text(), &amount_parsed)) {
-        transactionProxyModel->setMinAmount(amount_parsed);
+    CAmount amount_parsed_cash = 0;
+    CAmount amount_parsed_bond = 0;
+    if (BitcoinUnits::parse(model->getOptionsModel()->getDisplayUnit(CASH), amountWidget->text(), &amount_parsed_cash) &&
+        BitcoinUnits::parse(model->getOptionsModel()->getDisplayUnit(BOND), amountWidget->text(), &amount_parsed_bond)) {
+        CAmounts minimum = {0};
+        minimum[CASH] = amount_parsed_cash;
+        minimum[BOND] = amount_parsed_bond;
+        transactionProxyModel->setMinAmount(minimum);
     }
     else
     {
-        transactionProxyModel->setMinAmount(0);
+        transactionProxyModel->setMinAmount({0});
     }
 }
 

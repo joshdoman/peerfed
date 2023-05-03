@@ -431,7 +431,7 @@ public:
         balances = getBalances();
         return true;
     }
-    CAmount getBalance() override { return GetBalance(*m_wallet, 0).m_mine_trusted; } // TODO: Implement coin type
+    CAmount getBalance(const CAmountType& amount_type) override { return GetBalance(*m_wallet, amount_type).m_mine_trusted; }
     CAmount getAvailableBalance(CAmountType amount_type, const CCoinControl& coin_control) override
     {
         return GetAvailableBalance(*m_wallet, amount_type, &coin_control);

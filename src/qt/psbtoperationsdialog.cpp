@@ -146,9 +146,10 @@ void PSBTOperationsDialog::saveTransaction() {
         if (!first) {
             filename_suggestion.append("-");
         }
+        // TODO: Create different file name format if conversion script is present
         CTxDestination address;
         ExtractDestination(out.scriptPubKey, address);
-        QString amount = BitcoinUnits::format(m_client_model->getOptionsModel()->getDisplayUnit(), out.nValue);
+        QString amount = BitcoinUnits::format(m_client_model->getOptionsModel()->getDisplayUnit(out.amountType), out.nValue);
         QString address_str = QString::fromStdString(EncodeDestination(address));
         filename_suggestion.append(address_str + "-" + amount);
         first = false;

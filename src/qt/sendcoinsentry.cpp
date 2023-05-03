@@ -223,7 +223,7 @@ void SendCoinsEntry::setFocus()
 void SendCoinsEntry::updateDisplayUnit()
 {
     if (model && model->getOptionsModel()) {
-        ui->payAmount->setDisplayUnit(model->getOptionsModel()->getDisplayUnit());
+        ui->payAmount->setDisplayUnit(model->getOptionsModel()->getDisplayUnit(ui->payAmount->type()));
     }
 }
 

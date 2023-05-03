@@ -469,7 +469,7 @@ QVariant TransactionTableModel::addressColor(const TransactionRecord *wtx) const
 QString TransactionTableModel::formatTxAmount(const TransactionRecord *wtx, bool showUnconfirmed, BitcoinUnits::SeparatorStyle separators) const
 {
     CAmount amount = walletModel->getOptionsModel()->getShowScaledAmount(wtx->amountType) ? ScaleAmount(wtx->credit + wtx->debit, wtx->scaleFactor) : wtx->credit + wtx->debit;
-    QString str = BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), amount, false, separators); // TODO: Implement
+    QString str = BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(wtx->amountType), amount, false, separators);
     if(showUnconfirmed)
     {
         if(!wtx->status.countsForBalance)

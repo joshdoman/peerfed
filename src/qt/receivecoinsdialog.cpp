@@ -144,7 +144,7 @@ void ReceiveCoinsDialog::updateDisplayUnit()
 {
     if(model && model->getOptionsModel())
     {
-        ui->reqAmount->setDisplayUnit(model->getOptionsModel()->getDisplayUnit());
+        ui->reqAmount->setDisplayUnit(model->getOptionsModel()->getDisplayUnit(ui->reqAmount->type()));
     }
 }
 
