@@ -1378,7 +1378,7 @@ void CWallet::blockConnected(const interfaces::BlockInfo& block)
             CScript script = wtx.tx->vout[wtx.GetConversionOutputN()].scriptPubKey;
             CTxConversionInfo conversionInfo;
             if (ExtractConversionInfo(script, conversionInfo)) {
-                if (conversionInfo.nDeadline && conversionInfo.nDeadline <= block.height) {
+                if (conversionInfo.nDeadline && conversionInfo.nDeadline <= (uint32_t)block.height) {
                     SyncTransaction(wtx.tx, TxStateExpired{});
                 }
             }

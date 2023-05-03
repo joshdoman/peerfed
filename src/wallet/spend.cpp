@@ -1387,7 +1387,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
     }
 
     // Set tx fee in conversion output
-    for (unsigned int i = 0; i < txNew.vout.size(); i++)
+    for (int i = 0; i < txNew.vout.size(); i++)
     {
         if (i == nChangePosInOut)
             continue;
@@ -1400,7 +1400,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
 
     // Reduce output values if subtracting fee from outputs
     if (subtractingFeeFromOutputs) {
-        for (unsigned int i = 0; i < txNew.vout.size(); i++)
+        for (int i = 0; i < txNew.vout.size(); i++)
         {
             if (i == nChangePosInOut)
                 continue;
