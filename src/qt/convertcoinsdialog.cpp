@@ -122,6 +122,7 @@ ConvertCoinsDialog::ConvertCoinsDialog(const PlatformStyle *_platformStyle, QWid
     connect(ui->reqAmountIn, &BitcoinAmountField::valueChanged, this, &ConvertCoinsDialog::onInputChanged);
     connect(ui->reqAmountOut, &BitcoinAmountField::valueChanged, this, &ConvertCoinsDialog::onOutputChanged);
     connect(ui->clearButton, &QPushButton::clicked, this, &ConvertCoinsDialog::clear);
+    connect(ui->useAvailableBalanceButton, &QPushButton::clicked, this, &ConvertCoinsDialog::useAvailableBalanceClicked);
 
     // Coin Control
     connect(ui->pushButtonCoinControl, &QPushButton::clicked, this, &ConvertCoinsDialog::coinControlButtonClicked);
@@ -378,9 +379,21 @@ bool ConvertCoinsDialog::PrepareConversionText(QString& question_string, QString
         return false;
     }
 
-    // prepare conversion transaction
     if (!model || !model->getOptionsModel())
         return false;
+
+    // Check if converting available balance
+    bool usingAvailableBalance = false;
+    if (inputIsExact) {
+        interfaces::WalletBalances balances = model->getCachedBalance();
+        if (getInputType() == CASH) {
+            usingAvailableBalance = (ui->reqAmountIn->value() == balances.cash.balance);
+        } else {
+            usingAvailableBalance = (ui->reqAmountIn->value() == balances.bond.balance);
+        }
+    }
+
+    // prepare conversion transaction
     CAmount maxInput = ui->reqAmountIn->value();
     CAmount minOutput = ui->reqAmountOut->value();
     if (model->getOptionsModel()->getShowScaledAmount(getInputType())) {
@@ -397,7 +410,8 @@ bool ConvertCoinsDialog::PrepareConversionText(QString& question_string, QString
         maxInput = maxInput * 10000 / (10000 - int(ui->reqSlippage->value() * 100));
     }
     CAmountType remainderType = inputIsExact ? getOutputType() : getInputType();
-    m_current_transaction = std::make_unique<WalletModelConversionTransaction>(maxInput, minOutput, getInputType(), getOutputType(), remainderType);
+    bool fSubtractFeeFromInput = usingAvailableBalance;
+    m_current_transaction = std::make_unique<WalletModelConversionTransaction>(maxInput, minOutput, getInputType(), getOutputType(), remainderType, fSubtractFeeFromInput);
 
     updateCoinControlState();
 
@@ -711,6 +725,18 @@ void ConvertCoinsDialog::clear()
 
     setupTabChain(nullptr);
     updateDisplayUnitAndCoinControlLabels();
+}
+
+void ConvertCoinsDialog::useAvailableBalanceClicked()
+{
+    if (!model) return;
+    // Set 'isUsingAvailableBalance' to true and set input amount
+    interfaces::WalletBalances balances = model->getCachedBalance();
+    if (getInputType() == CASH) {
+        ui->reqAmountIn->setValue(balances.cash.balance);
+    } else {
+        ui->reqAmountIn->setValue(balances.bond.balance);
+    }
 }
 
 void ConvertCoinsDialog::reject()

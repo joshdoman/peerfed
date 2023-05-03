@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2023 Josh Doman
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,13 +16,15 @@ class WalletModelConversionTransaction
 {
 public:
     explicit WalletModelConversionTransaction(const CAmount maxInput, const CAmount minOutput, const CAmountType inputType,
-                                                const CAmountType outputType, const CAmountType remainderType);
+                                                const CAmountType outputType, const CAmountType remainderType,
+                                                const bool fSubtractFeeFromInput);
 
     CAmount getMaxInput();
     CAmount getMinOutput();
     CAmountType getInputType();
     CAmountType getOutputType();
     CAmountType getRemainderType();
+    bool subtractFeeFromInput();
 
     CTransactionRef& getWtx();
     void setWtx(const CTransactionRef&);
@@ -39,6 +41,7 @@ private:
     CAmountType inputType;
     CAmountType outputType;
     CAmountType remainderType;
+    bool fSubtractFeeFromInput;
     CTransactionRef wtx;
     CAmount fee;
     CAmountType feeType;

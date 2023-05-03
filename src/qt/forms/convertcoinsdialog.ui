@@ -719,7 +719,7 @@
            </widget>
           </item>
            <item>
-            <spacer name="horizontalSpacer">
+            <spacer name="horizontalSpacer_type">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
@@ -757,6 +757,13 @@
              </property>
              <property name="toolTip">
               <string>The desired or expected input amount. Required.</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="useAvailableBalanceButton">
+             <property name="text">
+              <string>Use available balance</string>
              </property>
             </widget>
            </item>
@@ -803,7 +810,7 @@
             </widget>
            </item>
            <item>
-            <spacer name="horizontalSpacer_4">
+            <spacer name="horizontalSpacer_output">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
@@ -857,7 +864,7 @@
             </widget>
            </item>
            <item>
-            <spacer name="horizontalSpacer_5">
+            <spacer name="horizontalSpacer_slippage">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
@@ -877,7 +884,7 @@
             <widget class="QComboBox" name="expirySelector"/>
            </item>
            <item>
-            <spacer name="horizontalSpacer_6">
+            <spacer name="horizontalSpacer_expiry">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>

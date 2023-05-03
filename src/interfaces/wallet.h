@@ -62,6 +62,7 @@ struct WalletConversionTxDetails
     CAmountType inputType;
     CAmountType outputType;
     CAmountType remainderType;
+    bool fSubtractFeeFromInput;
     std::optional<CTxDestination> remainderDest; /** CNoDestination sends remainder to miner */
     std::vector<wallet::CRecipient> recipients; /** Optional list of recipients */
 };

@@ -331,7 +331,7 @@ WalletModel::ConvertCoinsReturn WalletModel::prepareTransaction(WalletModelConve
         int nChangePosRet = -1;
 
         auto& newTx = transaction.getWtx();
-        WalletConversionTxDetails txDetails = {transaction.getMaxInput(), transaction.getMinOutput(), transaction.getInputType(), transaction.getOutputType(), transaction.getRemainderType()};
+        WalletConversionTxDetails txDetails = {transaction.getMaxInput(), transaction.getMinOutput(), transaction.getInputType(), transaction.getOutputType(), transaction.getRemainderType(), transaction.subtractFeeFromInput()};
         const auto& res = m_wallet->createConversionTransaction(txDetails, coinControl, !wallet().privateKeysDisabled() /* sign */, nChangePosRet, nFeeRequired, nFeeTypeRequired);
         newTx = res ? *res : nullptr;
         transaction.setTransactionFee(nFeeRequired, nFeeTypeRequired);

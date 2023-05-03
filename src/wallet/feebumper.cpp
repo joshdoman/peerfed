@@ -327,12 +327,14 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
         }
         CAmountType inputType = input_values[CASH] > output_values[CASH] ? CASH : BOND;
         CAmountType outputType = !inputType;
+        bool fSubtractFeeFromInput = false;
         WalletConversionTxDetails tx_details = {
             maxInput,
             minOutput,
             inputType,
             outputType,
             remainderType,
+            fSubtractFeeFromInput,
             remainderDest,
             recipients
         };

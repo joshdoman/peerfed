@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2020 The Bitcoin Core developers
+// Copyright (c) 2023 Josh Doman
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,12 +11,14 @@
 #include <policy/policy.h>
 
 WalletModelConversionTransaction::WalletModelConversionTransaction(const CAmount _maxInput, const CAmount _minOutput, const CAmountType _inputType,
-                                                                    const CAmountType _outputType, const CAmountType _remainderType) :
+                                                                    const CAmountType _outputType, const CAmountType _remainderType,
+                                                                    const bool _fSubtractFeeFromInput) :
     maxInput(_maxInput),
     minOutput(_minOutput),
     inputType(_inputType),
     outputType(_outputType),
     remainderType(_remainderType),
+    fSubtractFeeFromInput(_fSubtractFeeFromInput),
     fee(0),
     feeType(0)
 {
@@ -45,6 +47,11 @@ CAmountType WalletModelConversionTransaction::getOutputType()
 CAmountType WalletModelConversionTransaction::getRemainderType()
 {
     return remainderType;
+}
+
+bool WalletModelConversionTransaction::subtractFeeFromInput()
+{
+    return fSubtractFeeFromInput;
 }
 
 CTransactionRef& WalletModelConversionTransaction::getWtx()

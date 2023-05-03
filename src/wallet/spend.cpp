@@ -1158,8 +1158,12 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
 
     const OutputType change_type = wallet.TransactionChangeType(coin_control.m_change_type ? *coin_control.m_change_type : wallet.m_default_change_type, {} /* vecSend */);
     ReserveDestination reservedest(&wallet, change_type);
-    coin_selection_params.m_subtract_fee_outputs = tx_details.outputType == coin_control.m_fee_type;
-    if (coin_selection_params.m_subtract_fee_outputs) {
+    bool subtractingFeeFromInput = false;
+    bool subtractingFeeFromOutputs = false;
+    if (tx_details.inputType == coin_control.m_fee_type) {
+        subtractingFeeFromInput = tx_details.fSubtractFeeFromInput;
+        coin_selection_params.m_subtract_fee_outputs = subtractingFeeFromInput;
+    } else {
         // TODO: Handle subtract fees from outputs
         // Subtracting fee from conversion outputs is not yet supported
         return util::Error{_("Subtracting fee from outputs not yet supported in conversion. Fee type must be the same as the input type.")};
@@ -1233,7 +1237,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
     coin_selection_params.min_viable_change = std::max(change_spend_fee + 1, dust);
 
     // vouts to the payees
-    if (!coin_selection_params.m_subtract_fee_outputs) {
+    if (!subtractingFeeFromOutputs) {
         coin_selection_params.tx_noinputs_size = 10; // Static vsize overhead + outputs vsize. 4 nVersion, 4 nLocktime, 1 input count, 1 witness overhead (dummy, flag, stack size)
         coin_selection_params.tx_noinputs_size += GetSizeOfCompactSize(3); // bytes for output count (1 change input, 1 output amount, 1 conversion output)
     }
@@ -1269,9 +1273,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         CTxOut txout(nFeeTypeRet, 0, conversionScript); // Set fee later
 
         // Include the fee cost for output.
-        if (!coin_selection_params.m_subtract_fee_outputs) {
-            coin_selection_params.tx_noinputs_size += ::GetSerializeSize(txout, PROTOCOL_VERSION);
-        }
+        coin_selection_params.tx_noinputs_size += ::GetSerializeSize(txout, PROTOCOL_VERSION);
 
         // Include the fee cost of the remainder output, unless remainder is sent to the miner
         if (hasRemainderOutput) {
@@ -1289,7 +1291,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         CTxOut txout(tx_details.outputType, tx_details.minOutput, scriptOutput);
 
         // Include the fee cost for output.
-        if (!coin_selection_params.m_subtract_fee_outputs) {
+        if (!subtractingFeeFromOutputs) {
             coin_selection_params.tx_noinputs_size += ::GetSerializeSize(txout, PROTOCOL_VERSION);
         }
 
@@ -1300,9 +1302,15 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         txNew.vout.push_back(txout);
     }
 
-    // Include the fees for things that aren't inputs, excluding the change output (TODO: don't add not_input_fees to selection target if subtracting fees from output)
-    const CAmount not_input_fees = coin_selection_params.m_effective_feerate.GetFee(coin_selection_params.tx_noinputs_size);
-    CAmount selection_target = tx_details.maxInput + not_input_fees;
+    CAmount selection_target;
+    if (tx_details.inputType == coin_control.m_fee_type && tx_details.fSubtractFeeFromInput) {
+        // Only select the input amount if we are subtracting fees from the input
+        selection_target = tx_details.maxInput;
+    } else {
+        // Select the input amount plus fees for things that aren't inputs, excluding the change output
+        const CAmount not_input_fees = coin_selection_params.m_effective_feerate.GetFee(coin_selection_params.tx_noinputs_size);
+        selection_target = tx_details.maxInput + not_input_fees;
+    }
 
     // Get available coins
     auto available_coins = AvailableCoins(wallet,
@@ -1362,9 +1370,14 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
     CAmount fee_needed = coin_selection_params.m_effective_feerate.GetFee(nBytes);
     nFeeRet = result->GetSelectedValue() - tx_details.maxInput - change_amount;
 
+    if (subtractingFeeFromInput && fee_needed > tx_details.maxInput) {
+        // Required fee exceeds the maximum amount that can be deducted from the input
+        return util::Error{_("Input too small to cover fees")};
+    }
+
     // The only time that fee_needed should be less than the amount available for fees is when
-    // we are subtracting the fee from the outputs. If this occurs at any other time, it is a bug.
-    assert(coin_selection_params.m_subtract_fee_outputs || fee_needed <= nFeeRet);
+    // we are subtracting the fee from the input or the outputs. If this occurs at any other time, it is a bug.
+    assert(subtractingFeeFromInput || subtractingFeeFromOutputs || fee_needed <= nFeeRet);
 
     // If there is a change output and we overpay the fees then increase the change to match the fee needed
     if (nChangePosInOut != -1 && fee_needed < nFeeRet) {
@@ -1385,8 +1398,8 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         }
     }
 
-    // Reduce output values for subtractFeeFromAmount
-    if (coin_selection_params.m_subtract_fee_outputs) {
+    // Reduce output values if subtracting fee from outputs
+    if (subtractingFeeFromOutputs) {
         for (unsigned int i = 0; i < txNew.vout.size(); i++)
         {
             if (i == nChangePosInOut)
