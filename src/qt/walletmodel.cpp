@@ -332,7 +332,9 @@ WalletModel::ConvertCoinsReturn WalletModel::prepareTransaction(WalletModelConve
 
         auto& newTx = transaction.getWtx();
         WalletConversionTxDetails txDetails = {transaction.getMaxInput(), transaction.getMinOutput(), transaction.getInputType(), transaction.getOutputType(), transaction.getRemainderType(), transaction.subtractFeeFromInput()};
-        const auto& res = m_wallet->createConversionTransaction(txDetails, coinControl, !wallet().privateKeysDisabled() /* sign */, nChangePosRet, nFeeRequired, nFeeTypeRequired);
+        // Do not sign if private keys are disabled or if we are subtracting fees from input (since we will need to re-sign the transaction later after updating the output)
+        bool sign = !wallet().privateKeysDisabled() && !transaction.subtractFeeFromInput();
+        const auto& res = m_wallet->createConversionTransaction(txDetails, coinControl, sign, nChangePosRet, nFeeRequired, nFeeTypeRequired);
         newTx = res ? *res : nullptr;
         transaction.setTransactionFee(nFeeRequired, nFeeTypeRequired);
 
@@ -369,6 +371,15 @@ void WalletModel::convertCoins(WalletModelConversionTransaction& transaction)
     }
 
     checkBalanceChanged(m_wallet->getBalances()); // update balance immediately, otherwise there could be a short noticeable delay until pollBalanceChanged hits
+}
+
+bool WalletModel::signConversion(CMutableTransaction& mtx)
+{
+    if (!m_wallet->signBumpTransaction(mtx)) {
+        QMessageBox::critical(nullptr, tr("Conversion error"), tr("Can't sign transaction."));
+        return false;
+    }
+    return true;
 }
 
 OptionsModel* WalletModel::getOptionsModel() const

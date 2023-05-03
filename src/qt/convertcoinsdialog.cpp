@@ -421,8 +421,31 @@ bool ConvertCoinsDialog::PrepareConversionText(QString& question_string, QString
     // process prepareStatus and on error generate message shown to user
     processConvertCoinsReturn(prepareStatus, BitcoinUnits::formatWithUnit(unit, m_current_transaction->getTransactionFee()));
 
-    if(prepareStatus.status != WalletModel::ConversionOK) {
+    if (prepareStatus.status != WalletModel::ConversionOK) {
         return false;
+    }
+
+    if (inputIsExact && fSubtractFeeFromInput) {
+        // Subtract fee from input and recalculate minOutput applying slippage tolerance
+        CAmount txFee = m_current_transaction->getTransactionFee();
+        CAmount effectiveInput = maxInput - txFee;
+        CAmount adjustedOutput = model->wallet().estimateConversionOutputAmount(effectiveInput, getInputType());
+        minOutput = adjustedOutput * (10000 - int(ui->reqSlippage->value() * 100)) / 10000;
+        // Copy the transaction and adjust the output amount
+        CMutableTransaction mtx(*(m_current_transaction->getWtx()));
+        for (unsigned int i = 0; i < mtx.vout.size(); i++) {
+            CTxOut& txout = mtx.vout[i];
+            if (txout.amountType == getOutputType() && !txout.scriptPubKey.IsConversionScript()) {
+                txout.nValue = minOutput;
+                break;
+            }
+        }
+        // Sign the updated transaction
+        if (!model->signConversion(mtx)) {
+            return false;
+        }
+        // Replace the old transaction
+        m_current_transaction->setWtx(MakeTransactionRef(std::move(mtx)));
     }
 
     CAmount txFee = m_current_transaction->getTransactionFee();

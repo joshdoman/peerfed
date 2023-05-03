@@ -1386,6 +1386,11 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
         nFeeRet = fee_needed;
     }
 
+    // If we're subtracting the fee from the max input, set nFeeRet equal to fee_needed
+    if (subtractingFeeFromInput) {
+        nFeeRet = fee_needed;
+    }
+
     // Set tx fee in conversion output
     for (int i = 0; i < txNew.vout.size(); i++)
     {

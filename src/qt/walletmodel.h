@@ -137,6 +137,9 @@ public:
     // Convert coins
     void convertCoins(WalletModelConversionTransaction& transaction);
 
+    // Sign conversion transaction
+    bool signConversion(CMutableTransaction& mtx);
+
     // Wallet encryption
     bool setWalletEncrypted(const SecureString& passphrase);
     // Passphrase only needed when unlocking
