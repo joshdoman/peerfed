@@ -165,15 +165,26 @@ bool OptionsModel::Init(bilingual_str& error)
     fMinimizeOnClose = settings.value("fMinimizeOnClose").toBool();
 
     // Display
-    if (!settings.contains("DisplayBitcoinUnit")) {
-        settings.setValue("DisplayBitcoinUnit", QVariant::fromValue(BitcoinUnit::CASH));
+    if (!settings.contains("DisplayBitcoinUnitCash")) {
+        settings.setValue("DisplayBitcoinUnitCash", QVariant::fromValue(BitcoinUnit::CASH));
     }
-    QVariant unit = settings.value("DisplayBitcoinUnit");
-    if (unit.canConvert<BitcoinUnit>()) {
-        m_display_bitcoin_unit = unit.value<BitcoinUnit>();
+    QVariant cashUnit = settings.value("DisplayBitcoinUnitCash");
+    if (cashUnit.canConvert<BitcoinUnit>()) {
+        m_display_bitcoin_unit_cash = cashUnit.value<BitcoinUnit>();
     } else {
-        m_display_bitcoin_unit = BitcoinUnit::CASH;
-        settings.setValue("DisplayBitcoinUnit", QVariant::fromValue(m_display_bitcoin_unit));
+        m_display_bitcoin_unit_cash = BitcoinUnit::CASH;
+        settings.setValue("DisplayBitcoinUnitCash", QVariant::fromValue(m_display_bitcoin_unit_cash));
+    }
+
+    if (!settings.contains("DisplayBitcoinUnitBond")) {
+        settings.setValue("DisplayBitcoinUnitBond", QVariant::fromValue(BitcoinUnit::BOND));
+    }
+    QVariant bondUnit = settings.value("DisplayBitcoinUnitBond");
+    if (bondUnit.canConvert<BitcoinUnit>()) {
+        m_display_bitcoin_unit_bond = bondUnit.value<BitcoinUnit>();
+    } else {
+        m_display_bitcoin_unit_bond = BitcoinUnit::BOND;
+        settings.setValue("DisplayBitcoinUnitBond", QVariant::fromValue(m_display_bitcoin_unit_bond));
     }
 
     if (!settings.contains("strThirdPartyTxUrls"))
@@ -411,8 +422,10 @@ QVariant OptionsModel::getOption(OptionID option) const
     case SubFeeFromAmount:
         return m_sub_fee_from_amount;
 #endif
-    case DisplayUnit:
-        return QVariant::fromValue(m_display_bitcoin_unit);
+    case DisplayUnitCash:
+        return QVariant::fromValue(m_display_bitcoin_unit_cash);
+    case DisplayUnitBond:
+        return QVariant::fromValue(m_display_bitcoin_unit_bond);
     case ThirdPartyTxUrls:
         return strThirdPartyTxUrls;
     case Language:
@@ -548,7 +561,8 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value)
         settings.setValue("SubFeeFromAmount", m_sub_fee_from_amount);
         break;
 #endif
-    case DisplayUnit:
+    case DisplayUnitCash:
+    case DisplayUnitBond:
         setDisplayUnit(value);
         break;
     case ThirdPartyTxUrls:
@@ -621,11 +635,20 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value)
 
 void OptionsModel::setDisplayUnit(const QVariant& new_unit)
 {
-    if (new_unit.isNull() || new_unit.value<BitcoinUnit>() == m_display_bitcoin_unit) return;
-    m_display_bitcoin_unit = new_unit.value<BitcoinUnit>();
+    if (new_unit.isNull()) return;
     QSettings settings;
-    settings.setValue("DisplayBitcoinUnit", QVariant::fromValue(m_display_bitcoin_unit));
-    Q_EMIT displayUnitChanged(m_display_bitcoin_unit);
+    BitcoinUnit unit = new_unit.value<BitcoinUnit>();
+    if (BitcoinUnits::type(unit) == CASH) {
+        if (unit == m_display_bitcoin_unit_cash) return;
+        m_display_bitcoin_unit_cash = unit;
+        QSettings settings;
+        settings.setValue("DisplayBitcoinUnitCash", QVariant::fromValue(unit));
+    } else {
+        if (unit == m_display_bitcoin_unit_bond) return;
+        m_display_bitcoin_unit_bond = unit;
+        settings.setValue("DisplayBitcoinUnitBond", QVariant::fromValue(unit));
+    }
+    Q_EMIT displayUnitChanged(unit);
 }
 
 void OptionsModel::setRestartRequired(bool fRequired)

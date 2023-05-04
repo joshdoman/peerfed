@@ -721,22 +721,46 @@
         </layout>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_2_Display">
+        <layout class="QHBoxLayout" name="horizontalLayout_2_Display_cash">
          <item>
-          <widget class="QLabel" name="unitLabel">
+          <widget class="QLabel" name="unitLabelCash">
            <property name="text">
-            <string>&amp;Unit to show amounts in:</string>
+            <string>&amp;Unit to show cash amounts in:</string>
            </property>
            <property name="textFormat">
             <enum>Qt::PlainText</enum>
            </property>
            <property name="buddy">
-            <cstring>unit</cstring>
+            <cstring>cashUnit</cstring>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QValueComboBox" name="unit">
+          <widget class="QValueComboBox" name="cashUnit">
+           <property name="toolTip">
+            <string>Choose the default subdivision unit to show in the interface and when sending coins.</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_2_Display_bond">
+         <item>
+          <widget class="QLabel" name="unitLabelBond">
+           <property name="text">
+            <string>&amp;Unit to show bond amounts in:</string>
+           </property>
+           <property name="textFormat">
+            <enum>Qt::PlainText</enum>
+           </property>
+           <property name="buddy">
+            <cstring>bondUnit</cstring>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QValueComboBox" name="bondUnit">
            <property name="toolTip">
             <string>Choose the default subdivision unit to show in the interface and when sending coins.</string>
            </property>

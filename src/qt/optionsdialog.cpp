@@ -122,7 +122,10 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
             ui->lang->addItem(locale.nativeLanguageName() + QString(" (") + langStr + QString(")"), QVariant(langStr));
         }
     }
-    ui->unit->setModel(new BitcoinUnits(this));
+    ui->cashUnit->setModel(new BitcoinUnits(this));
+    ui->cashUnit->setModelColumn(CASH);
+    ui->bondUnit->setModel(new BitcoinUnits(this));
+    ui->bondUnit->setModelColumn(BOND);
 
     /* Widget-to-option mapper */
     mapper = new QDataWidgetMapper(this);
@@ -273,7 +276,8 @@ void OptionsDialog::setMapper()
 
     /* Display */
     mapper->addMapping(ui->lang, OptionsModel::Language);
-    mapper->addMapping(ui->unit, OptionsModel::DisplayUnit);
+    mapper->addMapping(ui->cashUnit, OptionsModel::DisplayUnitCash);
+    mapper->addMapping(ui->bondUnit, OptionsModel::DisplayUnitBond);
     mapper->addMapping(ui->thirdPartyTxUrls, OptionsModel::ThirdPartyTxUrls);
     mapper->addMapping(ui->embeddedFont_radioButton, OptionsModel::UseEmbeddedMonospacedFont);
 }

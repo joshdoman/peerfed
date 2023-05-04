@@ -47,20 +47,20 @@ QString BitcoinUnits::longName(Unit unit)
     switch (unit) {
     case Unit::CASH: return QString("CASH");
     case Unit::mCASH: return QString("mCASH");
-    case Unit::uCASH: return QString::fromUtf8("µCASH (bits-c)");
-    case Unit::sCASH: return QString("sCASH (sats-c)");
+    case Unit::uCASH: return QString::fromUtf8("µCASH");
+    case Unit::sCASH: return QString("sCASH");
     case Unit::BOND: return QString("BOND");
     case Unit::mBOND: return QString("mBOND");
-    case Unit::uBOND: return QString::fromUtf8("µBOND (bits-b)");
-    case Unit::sBOND: return QString("sBOND (sats-b)");
-    case Unit::sh_CASH: return QString("sh-CASH");
-    case Unit::sh_mCASH: return QString("sh-mCASH");
-    case Unit::sh_uCASH: return QString::fromUtf8("sh-µCASH");
-    case Unit::sh_sCASH: return QString("sh-sCASH");
-    case Unit::sh_BOND: return QString("sh-BOND");
-    case Unit::sh_mBOND: return QString("sh-mBOND");
-    case Unit::sh_uBOND: return QString::fromUtf8("sh-µBOND");
-    case Unit::sh_sBOND: return QString("sh-sBOND");
+    case Unit::uBOND: return QString::fromUtf8("µBOND");
+    case Unit::sBOND: return QString("sBOND");
+    case Unit::sh_CASH: return QString("UCASH");
+    case Unit::sh_mCASH: return QString("mUCASH");
+    case Unit::sh_uCASH: return QString::fromUtf8("µUCASH");
+    case Unit::sh_sCASH: return QString("sUCASH");
+    case Unit::sh_BOND: return QString("UBOND");
+    case Unit::sh_mBOND: return QString("mUBOND");
+    case Unit::sh_uBOND: return QString::fromUtf8("µUBOND");
+    case Unit::sh_sBOND: return QString("sUBOND");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -78,12 +78,12 @@ QString BitcoinUnits::shortName(Unit unit)
     case Unit::sBOND: return QString("sat-b");
     case Unit::sh_CASH: return longName(unit);
     case Unit::sh_mCASH: return longName(unit);
-    case Unit::sh_uCASH: return QString("sh-bits-c");
-    case Unit::sh_sCASH: return QString("sh-sats-c");
+    case Unit::sh_uCASH: return QString("ubits-c");
+    case Unit::sh_sCASH: return QString("usats-c");
     case Unit::sh_BOND: return longName(unit);
     case Unit::sh_mBOND: return longName(unit);
-    case Unit::sh_uBOND: return QString("sh-bits-b");
-    case Unit::sh_sBOND: return QString("sh-sats-b");
+    case Unit::sh_uBOND: return QString("ubits-b");
+    case Unit::sh_sBOND: return QString("usats-b");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }

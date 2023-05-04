@@ -122,7 +122,8 @@ private:
     ClientModel* clientModel = nullptr;
     WalletFrame* walletFrame = nullptr;
 
-    UnitDisplayStatusBarControl* unitDisplayControl = nullptr;
+    UnitDisplayStatusBarControl* unitDisplayControlCash = nullptr;
+    UnitDisplayStatusBarControl* unitDisplayControlBond = nullptr;
     GUIUtil::ThemedLabel* labelWalletEncryptionIcon = nullptr;
     GUIUtil::ThemedLabel* labelWalletHDStatusIcon = nullptr;
     GUIUtil::ClickableLabel* labelProxyIcon = nullptr;
@@ -326,7 +327,7 @@ class UnitDisplayStatusBarControl : public QLabel
     Q_OBJECT
 
 public:
-    explicit UnitDisplayStatusBarControl(const PlatformStyle *platformStyle);
+    explicit UnitDisplayStatusBarControl(const CAmountType amountType, const PlatformStyle *platformStyle);
     /** Lets the control know about the Options Model (and its signals) */
     void setOptionsModel(OptionsModel *optionsModel);
 
@@ -338,6 +339,7 @@ protected:
 private:
     OptionsModel *optionsModel;
     QMenu* menu;
+    const CAmountType amountType;
     const PlatformStyle* m_platform_style;
 
     /** Shows context menu with Display Unit options by the mouse coordinates */

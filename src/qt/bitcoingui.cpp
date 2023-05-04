@@ -161,7 +161,8 @@ BitcoinGUI::BitcoinGUI(interfaces::Node& node, const PlatformStyle *_platformSty
     QHBoxLayout *frameBlocksLayout = new QHBoxLayout(frameBlocks);
     frameBlocksLayout->setContentsMargins(3,0,3,0);
     frameBlocksLayout->setSpacing(3);
-    unitDisplayControl = new UnitDisplayStatusBarControl(platformStyle);
+    unitDisplayControlCash = new UnitDisplayStatusBarControl(CASH, platformStyle);
+    unitDisplayControlBond = new UnitDisplayStatusBarControl(BOND, platformStyle);
     labelWalletEncryptionIcon = new GUIUtil::ThemedLabel(platformStyle);
     labelWalletHDStatusIcon = new GUIUtil::ThemedLabel(platformStyle);
     labelProxyIcon = new GUIUtil::ClickableLabel(platformStyle);
@@ -170,7 +171,9 @@ BitcoinGUI::BitcoinGUI(interfaces::Node& node, const PlatformStyle *_platformSty
     if(enableWallet)
     {
         frameBlocksLayout->addStretch();
-        frameBlocksLayout->addWidget(unitDisplayControl);
+        frameBlocksLayout->addWidget(unitDisplayControlCash);
+        frameBlocksLayout->addStretch();
+        frameBlocksLayout->addWidget(unitDisplayControlBond);
         frameBlocksLayout->addStretch();
         frameBlocksLayout->addWidget(labelWalletEncryptionIcon);
         labelWalletEncryptionIcon->hide();
@@ -647,7 +650,8 @@ void BitcoinGUI::setClientModel(ClientModel *_clientModel, interfaces::BlockAndH
             walletFrame->setClientModel(_clientModel);
         }
 #endif // ENABLE_WALLET
-        unitDisplayControl->setOptionsModel(_clientModel->getOptionsModel());
+        unitDisplayControlCash->setOptionsModel(_clientModel->getOptionsModel());
+        unitDisplayControlBond->setOptionsModel(_clientModel->getOptionsModel());
 
         OptionsModel* optionsModel = _clientModel->getOptionsModel();
         if (optionsModel && trayIcon) {
@@ -671,7 +675,8 @@ void BitcoinGUI::setClientModel(ClientModel *_clientModel, interfaces::BlockAndH
             walletFrame->setClientModel(nullptr);
         }
 #endif // ENABLE_WALLET
-        unitDisplayControl->setOptionsModel(nullptr);
+        unitDisplayControlCash->setOptionsModel(nullptr);
+        unitDisplayControlBond->setOptionsModel(nullptr);
     }
 }
 
@@ -1560,9 +1565,10 @@ bool BitcoinGUI::isPrivacyModeActivated() const
     return m_mask_values_action->isChecked();
 }
 
-UnitDisplayStatusBarControl::UnitDisplayStatusBarControl(const PlatformStyle *platformStyle)
+UnitDisplayStatusBarControl::UnitDisplayStatusBarControl(const CAmountType _amountType, const PlatformStyle *platformStyle)
     : optionsModel(nullptr),
       menu(nullptr),
+      amountType(_amountType),
       m_platform_style{platformStyle}
 {
     createContextMenu();
@@ -1571,7 +1577,9 @@ UnitDisplayStatusBarControl::UnitDisplayStatusBarControl(const PlatformStyle *pl
     int max_width = 0;
     const QFontMetrics fm(font());
     for (const BitcoinUnit unit : units) {
-        max_width = qMax(max_width, GUIUtil::TextWidth(fm, BitcoinUnits::longName(unit)));
+        if (BitcoinUnits::type(unit) == amountType) {
+            max_width = qMax(max_width, GUIUtil::TextWidth(fm, BitcoinUnits::longName(unit)));
+        }
     }
     setMinimumSize(max_width, 0);
     setAlignment(Qt::AlignRight | Qt::AlignVCenter);
@@ -1601,7 +1609,9 @@ void UnitDisplayStatusBarControl::createContextMenu()
 {
     menu = new QMenu(this);
     for (const BitcoinUnit u : BitcoinUnits::availableUnits()) {
-        menu->addAction(BitcoinUnits::longName(u))->setData(QVariant::fromValue(u));
+        if (BitcoinUnits::type(u) == amountType) {
+            menu->addAction(BitcoinUnits::longName(u))->setData(QVariant::fromValue(u));
+        }
     }
     connect(menu, &QMenu::triggered, this, &UnitDisplayStatusBarControl::onMenuSelection);
 }
@@ -1617,14 +1627,16 @@ void UnitDisplayStatusBarControl::setOptionsModel(OptionsModel *_optionsModel)
         connect(_optionsModel, &OptionsModel::displayUnitChanged, this, &UnitDisplayStatusBarControl::updateDisplayUnit);
 
         // initialize the display units label with the current value in the model.
-        updateDisplayUnit(_optionsModel->getDisplayUnit());
+        updateDisplayUnit(_optionsModel->getDisplayUnit(amountType));
     }
 }
 
 /** When Display Units are changed on OptionsModel it will refresh the display text of the control on the status bar */
 void UnitDisplayStatusBarControl::updateDisplayUnit(BitcoinUnit newUnits)
 {
-    setText(BitcoinUnits::longName(newUnits));
+    if (BitcoinUnits::type(newUnits) == amountType) {
+        setText(BitcoinUnits::longName(newUnits));
+    }
 }
 
 /** Shows context menu with Display Unit options by the mouse coordinates */

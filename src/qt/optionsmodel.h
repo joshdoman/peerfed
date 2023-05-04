@@ -57,7 +57,8 @@ public:
         ProxyUseTor,            // bool
         ProxyIPTor,             // QString
         ProxyPortTor,           // int
-        DisplayUnit,            // BitcoinUnit
+        DisplayUnitCash,        // BitcoinUnit
+        DisplayUnitBond,        // BitcoinUnit
         ThirdPartyTxUrls,       // QString
         Language,               // QString
         UseEmbeddedMonospacedFont, // bool
@@ -91,7 +92,6 @@ public:
     bool getShowTrayIcon() const { return m_show_tray_icon; }
     bool getMinimizeToTray() const { return fMinimizeToTray; }
     bool getMinimizeOnClose() const { return fMinimizeOnClose; }
-    BitcoinUnit getDisplayUnit() const { return m_display_bitcoin_unit; }
     QString getThirdPartyTxUrls() const { return strThirdPartyTxUrls; }
     bool getUseEmbeddedMonospacedFont() const { return m_use_embedded_monospaced_font; }
     bool getCoinControlFeatures() const { return fCoinControlFeatures; }
@@ -100,7 +100,11 @@ public:
     const QString& getOverriddenByCommandLine() { return strOverriddenByCommandLine; }
 
     BitcoinUnit getDisplayUnit(const CAmountType& type) const {
-        return BitcoinUnits::unitOfType(m_display_bitcoin_unit, type);
+        if (type == CASH) {
+            return m_display_bitcoin_unit_cash;
+        } else {
+            return m_display_bitcoin_unit_bond;
+        }
     }
 
 
@@ -120,7 +124,8 @@ private:
     bool fMinimizeToTray;
     bool fMinimizeOnClose;
     QString language;
-    BitcoinUnit m_display_bitcoin_unit;
+    BitcoinUnit m_display_bitcoin_unit_cash;
+    BitcoinUnit m_display_bitcoin_unit_bond;
     QString strThirdPartyTxUrls;
     bool m_use_embedded_monospaced_font;
     bool fCoinControlFeatures;
