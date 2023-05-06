@@ -222,8 +222,6 @@ void ConvertCoinsDialog::setModel(WalletModel *_model)
         connect(ui->optInRBF, &QCheckBox::stateChanged, this, &ConvertCoinsDialog::updateSmartFeeLabel);
         connect(ui->optInRBF, &QCheckBox::stateChanged, this, &ConvertCoinsDialog::coinControlUpdateLabels);
         CAmount requiredFee = model->wallet().getRequiredFee(1000);
-        if (_model->getOptionsModel()->getShowScaledAmount(getFeeType()))
-            requiredFee = ScaleAmount(requiredFee, model->getBestScaleFactor());
         ui->customFee->SetMinValue(requiredFee);
         if (ui->customFee->value() < requiredFee) {
             ui->customFee->setValue(requiredFee);
@@ -897,21 +895,14 @@ void ConvertCoinsDialog::updateFeeMinimizedLabel()
         BitcoinUnit unit = model->getOptionsModel()->getDisplayUnit(getFeeType());
         // Ensure displayed fee is at least the required fee (if user types in zero and then selects another field, the custom fee will default to the required fee rate but updateFeeMinimizedLabel will not be triggered)
         CAmount requiredFee = model->wallet().getRequiredFee(1000);
+        CAmount displayedFee = std::max(ui->customFee->value(), requiredFee);
+        // Apply estimated conversion rate if showing bond amount
+        if (getFeeType() == BOND)
+            displayedFee = model->wallet().estimateConvertedAmount(displayedFee, CASH, /** roundedUp */ true);
+        // Apply scale factor if showing scaled amount
         if (model->getOptionsModel()->getShowScaledAmount(getFeeType()))
-            requiredFee = ScaleAmount(requiredFee, model->getBestScaleFactor());
-        CAmount customFee = std::max(ui->customFee->value(), requiredFee);
-        if (getFeeType() == BOND) {
-            // Descale custom fee before applying estimated conversion rate
-            if (clientModel && model->getOptionsModel()->getShowScaledAmount(getFeeType())) {
-                customFee = DescaleAmount((CAmount)customFee, clientModel->getBestScaleFactor());
-            }
-            customFee = model->wallet().estimateConvertedAmount(customFee, CASH, /** roundedUp */ true);
-            // Apply scale factor to custom fee before displaying
-            if (clientModel && model->getOptionsModel()->getShowScaledAmount(getFeeType())) {
-                customFee = ScaleAmount((CAmount)customFee, clientModel->getBestScaleFactor());
-            }
-        }
-        ui->labelFeeMinimized->setText(BitcoinUnits::formatWithUnit(unit, customFee) + "/kvB");
+            displayedFee = ScaleAmount(displayedFee, model->getBestScaleFactor());
+        ui->labelFeeMinimized->setText(BitcoinUnits::formatWithUnit(unit, displayedFee) + "/kvB");
     }
 }
 
@@ -920,7 +911,7 @@ void ConvertCoinsDialog::updateCoinControlState()
     if (!model)
         return;
     if (ui->radioCustomFee->isChecked()) {
-        m_coin_control->fIsScaledFeeRate = model->getOptionsModel()->getShowScaledAmount(getFeeType());
+        m_coin_control->fIsScaledFeeRate = false;
         m_coin_control->m_feerate = CFeeRate(ui->customFee->value());
     } else {
         m_coin_control->m_feerate.reset();
