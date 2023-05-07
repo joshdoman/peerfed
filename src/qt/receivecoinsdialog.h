@@ -36,6 +36,7 @@ public:
         DATE_COLUMN_WIDTH = 130,
         LABEL_COLUMN_WIDTH = 120,
         AMOUNT_MINIMUM_COLUMN_WIDTH = 180,
+        TYPE_COLUMN_WIDTH = 130,
         MINIMUM_COLUMN_WIDTH = 130
     };
 
@@ -55,8 +56,7 @@ private:
     QMenu *contextMenu;
     QAction* copyLabelAction;
     QAction* copyMessageAction;
-    QAction* copyCashAmountAction;
-    QAction* copyBondAmountAction;
+    QAction* copyAmountAction;
     const PlatformStyle *platformStyle;
 
     QModelIndex selectedRow();
@@ -74,8 +74,7 @@ private Q_SLOTS:
     void copyAddress();
     void copyLabel();
     void copyMessage();
-    void copyCashAmount();
-    void copyBondAmount();
+    void copyAmount();
 };
 
 #endif // BITCOIN_QT_RECEIVECOINSDIALOG_H

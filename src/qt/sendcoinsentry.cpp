@@ -140,6 +140,7 @@ bool SendCoinsEntry::validate(interfaces::Node& node)
         retval = false;
     }
 
+    // TODO: Descale amount before checking for dust
     // Reject dust outputs:
     if (retval && GUIUtil::isDust(node, ui->payTo->text(), ui->payAmount->value(), ui->payAmount->type())) {
         ui->payAmount->setValid(false);
@@ -155,9 +156,7 @@ SendCoinsRecipient SendCoinsEntry::getValue()
     recipient.label = ui->addAsLabel->text();
     recipient.amountType = ui->payAmount->type();
     recipient.amount = ui->payAmount->value();
-    if (model && model->getOptionsModel()->getShowScaledAmount(recipient.amountType)) {
-        recipient.amount = DescaleAmount(recipient.amount, model->getBestScaleFactor());
-    }
+    recipient.isScaled = ui->payAmount->isScaledUnit();
     recipient.message = ui->messageTextLabel->text();
     recipient.fSubtractFeeFromAmount = (ui->checkboxSubtractFeeFromAmount->checkState() == Qt::Checked);
 
@@ -190,7 +189,7 @@ void SendCoinsEntry::setValue(const SendCoinsRecipient &value)
         if (!recipient.label.isEmpty()) // if a label had been set from the addressbook, don't overwrite with an empty label
             ui->addAsLabel->setText(recipient.label);
         ui->payAmount->setValue(recipient.amount);
-        // Amount type is set by SendCoinsDialog
+        // Unit is set by SendCoinsDialog
     }
 }
 
@@ -207,7 +206,8 @@ void SendCoinsEntry::setAmount(const CAmount &amount)
 
 void SendCoinsEntry::setAmountType(const CAmountType &amountType)
 {
-    ui->payAmount->setType(amountType);
+    ui->payAmount->setType(amountType, false);
+    updateDisplayUnit();
 }
 
 bool SendCoinsEntry::isClear()

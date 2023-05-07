@@ -48,8 +48,7 @@ ReceiveCoinsDialog::ReceiveCoinsDialog(const PlatformStyle *_platformStyle, QWid
     contextMenu->addAction(tr("&Copy address"), this, &ReceiveCoinsDialog::copyAddress);
     copyLabelAction = contextMenu->addAction(tr("Copy &label"), this, &ReceiveCoinsDialog::copyLabel);
     copyMessageAction = contextMenu->addAction(tr("Copy &message"), this, &ReceiveCoinsDialog::copyMessage);
-    copyCashAmountAction = contextMenu->addAction(tr("Copy &cash amount"), this, &ReceiveCoinsDialog::copyCashAmount);
-    copyBondAmountAction = contextMenu->addAction(tr("Copy &bond amount"), this, &ReceiveCoinsDialog::copyBondAmount);
+    copyAmountAction = contextMenu->addAction(tr("Copy &amount"), this, &ReceiveCoinsDialog::copyAmount);
     connect(ui->recentRequestsView, &QWidget::customContextMenuRequested, this, &ReceiveCoinsDialog::showMenu);
 
     connect(ui->clearButton, &QPushButton::clicked, this, &ReceiveCoinsDialog::clear);
@@ -64,13 +63,13 @@ ReceiveCoinsDialog::ReceiveCoinsDialog(const PlatformStyle *_platformStyle, QWid
     if (!tableView->horizontalHeader()->restoreState(settings.value("RecentRequestsViewHeaderState").toByteArray())) {
         tableView->setColumnWidth(RecentRequestsTableModel::Date, DATE_COLUMN_WIDTH);
         tableView->setColumnWidth(RecentRequestsTableModel::Label, LABEL_COLUMN_WIDTH);
-        tableView->setColumnWidth(RecentRequestsTableModel::CashAmount, AMOUNT_MINIMUM_COLUMN_WIDTH);
-        tableView->setColumnWidth(RecentRequestsTableModel::BondAmount, AMOUNT_MINIMUM_COLUMN_WIDTH);
+        tableView->setColumnWidth(RecentRequestsTableModel::Amount, AMOUNT_MINIMUM_COLUMN_WIDTH);
+        tableView->setColumnWidth(RecentRequestsTableModel::Type, TYPE_COLUMN_WIDTH);
         tableView->horizontalHeader()->setMinimumSectionSize(MINIMUM_COLUMN_WIDTH);
         tableView->horizontalHeader()->setStretchLastSection(true);
     }
 
-    ui->reqAmount->showBothUnitTypes(true);
+    ui->reqAmount->showAllUnits();
 }
 
 void ReceiveCoinsDialog::setModel(WalletModel *_model)
@@ -164,7 +163,8 @@ void ReceiveCoinsDialog::on_receiveButton_clicked()
     case AddressTableModel::EditStatus::OK: {
         // Success
         SendCoinsRecipient info(address, label, ui->reqAmount->type(),
-            ui->reqAmount->value(), ui->reqMessage->text());
+            ui->reqAmount->value(), ui->reqAmount->isScaledUnit(),
+            ui->reqMessage->text());
         ReceiveRequestDialog *dialog = new ReceiveRequestDialog(this);
         dialog->setAttribute(Qt::WA_DeleteOnClose);
         dialog->setModel(model);
@@ -270,8 +270,7 @@ void ReceiveCoinsDialog::showMenu(const QPoint &point)
     const RecentRequestEntry& req = submodel->entry(sel.row());
     copyLabelAction->setDisabled(req.recipient.label.isEmpty());
     copyMessageAction->setDisabled(req.recipient.message.isEmpty());
-    copyCashAmountAction->setDisabled(req.recipient.amount == 0 || req.recipient.amountType != CASH);
-    copyBondAmountAction->setDisabled(req.recipient.amount == 0 || req.recipient.amountType != BOND);
+    copyAmountAction->setDisabled(req.recipient.amount == 0);
 
     contextMenu->exec(QCursor::pos());
 }
@@ -314,14 +313,8 @@ void ReceiveCoinsDialog::copyMessage()
     copyColumnToClipboard(RecentRequestsTableModel::Message);
 }
 
-// context menu action: copy cash amount
-void ReceiveCoinsDialog::copyCashAmount()
+// context menu action: copy amount
+void ReceiveCoinsDialog::copyAmount()
 {
-    copyColumnToClipboard(RecentRequestsTableModel::CashAmount);
-}
-
-// context menu action: copy bond amount
-void ReceiveCoinsDialog::copyBondAmount()
-{
-    copyColumnToClipboard(RecentRequestsTableModel::BondAmount);
+    copyColumnToClipboard(RecentRequestsTableModel::Amount);
 }

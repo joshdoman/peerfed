@@ -135,6 +135,7 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *_platformStyle, QWidget *p
     ui->groupFee->setId(ui->radioCustomFee, 1);
     ui->groupFee->button((int)std::max(0, std::min(1, settings.value("nFeeRadio").toInt())))->setChecked(true);
     ui->customFee->SetAllowEmpty(false);
+    ui->customFee->setType(CASH, /** isUnscaled */ true);
     ui->customFee->setValue(settings.value("nTransactionFee").toLongLong());
     minimizeFeeSection(settings.value("fFeeSectionMinimized").toBool());
 
@@ -205,8 +206,6 @@ void SendCoinsDialog::setModel(WalletModel *_model)
         connect(ui->optInRBF, &QCheckBox::stateChanged, this, &SendCoinsDialog::updateSmartFeeLabel);
         connect(ui->optInRBF, &QCheckBox::stateChanged, this, &SendCoinsDialog::coinControlUpdateLabels);
         CAmount requiredFee = model->wallet().getRequiredFee(1000);
-        if (_model->getOptionsModel()->getShowScaledAmount(getSendAmountType()))
-            requiredFee = ScaleAmount(requiredFee, model->getBestScaleFactor());
         ui->customFee->SetMinValue(requiredFee);
         if (ui->customFee->value() < requiredFee) {
             ui->customFee->setValue(requiredFee);
@@ -325,11 +324,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
     for (const SendCoinsRecipient &rcp : m_current_transaction->getRecipients())
     {
         // generate amount string with wallet name in case of multiwallet
-        CAmount displayAmount = rcp.amount;
-        if (model->getOptionsModel()->getShowScaledAmount(rcp.amountType)) {
-            displayAmount = ScaleAmount(displayAmount, model->getBestScaleFactor());
-        }
-        QString amount = BitcoinUnits::formatWithUnit(unit, displayAmount);
+        QString amount = BitcoinUnits::formatWithUnit(BitcoinUnits::getUnitOfScaleType(unit, rcp.isScaled), rcp.amount);
         if (model->isMultiwallet()) {
             amount.append(tr(" from wallet '%1'").arg(GUIUtil::HtmlEscape(model->getWalletName())));
         }
@@ -400,7 +395,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
 
     // add total amount in all subdivision units
     question_string.append("<hr />");
-    CAmount totalAmount = m_current_transaction->getTotalTransactionAmount() + m_current_transaction->getTransactionFee();
+    CAmount totalAmount = m_current_transaction->getTotalTransactionAmount(model->getBestScaleFactor()) + m_current_transaction->getTransactionFee();
     if (model->getOptionsModel()->getShowScaledAmount(amount_type)) {
         totalAmount = ScaleAmount(totalAmount, model->getBestScaleFactor());
     }
@@ -770,7 +765,7 @@ void SendCoinsDialog::setBalance(const interfaces::WalletBalances& balances)
 void SendCoinsDialog::refreshBalance()
 {
     setBalance(model->getCachedBalance());
-    ui->customFee->setDisplayUnit(model->getOptionsModel()->getDisplayUnit(CASH));
+    ui->customFee->setDisplayUnit(BitcoinUnits::getUnitOfScaleType(model->getOptionsModel()->getDisplayUnit(CASH), /** isScaled */ false));
     updateSmartFeeLabel();
 }
 
@@ -881,20 +876,13 @@ void SendCoinsDialog::updateFeeMinimizedLabel()
         BitcoinUnit unit = model->getOptionsModel()->getDisplayUnit(getSendAmountType());
         // Ensure displayed fee is at least the required fee (if user types in zero and then selects another field, the custom fee will default to the required fee rate but updateFeeMinimizedLabel will not be triggered)
         CAmount requiredFee = model->wallet().getRequiredFee(1000);
-        if (model->getOptionsModel()->getShowScaledAmount(getSendAmountType()))
-            requiredFee = ScaleAmount(requiredFee, model->getBestScaleFactor());
         CAmount customFee = std::max(ui->customFee->value(), requiredFee);
-        if (getSendAmountType() == BOND) {
-            // Descale custom fee before applying estimated conversion rate
-            if (clientModel && model->getOptionsModel()->getShowScaledAmount(getSendAmountType())) {
-                customFee = DescaleAmount((CAmount)customFee, clientModel->getBestScaleFactor());
-            }
+        // Apply estimated conversion rate if sending bonds
+        if (getSendAmountType() == BOND)
             customFee = model->wallet().estimateConvertedAmount(customFee, CASH, /** roundedUp */ true);
-            // Scale custom fee using current scale factor
-            if (clientModel && model->getOptionsModel()->getShowScaledAmount(getSendAmountType())) {
-                customFee = ScaleAmount((CAmount)customFee, clientModel->getBestScaleFactor());
-            }
-        }
+        // Apply scale factor if showing scaled amount
+        if (model->getOptionsModel()->getShowScaledAmount(getSendAmountType()))
+            customFee = ScaleAmount((CAmount)customFee, model->getBestScaleFactor());
         ui->labelFeeMinimized->setText(BitcoinUnits::formatWithUnit(unit, customFee) + "/kvB");
     }
 }
@@ -904,7 +892,7 @@ void SendCoinsDialog::updateCoinControlState()
     if (!model)
         return;
     if (ui->radioCustomFee->isChecked()) {
-        m_coin_control->fIsScaledFeeRate = model->getOptionsModel()->getShowScaledAmount(getSendAmountType());
+        m_coin_control->fIsScaledFeeRate = false;
         m_coin_control->m_feerate = CFeeRate(ui->customFee->value());
     } else {
         m_coin_control->m_feerate.reset();
@@ -921,6 +909,7 @@ void SendCoinsDialog::updateCoinControlState()
 void SendCoinsDialog::updateNumberOfBlocks(int count, const QDateTime& blockDate, double nVerificationProgress, SyncType synctype, SynchronizationState sync_state) {
     if (sync_state == SynchronizationState::POST_INIT) {
         updateSmartFeeLabel();
+        refreshBalance();
     }
 }
 

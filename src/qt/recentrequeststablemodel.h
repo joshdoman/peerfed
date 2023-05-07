@@ -61,8 +61,8 @@ public:
         Date = 0,
         Label = 1,
         Message = 2,
-        CashAmount = 3,
-        BondAmount = 4,
+        Amount = 3,
+        Type = 4,
         NUMBER_OF_COLUMNS
     };
 
@@ -92,11 +92,6 @@ private:
     QStringList columns;
     QList<RecentRequestEntry> list;
     int64_t nReceiveRequestsMaxId{0};
-
-    /** Updates the column title to "Amount (DisplayUnit)" and emits headerDataChanged() signal for table headers to react. */
-    void updateAmountColumnTitle();
-    /** Gets title for amount column including current display unit if optionsModel reference available. */
-    QString getAmountTitle(CAmountType amountType);
 };
 
 #endif // BITCOIN_QT_RECENTREQUESTSTABLEMODEL_H

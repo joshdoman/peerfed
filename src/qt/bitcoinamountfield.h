@@ -29,13 +29,15 @@ class BitcoinAmountField: public QWidget
 public:
     explicit BitcoinAmountField(QWidget *parent = nullptr);
 
-    void showBothUnitTypes(bool shouldShowBothUnitTypes);
+    void showAllUnits();
 
     CAmountType type() const;
-    void setType(const CAmountType& type);
+    void setType(const CAmountType& type, const bool& isUnscaled);
 
     CAmount value(bool *value=nullptr) const;
     void setValue(const CAmount& value);
+
+    bool isScaledUnit() const;
 
     /** If allow empty is set to false the field will be set to the minimum allowed value if left empty. **/
     void SetAllowEmpty(bool allow);

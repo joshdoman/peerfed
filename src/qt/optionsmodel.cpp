@@ -293,6 +293,23 @@ int OptionsModel::rowCount(const QModelIndex & parent) const
     return OptionIDRowCount;
 }
 
+bool OptionsModel::getShowScaledAmount(const CAmountType& type) const
+{
+    if (type == CASH) {
+        return !BitcoinUnits::isShare(m_display_bitcoin_unit_cash);
+    } else {
+        return !BitcoinUnits::isShare(m_display_bitcoin_unit_bond);
+    }
+}
+
+BitcoinUnit OptionsModel::getDisplayUnit(const CAmountType& type) const {
+    if (type == CASH) {
+        return m_display_bitcoin_unit_cash;
+    } else {
+        return m_display_bitcoin_unit_bond;
+    }
+}
+
 static ProxySetting ParseProxyString(const QString& proxy)
 {
     static const ProxySetting default_val = {false, DEFAULT_GUI_PROXY_HOST, QString("%1").arg(DEFAULT_GUI_PROXY_PORT)};

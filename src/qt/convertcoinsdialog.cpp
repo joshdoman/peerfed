@@ -168,6 +168,7 @@ ConvertCoinsDialog::ConvertCoinsDialog(const PlatformStyle *_platformStyle, QWid
     ui->groupFee->setId(ui->radioCustomFee, 1);
     ui->groupFee->button((int)std::max(0, std::min(1, settings.value("nConvertFeeRadio").toInt())))->setChecked(true);
     ui->customFee->SetAllowEmpty(false);
+    ui->customFee->setType(CASH, /** isUnscaled */ true);
     ui->customFee->setValue(settings.value("nConvertTransactionFee").toLongLong());
     minimizeFeeSection(settings.value("fConvertFeeSectionMinimized").toBool());
 
@@ -305,8 +306,8 @@ void ConvertCoinsDialog::updateConversionType()
 
     calculatingInput = true;   // Prevents setting type from calling onInputChanged calculation
     calculatingOutput = true;  // Prevents setting type from calling onOutputChanged calculation
-    ui->reqAmountIn->setType(inType);
-    ui->reqAmountOut->setType(outType);
+    ui->reqAmountIn->setType(inType, !model->getOptionsModel()->getShowScaledAmount(getInputType()));
+    ui->reqAmountOut->setType(outType, !model->getOptionsModel()->getShowScaledAmount(getOutputType()));
     calculatingInput = false;  // Set to false because setType() does not call onInputChanged on first load
     calculatingOutput = false; // Set to false because setType() does not call onOutputChanged on first load
 
@@ -809,7 +810,7 @@ void ConvertCoinsDialog::setBalance(const interfaces::WalletBalances& balances)
 void ConvertCoinsDialog::refreshBalance()
 {
     setBalance(model->getCachedBalance());
-    ui->customFee->setDisplayUnit(model->getOptionsModel()->getDisplayUnit(getFeeType()));
+    ui->customFee->setDisplayUnit(BitcoinUnits::getUnitOfScaleType(model->getOptionsModel()->getDisplayUnit(CASH), /** isScaled */ false));
     updateSmartFeeLabel();
 }
 
@@ -891,7 +892,6 @@ void ConvertCoinsDialog::updateFeeMinimizedLabel()
     if (ui->radioSmartFee->isChecked())
         ui->labelFeeMinimized->setText(ui->labelSmartFee->text());
     else {
-        // Display de-normalized custom fee
         BitcoinUnit unit = model->getOptionsModel()->getDisplayUnit(getFeeType());
         // Ensure displayed fee is at least the required fee (if user types in zero and then selects another field, the custom fee will default to the required fee rate but updateFeeMinimizedLabel will not be triggered)
         CAmount requiredFee = model->wallet().getRequiredFee(1000);
@@ -929,6 +929,7 @@ void ConvertCoinsDialog::updateCoinControlState()
 void ConvertCoinsDialog::updateNumberOfBlocks(int count, const QDateTime& blockDate, double nVerificationProgress, SyncType synctype, SynchronizationState sync_state) {
     if (sync_state == SynchronizationState::POST_INIT) {
         updateSmartFeeLabel();
+        refreshBalance();
     }
 }
 

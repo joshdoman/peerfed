@@ -88,7 +88,7 @@ public:
     void setDisplayUnit(const QVariant& new_unit);
 
     /* Explicit getters */
-    bool getShowScaledAmount(const CAmountType& type) const { return true; } // TODO: Implement
+    bool getShowScaledAmount(const CAmountType& type) const;
     bool getShowTrayIcon() const { return m_show_tray_icon; }
     bool getMinimizeToTray() const { return fMinimizeToTray; }
     bool getMinimizeOnClose() const { return fMinimizeOnClose; }
@@ -98,15 +98,7 @@ public:
     bool getSubFeeFromAmount() const { return m_sub_fee_from_amount; }
     bool getEnablePSBTControls() const { return m_enable_psbt_controls; }
     const QString& getOverriddenByCommandLine() { return strOverriddenByCommandLine; }
-
-    BitcoinUnit getDisplayUnit(const CAmountType& type) const {
-        if (type == CASH) {
-            return m_display_bitcoin_unit_cash;
-        } else {
-            return m_display_bitcoin_unit_bond;
-        }
-    }
-
+    BitcoinUnit getDisplayUnit(const CAmountType& type) const;
 
     /* Explicit setters */
     void SetPruneTargetGB(int prune_target_gb);

@@ -20,8 +20,8 @@ class SendCoinsRecipient
 {
 public:
     explicit SendCoinsRecipient() : amount(0), fSubtractFeeFromAmount(false), nVersion(SendCoinsRecipient::CURRENT_VERSION) { }
-    explicit SendCoinsRecipient(const QString &addr, const QString &_label, const CAmountType &_amountType, const CAmount &_amount, const QString &_message):
-        address(addr), label(_label), amountType(_amountType), amount(_amount), message(_message), fSubtractFeeFromAmount(false), nVersion(SendCoinsRecipient::CURRENT_VERSION) {}
+    explicit SendCoinsRecipient(const QString &addr, const QString &_label, const CAmountType &_amountType, const CAmount &_amount, const bool &_isScaled, const QString &_message):
+        address(addr), label(_label), amountType(_amountType), amount(_amount), isScaled(_isScaled), message(_message), fSubtractFeeFromAmount(false), nVersion(SendCoinsRecipient::CURRENT_VERSION) {}
 
     // If from an unauthenticated payment request, this is used for storing
     // the addresses, e.g. address-A<br />address-B<br />address-C.
@@ -32,6 +32,7 @@ public:
     QString label;
     CAmountType amountType;
     CAmount amount;
+    bool isScaled;
     // If from a payment request, this is used for storing the memo
     QString message;
     // Keep the payment request around as a serialized string to ensure
@@ -54,7 +55,7 @@ public:
         SER_WRITE(obj, message_str = obj.message.toStdString());
         SER_WRITE(obj, auth_merchant_str = obj.authenticatedMerchant.toStdString());
 
-        READWRITE(obj.nVersion, address_str, label_str, obj.amountType, obj.amount, message_str, obj.sPaymentRequest, auth_merchant_str);
+        READWRITE(obj.nVersion, address_str, label_str, obj.amountType, obj.amount, obj.isScaled, message_str, obj.sPaymentRequest, auth_merchant_str);
 
         SER_READ(obj, obj.address = QString::fromStdString(address_str));
         SER_READ(obj, obj.label = QString::fromStdString(label_str));

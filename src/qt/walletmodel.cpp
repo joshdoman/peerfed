@@ -126,22 +126,23 @@ void WalletModel::pollBalanceChanged()
 
 void WalletModel::checkBalanceChanged(const interfaces::WalletBalances& new_balances)
 {
-    // Apply scale factor
-    interfaces::WalletBalances scaled_balances = new_balances;
-    if (m_client_model && optionsModel->getShowScaledAmount(CASH))
-        scaled_balances.cash = new_balances.cash.applyingScaleFactor(m_client_model->getBestScaleFactor());
-    if (m_client_model && optionsModel->getShowScaledAmount(BOND))
-        scaled_balances.bond = new_balances.bond.applyingScaleFactor(m_client_model->getBestScaleFactor());
-
-    if (scaled_balances.balanceChanged(m_cached_balances)) {
-        m_cached_balances = scaled_balances;
+    if (new_balances.balanceChanged(m_cached_balances)) {
+        m_cached_balances = new_balances;
+        // Emit a balanceChanged event with the scaled balance
+        interfaces::WalletBalances scaled_balances = getCachedBalance();
         Q_EMIT balanceChanged(scaled_balances);
     }
 }
 
 interfaces::WalletBalances WalletModel::getCachedBalance() const
 {
-    return m_cached_balances;
+    // Apply scale factor
+    interfaces::WalletBalances balances = m_cached_balances;
+    if (m_client_model && optionsModel->getShowScaledAmount(CASH))
+        balances.cash = balances.cash.applyingScaleFactor(m_client_model->getBestScaleFactor());
+    if (m_client_model && optionsModel->getShowScaledAmount(BOND))
+        balances.bond = balances.bond.applyingScaleFactor(m_client_model->getBestScaleFactor());
+    return balances;
 }
 
 void WalletModel::updateTransaction()
@@ -201,11 +202,15 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             setAddress.insert(rcp.address);
             ++nAddresses;
 
+            CAmount amount = rcp.amount;
+            if (rcp.isScaled)
+                amount = DescaleAmount(amount, getBestScaleFactor());
+
             CScript scriptPubKey = GetScriptForDestination(DecodeDestination(rcp.address.toStdString()));
-            CRecipient recipient = {scriptPubKey, amountType, rcp.amount, rcp.fSubtractFeeFromAmount};
+            CRecipient recipient = {scriptPubKey, amountType, amount, rcp.fSubtractFeeFromAmount};
             vecSend.push_back(recipient);
 
-            total += rcp.amount;
+            total += amount;
         }
     }
     if(setAddress.size() != nAddresses)
@@ -231,7 +236,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
         newTx = res ? *res : nullptr;
         transaction.setTransactionFee(nFeeRequired);
         if (fSubtractFeeFromAmount && newTx)
-            transaction.reassignAmounts(nChangePosRet);
+            transaction.reassignAmounts(nChangePosRet, getBestScaleFactor());
 
         if(!newTx)
         {

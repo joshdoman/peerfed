@@ -52,7 +52,7 @@ void WalletModelTransaction::setTransactionFee(const CAmount& newFee)
     fee = newFee;
 }
 
-void WalletModelTransaction::reassignAmounts(int nChangePosRet)
+void WalletModelTransaction::reassignAmounts(int nChangePosRet, const CAmountScaleFactor& scaleFactor)
 {
     const CTransaction* walletTransaction = wtx.get();
     int i = 0;
@@ -63,17 +63,22 @@ void WalletModelTransaction::reassignAmounts(int nChangePosRet)
             if (i == nChangePosRet)
                 i++;
             rcp.amount = walletTransaction->vout[i].nValue;
+            if (rcp.isScaled)
+                rcp.amount = ScaleAmount(rcp.amount, scaleFactor);
             i++;
         }
     }
 }
 
-CAmount WalletModelTransaction::getTotalTransactionAmount() const
+CAmount WalletModelTransaction::getTotalTransactionAmount(const CAmountScaleFactor& scaleFactor) const
 {
     CAmount totalTransactionAmount = 0;
     for (const SendCoinsRecipient &rcp : recipients)
     {
-        totalTransactionAmount += rcp.amount;
+        if (rcp.isScaled)
+            totalTransactionAmount += DescaleAmount(rcp.amount, scaleFactor);
+        else
+            totalTransactionAmount += rcp.amount;
     }
     return totalTransactionAmount;
 }

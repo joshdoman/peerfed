@@ -16,6 +16,8 @@
 #include <qt/transactiontablemodel.h>
 #include <qt/walletmodel.h>
 
+#include <validation.h>
+
 #include <QAbstractItemDelegate>
 #include <QApplication>
 #include <QDateTime>
@@ -181,10 +183,7 @@ void OverviewPage::handleTransactionClicked(const QModelIndex &index)
 void OverviewPage::setPrivacy(bool privacy)
 {
     m_privacy = privacy;
-    const auto& balances = walletModel->getCachedBalance();
-    if (balances.cash.balance != -1 && balances.bond.balance != -1) {
-        setBalance(balances);
-    }
+    refreshBalance();
 
     ui->listTransactions->setVisible(!m_privacy);
 
@@ -197,6 +196,40 @@ void OverviewPage::setPrivacy(bool privacy)
 OverviewPage::~OverviewPage()
 {
     delete ui;
+}
+
+void OverviewPage::updateNumberOfBlocks(int count, const QDateTime& blockDate, double nVerificationProgress, SyncType synctype, SynchronizationState sync_state) {
+    if (sync_state == SynchronizationState::POST_INIT) {
+        refreshBalance();
+        refreshMarketPricing();
+    }
+}
+
+void OverviewPage::refreshBalance()
+{
+    const auto& balances = walletModel->getCachedBalance();
+    if (balances.cash.balance != -1 && balances.bond.balance != -1) {
+        setBalance(balances);
+    }
+}
+
+void OverviewPage::refreshMarketPricing()
+{
+    BitcoinUnit cashUnit = walletModel->getOptionsModel()->getDisplayUnit(CASH);
+    BitcoinUnit bondUnit = walletModel->getOptionsModel()->getDisplayUnit(BOND);
+
+    CAmount amountIn = (CAmount)BitcoinUnits::factor(bondUnit);
+    if (walletModel->getOptionsModel()->getShowScaledAmount(BOND)) {
+        amountIn = DescaleAmount(amountIn, walletModel->getBestScaleFactor());
+    }
+    CAmount conversionRate = walletModel->wallet().estimateConvertedAmount(amountIn, BOND);
+    if (walletModel->getOptionsModel()->getShowScaledAmount(CASH)) {
+        conversionRate = ScaleAmount(conversionRate, walletModel->getBestScaleFactor());
+    }
+    ui->labelConversionRate->setText("1 " + BitcoinUnits::shortName(bondUnit) + " ≈ " + BitcoinUnits::formatWithUnit(cashUnit, conversionRate));
+
+    const int64_t interestRate = walletModel->getBestInterestRate();
+    ui->labelInterestRate->setText(QString::number(interestRate / 100) + "." + QString::number(interestRate % 100).rightJustified(2, '0') + "%");
 }
 
 void OverviewPage::setBalance(const interfaces::WalletBalances& balances)
@@ -296,7 +329,7 @@ void OverviewPage::setClientModel(ClientModel *model)
         connect(model->getOptionsModel(), &OptionsModel::useEmbeddedMonospacedFontChanged, this, &OverviewPage::setMonospacedFont);
         setMonospacedFont(model->getOptionsModel()->getUseEmbeddedMonospacedFont());
 
-        connect(model, &ClientModel::numBlocksChanged, this, &OverviewPage::updateDisplayUnit);
+        connect(model, &ClientModel::numBlocksChanged, this, &OverviewPage::updateNumberOfBlocks);
     }
 }
 
@@ -349,31 +382,14 @@ void OverviewPage::changeEvent(QEvent* e)
 void OverviewPage::updateDisplayUnit()
 {
     if (walletModel && walletModel->getOptionsModel()) {
-        const auto& balances = walletModel->getCachedBalance();
-        if (balances.cash.balance != -1 && balances.bond.balance != -1) {
-            setBalance(balances);
-        }
+        refreshBalance();
+        refreshMarketPricing();
 
         // Update txdelegate->unit with the current unit
-        BitcoinUnit cashUnit = walletModel->getOptionsModel()->getDisplayUnit(CASH);
-        BitcoinUnit bondUnit = walletModel->getOptionsModel()->getDisplayUnit(BOND);
-        txdelegate->cashUnit = cashUnit;
-        txdelegate->bondUnit = bondUnit;
+        txdelegate->cashUnit = walletModel->getOptionsModel()->getDisplayUnit(CASH);
+        txdelegate->bondUnit = walletModel->getOptionsModel()->getDisplayUnit(BOND);
 
         ui->listTransactions->update();
-
-        CAmount amountIn = (CAmount)BitcoinUnits::factor(bondUnit);
-        if (walletModel->getOptionsModel()->getShowScaledAmount(BOND)) {
-            amountIn = DescaleAmount(amountIn, walletModel->getBestScaleFactor());
-        }
-        CAmount conversionRate = walletModel->wallet().estimateConvertedAmount(amountIn, BOND);
-        if (walletModel->getOptionsModel()->getShowScaledAmount(CASH)) {
-            conversionRate = ScaleAmount(conversionRate, walletModel->getBestScaleFactor());
-        }
-        ui->labelConversionRate->setText("1 " + BitcoinUnits::shortName(bondUnit) + " ≈ " + BitcoinUnits::formatWithUnit(cashUnit, conversionRate));
-
-        const int64_t interestRate = walletModel->getBestInterestRate();
-        ui->labelInterestRate->setText(QString::number(interestRate / 100) + "." + QString::number(interestRate % 100).rightJustified(2, '0') + "%");
     }
 }
 

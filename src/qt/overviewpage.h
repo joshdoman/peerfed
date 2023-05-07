@@ -5,6 +5,7 @@
 #ifndef BITCOIN_QT_OVERVIEWPAGE_H
 #define BITCOIN_QT_OVERVIEWPAGE_H
 
+#include <qt/clientmodel.h>
 #include <interfaces/wallet.h>
 
 #include <QWidget>
@@ -15,6 +16,7 @@ class TransactionFilterProxy;
 class TxViewDelegate;
 class PlatformStyle;
 class WalletModel;
+enum class SynchronizationState;
 
 namespace Ui {
     class OverviewPage;
@@ -61,7 +63,10 @@ private:
 
 private Q_SLOTS:
     void updateDisplayUnit();
+    void updateNumberOfBlocks(int count, const QDateTime& blockDate, double nVerificationProgress, SyncType synctype, SynchronizationState sync_state);
     void handleTransactionClicked(const QModelIndex &index);
+    void refreshBalance();
+    void refreshMarketPricing();
     void updateAlerts(const QString &warnings);
     void updateWatchOnlyLabels(bool showWatchOnly);
     void setMonospacedFont(bool use_embedded_font);

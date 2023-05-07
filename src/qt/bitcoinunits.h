@@ -34,7 +34,7 @@ class BitcoinUnits: public QAbstractListModel
     Q_OBJECT
 
 public:
-    explicit BitcoinUnits(QObject *parent, bool displayBothUnits = false);
+    explicit BitcoinUnits(QObject *parent, bool displayAll = false);
 
     /** Bitcoin units.
       @note Source: https://en.bitcoin.it/wiki/Units . Please add only sensible ones
@@ -86,8 +86,8 @@ public:
     static CAmountType type(Unit unit);
     //! Returns if the unit is a share
     static bool isShare(Unit unit);
-    //! Returns equivalent unit of a given amount type
-    static Unit unitOfType(Unit unit, CAmountType type);
+    //! Returns equivalent unit of desired scale type
+    static Unit getUnitOfScaleType(Unit unit, bool isScaled);
     //! Format as string
     static QString format(Unit unit, const CAmount& amount, bool plussign = false, SeparatorStyle separators = SeparatorStyle::STANDARD, bool justify = false);
     //! Format as string (with unit)
@@ -126,7 +126,7 @@ public:
 
 private:
     QList<Unit> unitlist;
-    bool displayBothUnits;
+    bool displayAll;
 };
 typedef BitcoinUnits::Unit BitcoinUnit;
 

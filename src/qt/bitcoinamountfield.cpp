@@ -230,6 +230,7 @@ BitcoinAmountField::BitcoinAmountField(QWidget *parent) :
     layout->addWidget(amount);
     unit = new QValueComboBox(this);
     unit->setModel(new BitcoinUnits(this));
+    unit->setMinimumWidth(100);
     layout->addWidget(unit);
     layout->addStretch(1);
     layout->setContentsMargins(0,0,0,0);
@@ -247,15 +248,14 @@ BitcoinAmountField::BitcoinAmountField(QWidget *parent) :
     unitChanged(unit->currentIndex());
 }
 
-void BitcoinAmountField::showBothUnitTypes(bool shouldShowBothUnitTypes)
+void BitcoinAmountField::showAllUnits()
 {
-    unit->setModel(new BitcoinUnits(this, shouldShowBothUnitTypes));
+    unit->setModel(new BitcoinUnits(this, true));
 }
 
 void BitcoinAmountField::clear()
 {
     amount->clear();
-    unit->setCurrentIndex(0);
 }
 
 void BitcoinAmountField::setEnabled(bool fEnabled)
@@ -303,9 +303,9 @@ CAmountType BitcoinAmountField::type() const
     return BitcoinUnits::type(q_current_unit.value<BitcoinUnit>());
 }
 
-void BitcoinAmountField::setType(const CAmountType& amountType)
+void BitcoinAmountField::setType(const CAmountType& amountType, const bool& isUnscaled)
 {
-    unit->setModelColumn(amountType);
+    unit->setModelColumn(amountType + 2 * isUnscaled);
 }
 
 CAmount BitcoinAmountField::value(bool *valid_out) const
@@ -316,6 +316,12 @@ CAmount BitcoinAmountField::value(bool *valid_out) const
 void BitcoinAmountField::setValue(const CAmount& value)
 {
     amount->setValue(value);
+}
+
+bool BitcoinAmountField::isScaledUnit() const
+{
+    BitcoinUnit current_unit = unit->currentData(BitcoinUnits::UnitRole).value<BitcoinUnit>();
+    return !BitcoinUnits::isShare(current_unit);
 }
 
 void BitcoinAmountField::SetAllowEmpty(bool allow)
@@ -351,12 +357,14 @@ void BitcoinAmountField::unitChanged(int idx)
 
 void BitcoinAmountField::setDisplayUnit(BitcoinUnit new_unit)
 {
-    // Get the current type
-    QVariant current_unit = unit->currentData(BitcoinUnits::UnitRole);
-    CAmountType current_type = BitcoinUnits::type(current_unit.value<BitcoinUnit>());
-    // Get the new unit with the current type
-    BitcoinUnit new_unit_same_type = BitcoinUnits::unitOfType(new_unit, current_type);
-    unit->setValue(QVariant::fromValue(new_unit_same_type));
+    // Update the model column if the type changed or we switched from scaled to unscaled
+    BitcoinUnit current_unit = unit->currentData(BitcoinUnits::UnitRole).value<BitcoinUnit>();
+    if (BitcoinUnits::type(current_unit) != BitcoinUnits::type(new_unit) ||
+        BitcoinUnits::isShare(current_unit) != BitcoinUnits::isShare(new_unit)) {
+        unit->setModelColumn(BitcoinUnits::type(new_unit) + 2 * BitcoinUnits::isShare(new_unit));
+    }
+    // Set the new unit
+    unit->setValue(QVariant::fromValue(new_unit));
 }
 
 void BitcoinAmountField::setSingleStep(const CAmount& step)

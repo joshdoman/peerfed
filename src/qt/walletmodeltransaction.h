@@ -36,9 +36,9 @@ public:
     void setTransactionFee(const CAmount& newFee);
     CAmount getTransactionFee() const;
 
-    CAmount getTotalTransactionAmount() const;
+    CAmount getTotalTransactionAmount(const CAmountScaleFactor& scaleFactor) const; // returns unscaled total amount
 
-    void reassignAmounts(int nChangePosRet); // needed for the subtract-fee-from-amount feature
+    void reassignAmounts(int nChangePosRet, const CAmountScaleFactor& scaleFactor); // needed for the subtract-fee-from-amount feature
 
 private:
     CAmountType amountType;

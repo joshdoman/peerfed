@@ -13,10 +13,10 @@
 
 static constexpr auto MAX_DIGITS_BTC = 16;
 
-BitcoinUnits::BitcoinUnits(QObject *parent, bool _displayBothUnits):
+BitcoinUnits::BitcoinUnits(QObject *parent, bool _displayAll):
         QAbstractListModel(parent),
         unitlist(availableUnits()),
-        displayBothUnits(_displayBothUnits)
+        displayAll(_displayAll)
 {
 }
 
@@ -31,14 +31,14 @@ QList<BitcoinUnit> BitcoinUnits::availableUnits()
     unitlist.append(Unit::mBOND);
     unitlist.append(Unit::uBOND);
     unitlist.append(Unit::sBOND);
-    // unitlist.append(Unit::sh_CASH);
-    // unitlist.append(Unit::sh_mCASH);
-    // unitlist.append(Unit::sh_uCASH);
-    // unitlist.append(Unit::sh_sCASH);
-    // unitlist.append(Unit::sh_BOND);
-    // unitlist.append(Unit::sh_mBOND);
-    // unitlist.append(Unit::sh_uBOND);
-    // unitlist.append(Unit::sh_sBOND);
+    unitlist.append(Unit::sh_CASH);
+    unitlist.append(Unit::sh_mCASH);
+    unitlist.append(Unit::sh_uCASH);
+    unitlist.append(Unit::sh_sCASH);
+    unitlist.append(Unit::sh_BOND);
+    unitlist.append(Unit::sh_mBOND);
+    unitlist.append(Unit::sh_uBOND);
+    unitlist.append(Unit::sh_sBOND);
     return unitlist;
 }
 
@@ -203,9 +203,9 @@ bool BitcoinUnits::isShare(Unit unit)
     assert(false);
 }
 
-BitcoinUnit BitcoinUnits::unitOfType(Unit unit, CAmountType type)
+BitcoinUnit BitcoinUnits::getUnitOfScaleType(Unit unit, bool isScaled)
 {
-    return (BitcoinUnit)(static_cast<int>(unit) % 4 + 4 * type);
+    return (BitcoinUnit)(static_cast<int>(unit) % 8 + 8 * (!isScaled));
 }
 
 QString BitcoinUnits::format(Unit unit, const CAmount& nIn, bool fPlus, SeparatorStyle separators, bool justify)
@@ -325,20 +325,20 @@ QString BitcoinUnits::getAmountColumnTitle(Unit unit)
 int BitcoinUnits::rowCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-    return displayBothUnits ? 8 : 4;
+    return displayAll ? 16 : 4;
 }
 
 int BitcoinUnits::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-    return displayBothUnits ? 2 : 4;
+    return 4;
 }
 
 QVariant BitcoinUnits::data(const QModelIndex &index, int role) const
 {
     int row = index.row();
-    int col = index.column();
-    if(row >= 0 && row < (displayBothUnits ? 8 : 4))
+    int col = displayAll ? 0 : index.column(); // ignore column if displaying all
+    if(row >= 0 && row < (displayAll ? 16 : 4))
     {
         Unit unit = unitlist.at(row + col * 4);
         switch(role)
