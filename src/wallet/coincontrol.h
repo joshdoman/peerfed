@@ -43,7 +43,7 @@ public:
     //! Override automatic min/max checks on fee, m_feerate must be set if true
     bool fOverrideFeeRate = false;
     //! If true, fee rate is a scaled amount and should be descaled during fee calculation
-    bool fIsScaledFeeRate = true;
+    bool fIsScaledFeeRate = false;
     //! Override the wallet's m_pay_tx_fee if set
     std::optional<CFeeRate> m_feerate;
     //! Override the wallet's m_pay_tx_fee_type if set

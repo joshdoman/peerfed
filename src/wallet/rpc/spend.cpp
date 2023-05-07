@@ -239,7 +239,7 @@ RPCHelpMan sendtoaddress()
                     {"avoid_reuse", RPCArg::Type::BOOL, RPCArg::Default{true}, "(only available if avoid_reuse wallet flag is set) Avoid spending from dirty addresses; addresses are considered\n"
                                          "dirty if they have previously been used in a transaction. If true, this also activates avoidpartialspends, grouping outputs by their addresses."},
                     {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
-                    {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if fee rate is a scaled amount."},
+                    {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{false}, "True if fee rate is a scaled amount."},
                     {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "If true, return extra information about the transaction."},
                 },
                 {
@@ -358,7 +358,7 @@ RPCHelpMan sendmany()
                     {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"unset"}, "The fee estimate mode, must be one of (case insensitive):\n"
                      "\"" + FeeModes("\"\n\"") + "\""},
                     {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
-                    {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if fee rate is a scaled amount."},
+                    {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{false}, "True if fee rate is a scaled amount."},
                     {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "If true, return extra infomration about the transaction."},
                 },
                 {
@@ -785,7 +785,7 @@ RPCHelpMan fundrawtransaction()
                             {"lockUnspents", RPCArg::Type::BOOL, RPCArg::Default{false}, "Lock selected unspent outputs"},
                             {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
                             {"feeRate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_UNIT + "/kvB."},
-                            {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if fee rate is a scaled amount."},
+                            {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{false}, "True if fee rate is a scaled amount."},
                             {"subtractFeeFromOutputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "The integers.\n"
                                                           "The fee will be equally deducted from the amount of each specified output.\n"
                                                           "Those recipients will receive less bitcoins than you enter in their corresponding amount field.\n"
@@ -992,7 +992,7 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
                              "\nSpecify a fee rate in " + CURRENCY_ATOM + "/vB instead of relying on the built-in fee estimator.\n"
                              "Must be at least " + incremental_fee + " higher than the current transaction fee rate.\n"
                              "WARNING: before version 0.21, fee_rate was in " + CURRENCY_UNIT + "/kvB. As of 0.21, fee_rate is in " + CURRENCY_ATOM + "/vB.\n"},
-                    {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if fee rate is a scaled amount."},
+                    {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{false}, "True if fee rate is a scaled amount."},
                     {"replaceable", RPCArg::Type::BOOL, RPCArg::Default{true}, "Whether the new transaction should still be\n"
                              "marked bip-125 replaceable. If true, the sequence numbers in the transaction will\n"
                              "be left unchanged from the original. If false, any input sequence numbers in the\n"
@@ -1196,7 +1196,7 @@ RPCHelpMan send()
             {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"unset"}, "The fee estimate mode, must be one of (case insensitive):\n"
              "\"" + FeeModes("\"\n\"") + "\""},
             {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
-            {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if fee rate is a scaled amount."},
+            {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{false}, "True if fee rate is a scaled amount."},
             {"options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED_NAMED_ARG, "",
                 Cat<std::vector<RPCArg>>(
                 {
@@ -1209,7 +1209,7 @@ RPCHelpMan send()
                     {"change_position", RPCArg::Type::NUM, RPCArg::DefaultHint{"random"}, "The index of the change output"},
                     {"change_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -changetype"}, "The output type to use. Only valid if change_address is not specified. Options are \"legacy\", \"p2sh-segwit\", \"bech32\" and \"bech32m\"."},
                     {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
-                    {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if fee rate is a scaled amount."},
+                    {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{false}, "True if fee rate is a scaled amount."},
                     {"include_watching", RPCArg::Type::BOOL, RPCArg::DefaultHint{"true for watch-only wallets, otherwise false"}, "Also select inputs which are watch only.\n"
                                           "Only solvable inputs can be used. Watch-only destinations are solvable if the public key and/or output script was imported,\n"
                                           "e.g. with 'importpubkey' or 'importmulti' with the 'pubkeys' or 'desc' field."},
@@ -1675,7 +1675,7 @@ RPCHelpMan walletcreatefundedpsbt()
                             {"lockUnspents", RPCArg::Type::BOOL, RPCArg::Default{false}, "Lock selected unspent outputs"},
                             {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
                             {"feeRate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_UNIT + "/kvB."},
-                            {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{true}, "True if fee rate is a scaled amount."},
+                            {"is_scaled_fee_rate", RPCArg::Type::BOOL, RPCArg::Default{false}, "True if fee rate is a scaled amount."},
                             {"subtractFeeFromOutputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "The outputs to subtract the fee from.\n"
                                                           "The fee will be equally deducted from the amount of each specified output.\n"
                                                           "Those recipients will receive less bitcoins than you enter in their corresponding amount field.\n"
