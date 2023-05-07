@@ -399,15 +399,19 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
     // nPayAmount
     CAmount nPayAmount = 0;
     bool fDust = false;
+    CAmountType amountType = m_coin_control.m_fee_type.value_or(CASH);
     for (const CAmount &amount : CoinControlDialog::payAmounts)
     {
-        nPayAmount += amount;
+        // Descale amount if needed
+        CAmount descaledAmount = amount;
+        if (model->getOptionsModel() && model->getOptionsModel()->getShowScaledAmount(amountType))
+            descaledAmount = DescaleAmount(amount, model->getBestScaleFactor());
+        nPayAmount += descaledAmount;
 
         if (amount > 0)
         {
             // Assumes a p2pkh script size
-            CAmountType amountType = m_coin_control.m_fee_type.value_or(CASH);
-            CTxOut txout(amountType, amount, CScript() << std::vector<unsigned char>(24, 0));
+            CTxOut txout(amountType, descaledAmount, CScript() << std::vector<unsigned char>(24, 0));
             fDust |= IsDust(txout, model->node().getDustRelayFee());
         }
     }
@@ -517,7 +521,6 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
     }
 
     // actually update labels
-    CAmountType amountType = m_coin_control.m_fee_type.value_or(CASH);
     BitcoinUnit nDisplayUnit = BitcoinUnit::CASH;
     if (model && model->getOptionsModel())
         nDisplayUnit = model->getOptionsModel()->getDisplayUnit(amountType);

@@ -752,5 +752,5 @@ int64_t WalletModel::getBestInterestRate() const
 
 CAmount WalletModel::getAvailableBalance(CAmountType type, const CCoinControl* control)
 {
-    return control && control->HasSelected() ? wallet().getAvailableBalance(type, *control) : getCachedBalance().forType(type).balance;
+    return control && control->HasSelected() ? wallet().getAvailableBalance(type, *control) : m_cached_balances.forType(type).balance;
 }

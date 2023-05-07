@@ -843,6 +843,9 @@ void SendCoinsDialog::useAvailableBalance(SendCoinsEntry* entry)
     // Calculate available amount to send.
     CAmountType amountType = getSendAmountType();
     CAmount amount = model->getAvailableBalance(amountType, m_coin_control.get());
+    // 'getAvailableBalance' returns an unscaled amount, so we need to apply the scale factor
+    if (model->getOptionsModel()->getShowScaledAmount(amountType))
+        amount = ScaleAmount(amount, model->getBestScaleFactor());
     for (int i = 0; i < ui->entries->count(); ++i) {
         SendCoinsEntry* e = qobject_cast<SendCoinsEntry*>(ui->entries->itemAt(i)->widget());
         if (e && !e->isHidden() && e != entry && amountType == e->getValue().amountType) {

@@ -198,6 +198,7 @@ public:
     // If coin control has selected outputs, searches the total amount inside the wallet.
     // Otherwise, uses the wallet's cached available balance.
     // Filters by selected amount type
+    // Returns unscaled balance
     CAmount getAvailableBalance(CAmountType amountType, const wallet::CCoinControl* control);
 
 private:

@@ -752,7 +752,6 @@ void ConvertCoinsDialog::clear()
 void ConvertCoinsDialog::useAvailableBalanceClicked()
 {
     if (!model) return;
-    // Set 'isUsingAvailableBalance' to true and set input amount
     interfaces::WalletBalances balances = model->getCachedBalance();
     if (getInputType() == CASH) {
         ui->reqAmountIn->setValue(balances.cash.balance);
