@@ -45,22 +45,22 @@ QList<BitcoinUnit> BitcoinUnits::availableUnits()
 QString BitcoinUnits::longName(Unit unit)
 {
     switch (unit) {
-    case Unit::CASH: return QString("CASH");
-    case Unit::mCASH: return QString("mCASH");
-    case Unit::uCASH: return QString::fromUtf8("µCASH");
-    case Unit::sCASH: return QString("sCASH");
-    case Unit::BOND: return QString("BOND");
-    case Unit::mBOND: return QString("mBOND");
-    case Unit::uBOND: return QString::fromUtf8("µBOND");
-    case Unit::sBOND: return QString("sBOND");
-    case Unit::sh_CASH: return QString("UCASH");
-    case Unit::sh_mCASH: return QString("mUCASH");
-    case Unit::sh_uCASH: return QString::fromUtf8("µUCASH");
-    case Unit::sh_sCASH: return QString("sUCASH");
-    case Unit::sh_BOND: return QString("UBOND");
-    case Unit::sh_mBOND: return QString("mUBOND");
-    case Unit::sh_uBOND: return QString::fromUtf8("µUBOND");
-    case Unit::sh_sBOND: return QString("sUBOND");
+    case Unit::CASH: return QString("PCH");
+    case Unit::mCASH: return QString("mPCH");
+    case Unit::uCASH: return QString::fromUtf8("µPCH");
+    case Unit::sCASH: return QString("sPCH");
+    case Unit::BOND: return QString("PBN");
+    case Unit::mBOND: return QString("mPBN");
+    case Unit::uBOND: return QString::fromUtf8("µPBN");
+    case Unit::sBOND: return QString("sPBN");
+    case Unit::sh_CASH: return QString("UPCH");
+    case Unit::sh_mCASH: return QString("mPCH");
+    case Unit::sh_uCASH: return QString::fromUtf8("µPCH");
+    case Unit::sh_sCASH: return QString("sPCH");
+    case Unit::sh_BOND: return QString("UPBN");
+    case Unit::sh_mBOND: return QString("mUPBN");
+    case Unit::sh_uBOND: return QString::fromUtf8("µUPBN");
+    case Unit::sh_sBOND: return QString("sUPBN");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -70,20 +70,20 @@ QString BitcoinUnits::shortName(Unit unit)
     switch (unit) {
     case Unit::CASH: return longName(unit);
     case Unit::mCASH: return longName(unit);
-    case Unit::uCASH: return QString("bits-c");
-    case Unit::sCASH: return QString("sat-c");
+    case Unit::uCASH: return QString("c-bits");
+    case Unit::sCASH: return QString("c-sat");
     case Unit::BOND: return longName(unit);
     case Unit::mBOND: return longName(unit);
-    case Unit::uBOND: return QString("bits-b");
-    case Unit::sBOND: return QString("sat-b");
+    case Unit::uBOND: return QString("b-bits");
+    case Unit::sBOND: return QString("b-sat");
     case Unit::sh_CASH: return longName(unit);
     case Unit::sh_mCASH: return longName(unit);
-    case Unit::sh_uCASH: return QString("ubits-c");
-    case Unit::sh_sCASH: return QString("usats-c");
+    case Unit::sh_uCASH: return QString("uc-bits");
+    case Unit::sh_sCASH: return QString("uc-sats");
     case Unit::sh_BOND: return longName(unit);
     case Unit::sh_mBOND: return longName(unit);
-    case Unit::sh_uBOND: return QString("ubits-b");
-    case Unit::sh_sBOND: return QString("usats-b");
+    case Unit::sh_uBOND: return QString("ub-bits");
+    case Unit::sh_sBOND: return QString("ub-sats");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
@@ -93,20 +93,20 @@ QString BitcoinUnits::description(Unit unit)
     switch (unit) {
     case Unit::CASH: return QString("Cash");
     case Unit::mCASH: return QString("Milli-Cash (1 / 1" THIN_SP_UTF8 "000)");
-    case Unit::uCASH: return QString("Micro-Cash (bits-c) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
-    case Unit::sCASH: return QString("Satoshi-Cash (sat-c) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::uCASH: return QString("Micro-Cash (c-bits) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::sCASH: return QString("Satoshi-Cash (c-sat) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     case Unit::BOND: return QString("Bonds");
     case Unit::mBOND: return QString("Milli-Bonds (1 / 1" THIN_SP_UTF8 "000)");
-    case Unit::uBOND: return QString("Micro-Bonds (bits-b) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
-    case Unit::sBOND: return QString("Satoshi-Bonds (sat-b) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
-    case Unit::sh_CASH: return QString("Cash Shares");
-    case Unit::sh_mCASH: return QString("Milli-Cash Shares (1 / 1" THIN_SP_UTF8 "000)");
-    case Unit::sh_uCASH: return QString("Micro-Cash Shares (sh-bits-c) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
-    case Unit::sh_sCASH: return QString("Satoshi-Cash Shares (sh-sat-c) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
-    case Unit::sh_BOND: return QString("Bond Shares");
-    case Unit::sh_mBOND: return QString("Milli-Bond Shares (1 / 1" THIN_SP_UTF8 "000)");
-    case Unit::sh_uBOND: return QString("Micro-Bond Shares (sh-bits-b) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
-    case Unit::sh_sBOND: return QString("Satoshi-Bond Shares (sh-sat-b) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::uBOND: return QString("Micro-Bonds (b-bits) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::sBOND: return QString("Satoshi-Bonds (b-sat) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::sh_CASH: return QString("Unscaled Cash");
+    case Unit::sh_mCASH: return QString("Milli-Unscaled Cash (1 / 1" THIN_SP_UTF8 "000)");
+    case Unit::sh_uCASH: return QString("Micro-Unscaled Cash (uc-bits) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::sh_sCASH: return QString("Satoshi-Unscaled Cash (uc-sat) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::sh_BOND: return QString("Unscaled Bonds");
+    case Unit::sh_mBOND: return QString("Milli-Unscaled Bonds (1 / 1" THIN_SP_UTF8 "000)");
+    case Unit::sh_uBOND: return QString("Micro-Unscaled Bonds (ub-bits) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case Unit::sh_sBOND: return QString("Satoshi-Unscaled Bonds (ub-sat) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
