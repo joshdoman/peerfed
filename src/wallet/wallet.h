@@ -667,7 +667,7 @@ public:
     /** Absolute maximum scaled transaction fee (in satoshis) used by default for the wallet */
     CAmount m_default_max_tx_fee{DEFAULT_TRANSACTION_MAXFEE};
     /** Absolute maximum transaction fee (in satoshis) used by default for the wallet descaled by current scale factor*/
-    CAmount GetDescaledDefaultMaxTxFee() const;
+    CAmount GetDefaultMaxTxFee() const;
 
     size_t KeypoolCountExternalKeys() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool TopUpKeyPool(unsigned int kpSize = 0);

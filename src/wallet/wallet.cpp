@@ -1941,7 +1941,7 @@ bool CWallet::SubmitTxMemoryPoolAndRelay(CWalletTx& wtx, std::string& err_string
     // If broadcast fails for any reason, trying to set wtx.m_state here would be incorrect.
     // If transaction was previously in the mempool, it should be updated when
     // TransactionRemovedFromMempool fires.
-    bool ret = chain().broadcastTransaction(wtx.tx, GetDescaledDefaultMaxTxFee(), relay, err_string);
+    bool ret = chain().broadcastTransaction(wtx.tx, GetDefaultMaxTxFee(), relay, err_string);
     if (ret) wtx.m_state = TxStateInMempool{};
     return ret;
 }
@@ -2392,9 +2392,9 @@ bool CWallet::DelAddressBook(const CTxDestination& address)
     return batch.EraseName(EncodeDestination(address));
 }
 
-CAmount CWallet::GetDescaledDefaultMaxTxFee() const
+CAmount CWallet::GetDefaultMaxTxFee() const
 {
-    return DescaleAmount(m_default_max_tx_fee, chain().getLastScaleFactor());
+    return m_default_max_tx_fee;
 }
 
 size_t CWallet::KeypoolCountExternalKeys() const
@@ -2970,15 +2970,12 @@ std::shared_ptr<CWallet> CWallet::Create(WalletContext& context, const std::stri
         walletInstance->m_default_change_type = parsed.value();
     }
 
-    CAmount SCALED_HIGH_TX_FEE_PER_KB = ScaleAmount(HIGH_TX_FEE_PER_KB, chain->getLastScaleFactor());
-    CAmount SCALED_HIGH_MAX_TX_FEE = ScaleAmount(HIGH_MAX_TX_FEE, chain->getLastScaleFactor());
-
     if (args.IsArgSet("-mintxfee")) {
         std::optional<CAmount> min_tx_fee = ParseMoney(args.GetArg("-mintxfee", ""));
         if (!min_tx_fee || min_tx_fee.value() == 0) {
             error = AmountErrMsg("mintxfee", args.GetArg("-mintxfee", ""));
             return nullptr;
-        } else if (min_tx_fee.value() > SCALED_HIGH_TX_FEE_PER_KB) {
+        } else if (min_tx_fee.value() > HIGH_TX_FEE_PER_KB) {
             warnings.push_back(AmountHighWarn("-mintxfee") + Untranslated(" ") +
                                _("This is the minimum transaction fee you pay on every transaction."));
         }
@@ -3029,22 +3026,21 @@ std::shared_ptr<CWallet> CWallet::Create(WalletContext& context, const std::stri
         walletInstance->m_discard_rate = CFeeRate{discard_fee.value()};
     }
 
-    CFeeRate scaledRelayMinFee = chain->relayMinFee().Scaled(chain->getLastScaleFactor());
     if (args.IsArgSet("-paytxfee")) {
         std::optional<CAmount> pay_tx_fee = ParseMoney(args.GetArg("-paytxfee", ""));
         if (!pay_tx_fee) {
             error = AmountErrMsg("paytxfee", args.GetArg("-paytxfee", ""));
             return nullptr;
-        } else if (pay_tx_fee.value() > SCALED_HIGH_TX_FEE_PER_KB) {
+        } else if (pay_tx_fee.value() > HIGH_TX_FEE_PER_KB) {
             warnings.push_back(AmountHighWarn("-paytxfee") + Untranslated(" ") +
                                _("This is the transaction fee you will pay if you send a transaction."));
         }
 
         walletInstance->m_pay_tx_fee = CFeeRate{pay_tx_fee.value(), 1000};
 
-        if (chain && walletInstance->m_pay_tx_fee < scaledRelayMinFee) {
+        if (chain && walletInstance->m_pay_tx_fee < chain->relayMinFee()) {
             error = strprintf(_("Invalid amount for -paytxfee=<amount>: '%s' (must be at least %s)"),
-                args.GetArg("-paytxfee", ""), scaledRelayMinFee.ToString());
+                args.GetArg("-paytxfee", ""), chain->relayMinFee().ToString());
             return nullptr;
         }
     }
@@ -3054,13 +3050,13 @@ std::shared_ptr<CWallet> CWallet::Create(WalletContext& context, const std::stri
         if (!max_fee) {
             error = AmountErrMsg("maxtxfee", args.GetArg("-maxtxfee", ""));
             return nullptr;
-        } else if (max_fee.value() > SCALED_HIGH_MAX_TX_FEE) {
+        } else if (max_fee.value() > HIGH_MAX_TX_FEE) {
             warnings.push_back(_("-maxtxfee is set very high! Fees this large could be paid on a single transaction."));
         }
 
-        if (chain && CFeeRate{max_fee.value(), 1000} < scaledRelayMinFee) {
+        if (chain && CFeeRate{max_fee.value(), 1000} < chain->relayMinFee()) {
             error = strprintf(_("Invalid amount for -maxtxfee=<amount>: '%s' (must be at least the minrelay fee of %s to prevent stuck transactions)"),
-                args.GetArg("-maxtxfee", ""), scaledRelayMinFee.ToString());
+                args.GetArg("-maxtxfee", ""), chain->relayMinFee().ToString());
             return nullptr;
         }
 

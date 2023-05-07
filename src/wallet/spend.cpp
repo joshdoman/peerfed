@@ -1065,7 +1065,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
     }
 
     CAmount normalizedFee = nFeeTypeRet == CASH ? nFeeRet : wallet.chain().estimateConvertedAmount(nFeeRet, BOND);
-    if (normalizedFee > wallet.GetDescaledDefaultMaxTxFee()) {
+    if (normalizedFee > wallet.GetDefaultMaxTxFee()) {
         return util::Error{TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED)};
     }
 
@@ -1447,7 +1447,7 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
     }
 
     CAmount normalizedFee = nFeeTypeRet == CASH ? nFeeRet : wallet.chain().estimateConvertedAmount(nFeeRet, BOND);
-    if (normalizedFee > wallet.GetDescaledDefaultMaxTxFee()) {
+    if (normalizedFee > wallet.GetDefaultMaxTxFee()) {
         return util::Error{TransactionErrorString(TransactionError::MAX_FEE_EXCEEDED)};
     }
 

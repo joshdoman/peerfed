@@ -105,7 +105,7 @@ static feebumper::Result CheckFeeRate(const CWallet& wallet, const CWalletTx& wt
     }
 
     // Check that in all cases the new fee doesn't violate maxTxFee
-    const CAmount max_tx_fee = wallet.GetDescaledDefaultMaxTxFee();
+    const CAmount max_tx_fee = wallet.GetDefaultMaxTxFee();
     if (normalized_new_total_fee > max_tx_fee) {
         errors.push_back(strprintf(Untranslated("Specified or calculated normalized fee %s is too high (cannot be higher than -maxtxfee %s on normalized basis)"),
             FormatMoney(normalized_new_total_fee), FormatMoney(max_tx_fee)));
