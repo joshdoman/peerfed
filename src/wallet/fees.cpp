@@ -61,7 +61,7 @@ CFeeRate GetMinimumFeeRate(const CWallet& wallet, const CCoinControl& coin_contr
         feerate_needed = wallet.chain().estimateSmartFee(target, conservative_estimate, feeCalc);
         if (feerate_needed == CFeeRate(0)) {
             // if we don't have enough data for estimateSmartFee, then use fallback fee
-            feerate_needed = wallet.m_fallback_fee.Descaled(wallet.chain().getLastScaleFactor());
+            feerate_needed = wallet.m_fallback_fee;
             if (feeCalc) feeCalc->reason = FeeReason::FALLBACK;
             // directly return if fallback fee is disabled (feerate 0 == disabled)
             if (wallet.m_fallback_fee == CFeeRate(0)) return feerate_needed;
