@@ -732,6 +732,11 @@ void SendCoinsDialog::pasteEntry(const SendCoinsRecipient &rv)
 
     entry->setValue(rv);
     ui->sendTypeSelector->setCurrentIndex(rv.amountType);
+    if (model && model->getOptionsModel()->getShowScaledAmount(rv.amountType) != rv.isScaled) {
+        // Display the scaled or unscaled unit that has been requested
+        BitcoinUnit unit = BitcoinUnits::getUnitOfScaleType(model->getOptionsModel()->getDisplayUnit(rv.amountType), rv.isScaled);
+        model->getOptionsModel()->setDisplayUnit(qint8(static_cast<int>(unit)));
+    }
     updateTabsAndLabels();
 }
 

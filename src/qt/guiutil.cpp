@@ -192,6 +192,7 @@ bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out)
                     return false;
                 }
                 rv.amountType = type % 2;
+                rv.isScaled = type < 2;
             }
             fShouldReturnFalse = false;
         }
@@ -224,7 +225,7 @@ QString formatBitcoinURI(const SendCoinsRecipient &info)
         ret += QString("?amount=%1").arg(BitcoinUnits::format(BitcoinUnit::CASH, info.amount, false, BitcoinUnits::SeparatorStyle::NEVER));
         paramCount++;
 
-        ret += QString("&type=%1").arg(info.amountType);
+        ret += QString("&type=%1").arg(info.amountType + (2 * !info.isScaled));
         paramCount++;
     }
 
