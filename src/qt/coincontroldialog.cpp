@@ -491,6 +491,8 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
 
         // Fee
         nPayFee = model->wallet().getMinimumFee(nBytes, m_coin_control, nullptr /* returned_target */, nullptr /* reason */);
+        if (amountType == BOND)
+            nPayFee = model->wallet().estimateConvertedAmount(nPayFee, CASH, /** roundedUp */ true);
 
         if (nPayAmount > 0)
         {

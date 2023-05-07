@@ -18,11 +18,7 @@ CAmount GetRequiredFee(const CWallet& wallet, unsigned int nTxBytes)
 
 CAmount GetMinimumFee(const CWallet& wallet, unsigned int nTxBytes, const CCoinControl& coin_control, FeeCalculation* feeCalc)
 {
-    // De-normalize minimum fee rate if fee is to be paid in bonds
-    CAmount minFee = GetMinimumFeeRate(wallet, coin_control, feeCalc).GetFee(nTxBytes);
-    if (coin_control.m_fee_type == BOND)
-        minFee = wallet.chain().estimateConvertedAmount(minFee, CASH, /** roundedUp */ true);
-    return minFee;
+    return GetMinimumFeeRate(wallet, coin_control, feeCalc).GetFee(nTxBytes);
 }
 
 CFeeRate GetRequiredFeeRate(const CWallet& wallet)
