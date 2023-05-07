@@ -140,9 +140,11 @@ bool SendCoinsEntry::validate(interfaces::Node& node)
         retval = false;
     }
 
-    // TODO: Descale amount before checking for dust
+    CAmount unscaledAmount = ui->payAmount->value();
+    if (ui->payAmount->isScaledUnit() && model)
+        unscaledAmount = DescaleAmount(unscaledAmount, model->getBestScaleFactor());
     // Reject dust outputs:
-    if (retval && GUIUtil::isDust(node, ui->payTo->text(), ui->payAmount->value(), ui->payAmount->type())) {
+    if (retval && GUIUtil::isDust(node, ui->payTo->text(), unscaledAmount, ui->payAmount->type())) {
         ui->payAmount->setValid(false);
         retval = false;
     }
