@@ -118,7 +118,7 @@ bool CTransaction::IsConversion() const
 
 int CTransaction::GetConversionOutputN() const
 {
-    for (int i = 0; i < vout.size(); i++) {
+    for (unsigned int i = 0; i < vout.size(); i++) {
         if (vout[i].scriptPubKey.IsConversionScript()) {
             return i;
         }
