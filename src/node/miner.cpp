@@ -14,6 +14,7 @@
 #include <consensus/merkle.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
+#include <crypto/blake3.h>
 #include <deploymentstatus.h>
 #include <policy/feerate.h>
 #include <policy/policy.h>
@@ -763,19 +764,23 @@ static std::atomic<bool> fRequestStopMining(false);
 //
 bool static ScanHash(const CBlockHeader *pblock, uint32_t& nNonce, uint256& phash)
 {
-    // Write the first 76 bytes of the block header to a double-SHA256 state.
-    CHash256 hasher;
+    // Initialize a blake3_hasher in the default hashing mode.
+    blake3_hasher hasher;
+    blake3_hasher_init(&hasher);
+    // Write the first 92 bytes of the block header to a blake3_hasher state.
     CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
     ss << *pblock;
-    assert(ss.size() == 96); // TODO: Reduce back to 80 by moving total supply to block body
-    hasher.Write(Span((unsigned char*)&ss[0], 92)); // TODO: Reduce back to 76 by moving total supply to block body
+    assert(ss.size() == 96);
+    blake3_hasher_update(&hasher, (unsigned char*)&ss[0], 92);
 
     while (true) {
         nNonce++;
 
         // Write the last 4 bytes of the block header (the nonce) to a copy of
-        // the double-SHA256 state, and compute the result.
-        CHash256(hasher).Write(Span((unsigned char*)&nNonce, 4)).Finalize(phash);
+        // the blake3_hasher state, and compute the result.
+        blake3_hasher hasherCopy = hasher;
+        blake3_hasher_update(&hasherCopy, (unsigned char*)&nNonce, 4);
+        blake3_hasher_finalize(&hasherCopy, (unsigned char*)&phash, BLAKE3_OUT_LEN);
 
         // Return the nonce if the hash has at least some zero bits,
         // caller will check if it has enough to reach the target

@@ -536,7 +536,17 @@ crypto_libbitcoin_crypto_base_la_SOURCES = \
   crypto/sha512.cpp \
   crypto/sha512.h \
   crypto/siphash.cpp \
-  crypto/siphash.h
+  crypto/siphash.h \
+  crypto/blake3.c \
+  crypto/blake3.h \
+  crypto/blake3_avx2.c \
+  crypto/blake3_avx512.c \
+  crypto/blake3_dispatch.c \
+  crypto/blake3_impl.h \
+  crypto/blake3_neon.c \
+  crypto/blake3_portable.c \
+  crypto/blake3_sse2.c \
+  crypto/blake3_sse41.c
 
 if USE_ASM
 crypto_libbitcoin_crypto_base_la_SOURCES += crypto/sha256_sse4.cpp
