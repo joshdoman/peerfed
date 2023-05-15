@@ -27,7 +27,7 @@ namespace Consensus {
  * @param[out] conversionDest Set if conversion output is present.
  * Preconditions: tx.IsCoinBase() is false.
  */
-[[nodiscard]] bool CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmounts& txfees, std::optional<CTxConversionInfo>& conversionDest);
+[[nodiscard]] bool CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmounts& txfees, std::optional<CTxConversionInfo>& conversionInfo);
 
 /**
  * Check if conversion is valid according to the sum-of-squares invariant and can
@@ -76,6 +76,11 @@ bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime);
  * in a block after the specified height. Consensus critical.
  */
 bool IsExpiredConversion(const CTransaction &tx, int nBlockHeight);
+
+/**
+ * Check if conversion has an expired deadline. Consensus critical.
+ */
+bool IsExpiredConversionInfo(const CTxConversionInfo &conversionInfo, int nBlockHeight);
 
 /**
  * Calculates the block height and previous block's median time past at

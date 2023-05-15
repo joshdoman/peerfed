@@ -43,14 +43,17 @@ bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 bool IsExpiredConversion(const CTransaction &tx, int nBlockHeight)
 {
     for (const auto& txout : tx.vout) {
-        CTxConversionInfo conversionDest;
-        if (ExtractConversionInfo(txout.scriptPubKey, conversionDest)) {
-            if (conversionDest.nDeadline && conversionDest.nDeadline < (uint32_t)nBlockHeight)
-                return true;
-            return false;
+        CTxConversionInfo conversionInfo;
+        if (ExtractConversionInfo(txout.scriptPubKey, conversionInfo)) {
+            return IsExpiredConversionInfo(conversionInfo, nBlockHeight);
         }
     }
     return false;
+}
+
+bool IsExpiredConversionInfo(const CTxConversionInfo &conversionInfo, int nBlockHeight)
+{
+    return conversionInfo.nDeadline && conversionInfo.nDeadline < (uint32_t)nBlockHeight;
 }
 
 std::pair<int, int64_t> CalculateSequenceLocks(const CTransaction &tx, int flags, std::vector<int>& prevHeights, const CBlockIndex& block)
@@ -182,7 +185,7 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
     return nSigOps;
 }
 
-bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmounts& txfees, std::optional<CTxConversionInfo>& wrappedConversionDest)
+bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmounts& txfees, std::optional<CTxConversionInfo>& conversionInfoRet)
 {
     // are the actual inputs available?
     if (!inputs.HaveInputs(tx)) {
@@ -210,25 +213,24 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     }
 
     // Check for conversion output
-    bool hasConversionOutput{false};
+    conversionInfoRet = std::nullopt;
     CAmountType conversionFeeType = 0;
     CAmount conversionFee = 0;
     for (const auto& txout : tx.vout)
     {
-        CTxConversionInfo conversionDest;
-        if (ExtractConversionInfo(txout.scriptPubKey, conversionDest)) {
-            conversionDest.inputs = nValueIn;
-            conversionDest.minOutputs = tx.GetValuesOut();
-            wrappedConversionDest = std::optional<CTxConversionInfo>{conversionDest};
+        CTxConversionInfo conversionInfo;
+        if (ExtractConversionInfo(txout.scriptPubKey, conversionInfo)) {
+            conversionInfo.inputs = nValueIn;
+            conversionInfo.minOutputs = tx.GetValuesOut();
             conversionFeeType = txout.amountType;
             conversionFee = txout.nValue;
-            hasConversionOutput = true;
+            conversionInfoRet = std::optional<CTxConversionInfo>{conversionInfo};
             // Safe to exit because tx_check.cpp checks that there are no duplicate conversion outputs
             break;
         }
     }
 
-    if (hasConversionOutput) {
+    if (conversionInfoRet) {
         txfees[conversionFeeType] = conversionFee;
         txfees[!conversionFeeType] = 0;
     } else {
@@ -250,7 +252,6 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
 
         txfees = txfees_aux;
-        wrappedConversionDest = std::optional<CTxConversionInfo>{};
     }
     return true;
 }

@@ -193,7 +193,7 @@ bool CheckExpiredConversionAtTip(const CBlockIndex& active_chain_tip, const CTxC
     // transaction can be part of the *next* block, we need to call
     // IsExpiredConversion() with one more than active_chain_tip.Height().
     const int nBlockHeight = active_chain_tip.nHeight + 1;
-    return info.nDeadline && info.nDeadline < (uint32_t)nBlockHeight;
+    return IsExpiredConversionInfo(info, nBlockHeight);
 }
 
 bool CheckValidConversionAtTip(CBlockIndex* tip, const CTxConversionInfo& info, const int& check_last_N_blocks, const int& percent_buffer)
@@ -2320,9 +2320,9 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         if (!tx.IsCoinBase())
         {
             CAmounts txfees = {0};
-            std::optional<CTxConversionInfo> conversion_dest;
+            std::optional<CTxConversionInfo> conversion_info;
             TxValidationState tx_state;
-            if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfees, conversion_dest)) {
+            if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfees, conversion_info)) {
                 // Any transaction validation failure in ConnectBlock is a block consensus failure
                 state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
                             tx_state.GetRejectReason(), tx_state.GetDebugMessage());
@@ -2335,17 +2335,17 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-accumulated-fee-outofrange");
             }
 
-            if (conversion_dest) {
-                CAmounts inputs = conversion_dest.value().inputs;
-                CAmounts minOutputs = conversion_dest.value().minOutputs;
-                CAmountType remainderType = conversion_dest.value().slippageType;
+            if (conversion_info) {
+                CAmounts inputs = conversion_info.value().inputs;
+                CAmounts minOutputs = conversion_info.value().minOutputs;
+                CAmountType remainderType = conversion_info.value().slippageType;
                 CAmount remainder;
                 if (Consensus::IsValidConversion(totalSupply, inputs, minOutputs, remainderType, remainder)) {
                     if (remainder > 0) {
                         // Include remainder output amount if non-zero
-                        if (IsValidDestination(conversion_dest.value().destination)) {
+                        if (IsValidDestination(conversion_info.value().destination)) {
                             // Send remainder to provided destination
-                            CScript scriptPubKey = GetScriptForDestination(conversion_dest.value().destination);
+                            CScript scriptPubKey = GetScriptForDestination(conversion_info.value().destination);
                             conversionOutputs.push_back(CTxOut(remainderType, remainder, scriptPubKey));
                             conversionRemainderSum[remainderType] += remainder;
                         } else {
@@ -2355,6 +2355,10 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                     }
                 } else {
                     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-conversion-out-of-range");
+                }
+
+                if (IsExpiredConversionInfo(conversion_info.value(), pindex->nHeight)) {
+                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-expired", "expired conversion transaction");
                 }
             }
 
