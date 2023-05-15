@@ -225,7 +225,7 @@ FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
             [&] {
                 TxValidationState state;
                 CAmounts tx_fees_out;
-                std::optional<CTxConversionInfo> conversion_dest;
+                std::optional<CTxConversionInfo> conversion_info;
                 const CTransaction transaction{random_mutable_transaction};
                 if (ContainsSpentInput(transaction, coins_view_cache)) {
                     // Avoid:
@@ -237,7 +237,7 @@ FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
                     // It is not allowed to call CheckTxInputs if CheckTransaction failed
                     return;
                 }
-                if (Consensus::CheckTxInputs(transaction, state, coins_view_cache, fuzzed_data_provider.ConsumeIntegralInRange<int>(0, std::numeric_limits<int>::max()), tx_fees_out, conversion_dest)) {
+                if (Consensus::CheckTxInputs(transaction, state, coins_view_cache, fuzzed_data_provider.ConsumeIntegralInRange<int>(0, std::numeric_limits<int>::max()), tx_fees_out, conversion_info)) {
                     assert(MoneyRange(tx_fees_out[CASH]));
                     assert(MoneyRange(tx_fees_out[BOND]));
                 }

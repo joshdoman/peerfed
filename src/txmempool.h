@@ -108,7 +108,7 @@ private:
     CAmounts m_all_modified_fees;       //!< Used for determining the priority of the transaction for mining in a block
     CAmount m_modified_fee;         //!< Used for determining the priority of the transaction for mining in a block (normalized using current conversion rate)
     LockPoints lockPoints;     //!< Track the height and time at which tx was final
-    const std::optional<CTxConversionInfo> conversionDest; //!< Cached to avoid expensive parent-transaction lookups
+    const std::optional<CTxConversionInfo> conversionInfo; //!< Cached to avoid expensive parent-transaction lookups
 
     // Information about descendants of this transaction that are in the
     // mempool; if we remove this transaction we must remove all of these
@@ -129,7 +129,7 @@ public:
     CTxMemPoolEntry(const CTransactionRef& tx, CAmounts fees, CAmount normalized_fee,
                     int64_t time, unsigned int entry_height,
                     bool spends_coinbase, int64_t sigops_cost,
-                    LockPoints lp, std::optional<CTxConversionInfo> conversion_dest = std::nullopt);
+                    LockPoints lp, std::optional<CTxConversionInfo> conversion_info = std::nullopt);
 
     const CTransaction& GetTx() const { return *this->tx; }
     CTransactionRef GetSharedTx() const { return this->tx; }
@@ -162,7 +162,7 @@ public:
 
     bool GetSpendsCoinbase() const { return spendsCoinbase; }
 
-    const std::optional<CTxConversionInfo>& GetConversionDest() const { return conversionDest; }
+    const std::optional<CTxConversionInfo>& GetConversionInfo() const { return conversionInfo; }
 
     uint64_t GetCountWithAncestors() const { return nCountWithAncestors; }
     uint64_t GetSizeWithAncestors() const { return nSizeWithAncestors; }

@@ -271,7 +271,7 @@ bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& packa
     totalSupply[BOND] = pblock->bondSupply;
 
     for (CTxMemPool::txiter it : package) {
-        conversionInfo = it->GetConversionDest();
+        conversionInfo = it->GetConversionInfo();
         if (conversionInfo) {
             if (conversionInfo.value().nDeadline && conversionInfo.value().nDeadline < (uint32_t)nHeight) {
                 return false;
@@ -338,23 +338,23 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
     nFees[BOND] += iter->GetFees()[BOND];
     inBlock.insert(iter);
 
-    std::optional<CTxConversionInfo> conversionDest = iter->GetConversionDest();
-    if (conversionDest) {
+    std::optional<CTxConversionInfo> conversionInfo = iter->GetConversionInfo();
+    if (conversionInfo) {
         CBlock* const pblock = &pblocktemplate->block; // pointer for convenience
         CAmounts totalSupply = {0};
         totalSupply[CASH] = pblock->cashSupply;
         totalSupply[BOND] = pblock->bondSupply;
-        CAmountType amountType = conversionDest.value().slippageType;
+        CAmountType amountType = conversionInfo.value().slippageType;
         CAmount nAmount;
-        if (Consensus::IsValidConversion(totalSupply, conversionDest.value().inputs, conversionDest.value().minOutputs, amountType, nAmount)) {
+        if (Consensus::IsValidConversion(totalSupply, conversionInfo.value().inputs, conversionInfo.value().minOutputs, amountType, nAmount)) {
             // Update cash and bond supply of block we are building
             pblock->cashSupply = totalSupply[CASH];
             pblock->bondSupply = totalSupply[BOND];
             if (nAmount > 0) {
                 // Include remainder output amount if non-zero
-                if (IsValidDestination(conversionDest.value().destination)) {
+                if (IsValidDestination(conversionInfo.value().destination)) {
                     // Send remainder to provided destination
-                    CScript scriptPubKey = GetScriptForDestination(conversionDest.value().destination);
+                    CScript scriptPubKey = GetScriptForDestination(conversionInfo.value().destination);
                     conversionOutputs.push_back(CTxOut(amountType, nAmount, scriptPubKey));
                 } else {
                     // No destination provided. Add remainder to miner fees.
@@ -574,7 +574,7 @@ void BlockAssembler::addPackageTxs(const CTxMemPool& mempool, int& nPackagesSele
             if (conversionInfo) {
                 bool seen_conversion = false;
                 for (CTxMemPool::txiter it : ancestors) {
-                    if (it->GetConversionDest()) {
+                    if (it->GetConversionInfo()) {
                         if (seen_conversion) {
                             conversionInfo = std::nullopt;
                             break;

@@ -24,7 +24,7 @@ namespace Consensus {
  * This does not modify the UTXO set. This does not check scripts and sigs.
  * @param[out] txfee Set to the transaction fee if successful.
  * @param[out] txfeeType Set to the transaction fee amount type if successful.
- * @param[out] conversionDest Set if conversion output is present.
+ * @param[out] conversionInfo Set if conversion output is present.
  * Preconditions: tx.IsCoinBase() is false.
  */
 [[nodiscard]] bool CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmounts& txfees, std::optional<CTxConversionInfo>& conversionInfo);

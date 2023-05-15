@@ -44,7 +44,7 @@ bool TestLockPointValidity(CChain& active_chain, const LockPoints& lp)
 
 CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& tx, CAmounts fees, CAmount normalized_fee,
                                  int64_t time, unsigned int entry_height, bool spends_coinbase,
-                                 int64_t sigops_cost, LockPoints lp, std::optional<CTxConversionInfo> conversion_dest)
+                                 int64_t sigops_cost, LockPoints lp, std::optional<CTxConversionInfo> conversion_info)
     : tx{tx},
       nFees{fees},
       nNormalizedFee{normalized_fee},
@@ -57,7 +57,7 @@ CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& tx, CAmounts fees, CAmou
       m_all_modified_fees{nFees},
       m_modified_fee{nNormalizedFee},
       lockPoints{lp},
-      conversionDest{conversion_dest},
+      conversionInfo{conversion_info},
       nSizeWithDescendants{GetTxSize()},
       nModAllFeesWithDescendants{nFees},
       nModFeesWithDescendants{nNormalizedFee},
@@ -878,9 +878,9 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
 
         TxValidationState dummy_state; // Not used. CheckTxInputs() should always pass
         CAmounts txfees = {0};
-        std::optional<CTxConversionInfo> conversionDest;
+        std::optional<CTxConversionInfo> conversionInfo;
         assert(!tx.IsCoinBase());
-        assert(Consensus::CheckTxInputs(tx, dummy_state, mempoolDuplicate, spendheight, txfees, conversionDest));
+        assert(Consensus::CheckTxInputs(tx, dummy_state, mempoolDuplicate, spendheight, txfees, conversionInfo));
         for (const auto& input: tx.vin) mempoolDuplicate.SpendCoin(input.prevout);
         AddCoins(mempoolDuplicate, tx, std::numeric_limits<int>::max());
     }

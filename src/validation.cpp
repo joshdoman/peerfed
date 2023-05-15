@@ -315,7 +315,7 @@ static void LimitMempoolSize(CTxMemPool& pool, CChain& chain, CCoinsViewCache& c
         AssertLockHeld(::cs_main);
         // Conversion considered invalid if not valid in the next block within set buffer
         int checkLastNBlocks = 1;
-        if (it->GetConversionDest() && !CheckValidConversionAtTip(tip, it->GetConversionDest().value(), checkLastNBlocks, buffer)) {
+        if (it->GetConversionInfo() && !CheckValidConversionAtTip(tip, it->GetConversionInfo().value(), checkLastNBlocks, buffer)) {
             return true;
         }
         return false;
@@ -395,11 +395,11 @@ void Chainstate::MaybeUpdateMempoolForReorg(
 
         // The transaction must be final.
         if (!CheckFinalTxAtTip(*Assert(m_chain.Tip()), tx)) return true;
-        if (it->GetConversionDest()) {
+        if (it->GetConversionInfo()) {
             // The transaction must not be expired
-            if (CheckExpiredConversionAtTip(*Assert(m_chain.Tip()), it->GetConversionDest().value())) return true;
+            if (CheckExpiredConversionAtTip(*Assert(m_chain.Tip()), it->GetConversionInfo().value())) return true;
             // The conversion must be valid at start of next block
-            if (!CheckValidConversionAtTip(m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) return true;
+            if (!CheckValidConversionAtTip(m_chain.Tip(), it->GetConversionInfo().value(), checkLastNBlocks, buffer)) return true;
         }
         LockPoints lp = it->GetLockPoints();
         const bool validLP{TestLockPointValidity(m_chain, lp)};
@@ -662,7 +662,7 @@ private:
         size_t m_valid_conflicting_size{0};
 
         /** Conversion destination if present in transaction. */
-        std::optional<CTxConversionInfo> m_conversion_dest;
+        std::optional<CTxConversionInfo> m_conversion_info;
 
         const CTransactionRef& m_ptx;
         /** Txid. */
@@ -878,20 +878,20 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     }
 
     // The mempool holds txs for the next block, so pass height+1 to CheckTxInputs
-    if (!Consensus::CheckTxInputs(tx, state, m_view, m_active_chainstate.m_chain.Height() + 1, ws.m_base_fees, ws.m_conversion_dest)) {
+    if (!Consensus::CheckTxInputs(tx, state, m_view, m_active_chainstate.m_chain.Height() + 1, ws.m_base_fees, ws.m_conversion_info)) {
         return false; // state filled in by CheckTxInputs
     }
 
-    if (ws.m_conversion_dest) {
+    if (ws.m_conversion_info) {
         // Do not accept conversion transactions with a deadline that will have expired by the next block
-        if (CheckExpiredConversionAtTip(*Assert(m_active_chainstate.m_chain.Tip()), ws.m_conversion_dest.value())) {
+        if (CheckExpiredConversionAtTip(*Assert(m_active_chainstate.m_chain.Tip()), ws.m_conversion_info.value())) {
             return state.Invalid(TxValidationResult::TX_EXPIRED_CONVERSION, "tx-expired");
         }
 
         // Check that conversion is valid at the start of the next block
         int checkLastNBlocks = gArgs.GetIntArg("-mempoolnewconversionschecklastnblocks", DEFAULT_MEMPOOL_NEW_CONVERSIONS_CHECK_LAST_N_BLOCKS);
         int buffer = gArgs.GetIntArg("-mempoolconversionbuffer", DEFAULT_MEMPOOL_CONVERSION_BUFFER);
-        if (!CheckValidConversionAtTip(m_active_chainstate.m_chain.Tip(), ws.m_conversion_dest.value(), checkLastNBlocks, buffer)) {
+        if (!CheckValidConversionAtTip(m_active_chainstate.m_chain.Tip(), ws.m_conversion_info.value(), checkLastNBlocks, buffer)) {
             return state.Invalid(TxValidationResult::TX_INVALID_CONVERSION, "invalid-conversion");
         }
     }
@@ -937,7 +937,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     }
 
     entry.reset(new CTxMemPoolEntry(ptx, ws.m_base_fees, ws.m_normalized_base_fees, nAcceptTime,
-                m_active_chainstate.m_chain.Height(), fSpendsCoinbase, nSigOpsCost, lp, ws.m_conversion_dest));
+                m_active_chainstate.m_chain.Height(), fSpendsCoinbase, nSigOpsCost, lp, ws.m_conversion_info));
     ws.m_vsize = entry->GetTxSize();
 
     if (nSigOpsCost > MAX_STANDARD_TX_SIGOPS_COST)
@@ -1037,7 +1037,7 @@ bool MemPoolAccept::ReplacementChecks(Workspace& ws)
         EXCLUSIVE_LOCKS_REQUIRED(::cs_main) {
         AssertLockHeld(::cs_main);
         // Conversion must be valid according to the same rules used to evaluate a new transaction
-        if (it->GetConversionDest() && !CheckValidConversionAtTip(m_active_chainstate.m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) {
+        if (it->GetConversionInfo() && !CheckValidConversionAtTip(m_active_chainstate.m_chain.Tip(), it->GetConversionInfo().value(), checkLastNBlocks, buffer)) {
             return true;
         }
         return false;
@@ -2942,7 +2942,7 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
             AssertLockHeld(m_mempool->cs);
             AssertLockHeld(::cs_main);
             // The transaction must not have expired
-            if (it->GetConversionDest() && CheckExpiredConversionAtTip(*Assert(m_chain.Tip()), it->GetConversionDest().value())) return true;
+            if (it->GetConversionInfo() && CheckExpiredConversionAtTip(*Assert(m_chain.Tip()), it->GetConversionInfo().value())) return true;
             // Transaction is not a conversion or conversion has not expired
             return false;
         };
@@ -2957,7 +2957,7 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
             AssertLockHeld(m_mempool->cs);
             AssertLockHeld(::cs_main);
             // The conversion must be valid at start of next block
-            if (it->GetConversionDest() && !CheckValidConversionAtTip(m_chain.Tip(), it->GetConversionDest().value(), checkLastNBlocks, buffer)) return true;
+            if (it->GetConversionInfo() && !CheckValidConversionAtTip(m_chain.Tip(), it->GetConversionInfo().value(), checkLastNBlocks, buffer)) return true;
             // Transaction is not a conversion or conversion is valid at start of next block
             return false;
         };
