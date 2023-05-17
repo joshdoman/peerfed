@@ -251,7 +251,6 @@ void ClientModel::TipChanged(SynchronizationState sync_state, interfaces::BlockT
     if (throttle && now < nLastUpdateNotification + count_milliseconds(MODEL_UPDATE_DELAY)) {
         return;
     }
-
     Q_EMIT numBlocksChanged(tip.block_height, QDateTime::fromSecsSinceEpoch(tip.block_time), verification_progress, synctype, sync_state);
     nLastUpdateNotification = now;
 }
