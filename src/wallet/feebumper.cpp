@@ -231,7 +231,6 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
     CAmountType conversionFeeType = 0;
     CAmountType remainderType = 0;
     CTxDestination remainderDest;
-    uint32_t nDeadline;
 
     // Fill in recipients(and preserve a single change key if there is one)
     // While we're here, calculate the output amount
@@ -246,7 +245,6 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
                 conversionFeeType = output.amountType;
                 remainderType = conversionInfo.slippageType;
                 remainderDest = conversionInfo.destination;
-                nDeadline = conversionInfo.nDeadline;
             }
         } else if (!OutputIsChange(wallet, output)) {
             CRecipient recipient = {output.scriptPubKey, output.amountType, output.nValue, false};
