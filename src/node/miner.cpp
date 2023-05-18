@@ -277,7 +277,7 @@ bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& packa
                 return false;
             }
             CAmount remainder = 0;
-            if (!Consensus::IsValidConversion(totalSupply, conversionInfo.value().inputs, conversionInfo.value().minOutputs, conversionInfo.value().slippageType, remainder)) {
+            if (!Consensus::IsValidConversion(totalSupply, conversionInfo.value().inputs, conversionInfo.value().minOutputs, conversionInfo.value().remainderType, remainder)) {
                 return false;
             }
         }
@@ -344,7 +344,7 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
         CAmounts totalSupply = {0};
         totalSupply[CASH] = pblock->cashSupply;
         totalSupply[BOND] = pblock->bondSupply;
-        CAmountType amountType = conversionInfo.value().slippageType;
+        CAmountType amountType = conversionInfo.value().remainderType;
         CAmount nAmount;
         if (Consensus::IsValidConversion(totalSupply, conversionInfo.value().inputs, conversionInfo.value().minOutputs, amountType, nAmount)) {
             // Update cash and bond supply of block we are building

@@ -160,7 +160,7 @@ static std::vector<RPCArg> CreateTxDoc()
                     {
                         {"conversionFee", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The transaction fee amount (float or string) for a conversion."},
                         {"feeType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of output amount ('cash' or 'bond')."},
-                        {"slippageType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of allowable slippage ('cash' or 'bond')."},
+                        {"remainderType", RPCArg::Type::STR, RPCArg::Optional::NO, "The type of allowable slippage ('cash' or 'bond')."},
                         {"slippageAddress", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "The address to receive remaining amount."},
                         {"deadline", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Raw deadline, after which transaction is invalid."},
                     },
@@ -300,11 +300,11 @@ static RPCHelpMan createrawtransaction()
                 RPCExamples{
                     HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"[{\\\"address\\\":0.01, \\\"amountType\\\": \\\"cash\\\"}]\"")
             + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"[{\\\"data\\\":\\\"00010203\\\"}]\"")
-            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"[{\\\"conversionFee\\\":0.01, \\\"feeType\\\": \\\"cash\\\", \\\"slippageType\\\": \\\"cash\\\", \\\"slippageAddress\\\": \\\"address\\\"}]\"")
-            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"[{\\\"conversionFee\\\":0.01, \\\"feeType\\\": \\\"cash\\\", \\\"slippageType\\\": \\\"cash\\\", \\\"slippageAddress\\\": \\\"address\\\"}, \\\"deadline\\\": 12345}]\"")
+            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"[{\\\"conversionFee\\\":0.01, \\\"feeType\\\": \\\"cash\\\", \\\"remainderType\\\": \\\"cash\\\", \\\"slippageAddress\\\": \\\"address\\\"}]\"")
+            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"[{\\\"conversionFee\\\":0.01, \\\"feeType\\\": \\\"cash\\\", \\\"remainderType\\\": \\\"cash\\\", \\\"slippageAddress\\\": \\\"address\\\"}, \\\"deadline\\\": 12345}]\"")
             + HelpExampleRpc("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", \"[{\\\"address\\\":0.01, \\\"amountType\\\": \\\"cash\\\"}]\"")
             + HelpExampleRpc("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", \"[{\\\"data\\\":\\\"00010203\\\"}]\"")
-            + HelpExampleRpc("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", \"[{\\\"conversionFee\\\":0.01, \\\"feeType\\\": \\\"cash\\\", \\\"slippageType\\\": \\\"cash\\\", \\\"slippageAddress\\\": \\\"address\\\"}]\"")
+            + HelpExampleRpc("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", \"[{\\\"conversionFee\\\":0.01, \\\"feeType\\\": \\\"cash\\\", \\\"remainderType\\\": \\\"cash\\\", \\\"slippageAddress\\\": \\\"address\\\"}]\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {

@@ -305,7 +305,7 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
 bool ExtractConversionInfo(const CScript& script, CTxConversionInfo& conversionInfoRet)
 {
     if (script.size() >= 3 && script[0] == OP_CONVERT) {
-        conversionInfoRet.slippageType = (bool)script[1];
+        conversionInfoRet.remainderType = (bool)script[1];
 
         CScript::const_iterator pc = script.begin() + 2;
 

@@ -175,7 +175,7 @@ constexpr bool IsPushdataOp(opcodetype opcode)
 }
 
 struct CTxConversionInfo {
-    CAmountType slippageType;
+    CAmountType remainderType;
     CTxDestination destination; // CNoDestination if remainder sent to miner
     uint32_t nDeadline;         // Zero if deadline not present
     CAmounts inputs;

@@ -243,7 +243,7 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
                 isConversion = true;
                 conversionFee = output.nValue;
                 conversionFeeType = output.amountType;
-                remainderType = conversionInfo.slippageType;
+                remainderType = conversionInfo.remainderType;
                 remainderDest = conversionInfo.destination;
             }
         } else if (!OutputIsChange(wallet, output)) {

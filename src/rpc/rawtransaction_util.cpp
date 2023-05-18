@@ -123,8 +123,8 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, key-value pair may not contain more than five keys");
             } else if (output["feeType"].isNull()) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Missing parameter: feeType"));
-            } else if (output["slippageType"].isNull()) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Missing parameter: slippageType"));
+            } else if (output["remainderType"].isNull()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Missing parameter: remainderType"));
             }
             if (has_conversion_info_output) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, duplicate object: conversion output");
@@ -153,7 +153,7 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
             }
 
             CScript script = GetConversionScript(
-                AmountTypeFromValue(output["slippageType"]), // slippageType
+                AmountTypeFromValue(output["remainderType"]), // remainderType
                 GetScriptForDestination(destination), // scriptPubKey
                 nDeadline
             );

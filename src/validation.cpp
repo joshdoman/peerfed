@@ -205,13 +205,13 @@ bool CheckValidConversionAtTip(CBlockIndex* tip, const CTxConversionInfo& info, 
         // Check validity by increasing cash supply by allowable buffer
         CAmounts totalSupply1 = pindex->GetTotalSupply();
         totalSupply1[CASH] += totalSupply1[CASH] * percent_buffer / 10000; // percent_buffer represented in bips (1% = 100)
-        if (Consensus::IsValidConversion(totalSupply1, info.inputs, info.minOutputs, info.slippageType, dummy)) {
+        if (Consensus::IsValidConversion(totalSupply1, info.inputs, info.minOutputs, info.remainderType, dummy)) {
             return true;
         }
         // Check validity by increasing bond supply by allowable buffer
         CAmounts totalSupply2 = pindex->GetTotalSupply();
         totalSupply2[BOND] += totalSupply2[BOND] * percent_buffer / 10000; // percent_buffer represented in bips (1% = 100)
-        if (Consensus::IsValidConversion(totalSupply2, info.inputs, info.minOutputs, info.slippageType, dummy)) {
+        if (Consensus::IsValidConversion(totalSupply2, info.inputs, info.minOutputs, info.remainderType, dummy)) {
             return true;
         }
         // Check the previous block
@@ -2338,7 +2338,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             if (conversion_info) {
                 CAmounts inputs = conversion_info.value().inputs;
                 CAmounts minOutputs = conversion_info.value().minOutputs;
-                CAmountType remainderType = conversion_info.value().slippageType;
+                CAmountType remainderType = conversion_info.value().remainderType;
                 CAmount remainder;
                 if (Consensus::IsValidConversion(totalSupply, inputs, minOutputs, remainderType, remainder)) {
                     if (remainder > 0) {
