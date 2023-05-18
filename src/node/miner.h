@@ -10,6 +10,7 @@
 #include <node/context.h>
 #include <primitives/block.h>
 #include <txmempool.h>
+#include <wallet/wallet.h>
 
 #include <memory>
 #include <optional>
@@ -22,6 +23,8 @@ class ChainstateManager;
 class CBlockIndex;
 class CChainParams;
 class CScript;
+
+using wallet::CWallet;
 
 namespace Consensus { struct Params; };
 
@@ -261,7 +264,7 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev);
 
 /** Run the miner threads */
-void StartMining(NodeContext& context, int nThreads);
+void StartMining(NodeContext& context, int nThreads, CWallet* pwallet);
 void StopMining();
 
 /** Update an old GenerateCoinbaseCommitment from CreateNewBlock after the block txs have changed */

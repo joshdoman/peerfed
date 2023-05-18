@@ -818,7 +818,7 @@ static bool ProcessBlockFound(ChainstateManager* chainman, const CBlock* pblock)
     return true;
 }
 
-void static BitcoinMiner(ChainstateManager* chainman, CConnman* connman)
+void static BitcoinMiner(ChainstateManager* chainman, CConnman* connman, CWallet* pwallet)
 {
     LogPrintf("BitcoinMiner started\n");
     SetThreadPriority(THREAD_PRIORITY_LOWEST);
@@ -828,7 +828,11 @@ void static BitcoinMiner(ChainstateManager* chainman, CConnman* connman)
 
     CScript coinbaseScript = CScript();
     std::shared_ptr<CReserveDestination> reserveDest;
-    GetMainSignals().ReserveDestinationForMining(reserveDest);
+    if (pwallet)
+        pwallet->reserveDestinationForMining(reserveDest);
+    else
+        // Wallet not explicitly provided. Scan for any registered wallets.
+        GetMainSignals().ReserveDestinationForMining(reserveDest);
 
     try {
         // Throw an error if no script was provided.  This can happen
@@ -941,7 +945,7 @@ void static BitcoinMiner(ChainstateManager* chainman, CConnman* connman)
     }
 }
 
-void StartMining(NodeContext& context, int nThreads)
+void StartMining(NodeContext& context, int nThreads, CWallet* pwallet)
 {
     static std::vector<std::thread> minerThreads;
 
@@ -961,7 +965,7 @@ void StartMining(NodeContext& context, int nThreads)
     fRequestStopMining = false;
 
     for (int i = 0; i < nThreads; i++)
-        minerThreads.push_back(std::thread(&BitcoinMiner, &chainman, &connman));
+        minerThreads.push_back(std::thread(&BitcoinMiner, &chainman, &connman, pwallet));
 }
 
 void StopMining() {

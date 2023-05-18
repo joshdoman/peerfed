@@ -1790,7 +1790,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     // Start mining in the background if flag is set
     if (args.GetBoolArg("-gen", DEFAULT_GENERATE))
-        StartMining(node, args.GetIntArg("-genproclimit", DEFAULT_GENERATE_THREADS));
+        StartMining(node, args.GetIntArg("-genproclimit", DEFAULT_GENERATE_THREADS), /** pwallet */ nullptr);
 
     // ********************************************************* Step 13: finished
 

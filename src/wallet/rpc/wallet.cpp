@@ -5,9 +5,13 @@
 
 #include <core_io.h>
 #include <key_io.h>
+#include <node/context.h>
+#include <node/miner.h>
 #include <rpc/server.h>
+#include <rpc/server_util.h>
 #include <rpc/util.h>
 #include <util/translation.h>
+#include <validation.h>
 #include <wallet/context.h>
 #include <wallet/receive.h>
 #include <wallet/rpc/wallet.h>
@@ -18,6 +22,11 @@
 
 #include <univalue.h>
 
+using node::DEFAULT_GENERATE;
+using node::DEFAULT_GENERATE_THREADS;
+using node::NodeContext;
+using node::StartMining;
+using node::StopMining;
 
 namespace wallet {
 /** Checks if a CKey is in the given CWallet compressed or otherwise*/
@@ -749,6 +758,78 @@ static RPCHelpMan migratewallet()
     };
 }
 
+static RPCHelpMan getgenerate()
+{
+    return RPCHelpMan{"getgenerate",
+                "Return if the server is set to generate coins or not. The default is false.\n"
+                "It is set with the command line argument -gen (or " + std::string(BITCOIN_CONF_FILENAME) + " setting gen)\n"
+                "It can also be set with the setgenerate call.\n",
+                {},
+                RPCResult{
+                    RPCResult::Type::BOOL, "", "Returns true if the server is set to generate coins"},
+                RPCExamples{
+                    HelpExampleCli("getgenerate", "")
+            + HelpExampleRpc("getgenerate", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const ArgsManager& args{EnsureAnyArgsman(request.context)};
+    return args.GetBoolArg("-gen", DEFAULT_GENERATE);
+},
+    };
+}
+
+static RPCHelpMan setgenerate()
+{
+    return RPCHelpMan{"setgenerate",
+        "Set 'generate' true or false to turn generation on or off.\n"
+        "Generation is limited to 'genproclimit' processors, -1 is unlimited.\n"
+        "See the getgenerate call for the current setting.\n",
+         {
+             {"generate", RPCArg::Type::BOOL, RPCArg::Optional::NO, "Set to true to turn on generation, false to turn off."},
+             {"genproclimit", RPCArg::Type::NUM, RPCArg::Default{DEFAULT_GENERATE_THREADS}, "Set the processor limit for when generation is on. Can be -1 for unlimited."},
+         },
+         RPCResult{RPCResult::Type::NONE, "", ""},
+         RPCExamples{
+            "\nSet the generation on with a limit of one processor\n"
+            + HelpExampleCli("setgenerate", "true 1")
+            + "\nTurn off generation\n"
+            + HelpExampleCli("setgenerate", "false")
+            + "Using json rpc"
+            + HelpExampleRpc("setgenerate", "true, 1")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!pwallet) return UniValue::VNULL;
+
+    EnsureWalletIsUnlocked(*pwallet);
+
+    NodeContext& node = *(pwallet->chain().context());
+    ChainstateManager& chainman = EnsureChainman(node);
+    if (chainman.GetParams().MineBlocksOnDemand())
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Use -generate instead of setgenerate on this network");
+
+    ArgsManager& args{EnsureArgsman(node)};
+    bool generate = request.params[0].get_bool();
+    args.ForceSetBoolArg("-gen", generate);
+
+
+    int64_t nThreads = args.GetIntArg("-genproclimit", DEFAULT_GENERATE_THREADS);
+    if (!request.params[1].isNull()) {
+        nThreads = request.params[1].getInt<int64_t>();
+        args.ForceSetArg("-genproclimit", std::to_string(nThreads));
+    }
+
+    if (generate)
+        StartMining(node, nThreads, pwallet.get());
+    else
+        StopMining();
+    return UniValue::VNULL;
+},
+    };
+}
+
 // addresses
 RPCHelpMan getaddressinfo();
 RPCHelpMan getnewaddress();
@@ -824,6 +905,8 @@ Span<const CRPCCommand> GetWalletRPCCommands()
 {
     static const CRPCCommand commands[]{
         {"rawtransactions", &fundrawtransaction},
+        {"mining", &getgenerate},
+        {"mining", &setgenerate},
         {"wallet", &abandontransaction},
         {"wallet", &abortrescan},
         {"wallet", &addmultisigaddress},
