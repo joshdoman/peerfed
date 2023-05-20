@@ -34,8 +34,6 @@ class BitcoinUnits: public QAbstractListModel
     Q_OBJECT
 
 public:
-    explicit BitcoinUnits(QObject *parent, bool displayAll = false);
-
     /** Bitcoin units.
       @note Source: https://en.bitcoin.it/wiki/Units . Please add only sensible ones
      */
@@ -58,6 +56,13 @@ public:
         sh_sBOND
     };
     Q_ENUM(Unit)
+
+    enum class ModelType {
+        SingleAmountTypeSingleScaleType,
+        SingleAmountTypeBothScaleTypes,
+        BothAmountTypesSingleScaleType,
+        AllTypes
+    };
 
     enum class SeparatorStyle
     {
@@ -124,9 +129,11 @@ public:
     //! Return maximum number of base units (Satoshis)
     static CAmount maxMoney();
 
+    explicit BitcoinUnits(QObject *parent, ModelType modelType = ModelType::SingleAmountTypeSingleScaleType);
+
 private:
     QList<Unit> unitlist;
-    bool displayAll;
+    ModelType modelType;
 };
 typedef BitcoinUnits::Unit BitcoinUnit;
 

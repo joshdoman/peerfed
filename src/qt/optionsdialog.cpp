@@ -122,9 +122,9 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
             ui->lang->addItem(locale.nativeLanguageName() + QString(" (") + langStr + QString(")"), QVariant(langStr));
         }
     }
-    ui->cashUnit->setModel(new BitcoinUnits(this));
+    ui->cashUnit->setModel(new BitcoinUnits(this, BitcoinUnits::ModelType::SingleAmountTypeBothScaleTypes));
     ui->cashUnit->setModelColumn(CASH);
-    ui->bondUnit->setModel(new BitcoinUnits(this));
+    ui->bondUnit->setModel(new BitcoinUnits(this, BitcoinUnits::ModelType::SingleAmountTypeBothScaleTypes));
     ui->bondUnit->setModelColumn(BOND);
 
     /* Widget-to-option mapper */

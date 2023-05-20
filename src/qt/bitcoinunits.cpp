@@ -13,10 +13,10 @@
 
 static constexpr auto MAX_DIGITS_BTC = 16;
 
-BitcoinUnits::BitcoinUnits(QObject *parent, bool _displayAll):
+BitcoinUnits::BitcoinUnits(QObject *parent, ModelType _modelType):
         QAbstractListModel(parent),
         unitlist(availableUnits()),
-        displayAll(_displayAll)
+        modelType(_modelType)
 {
 }
 
@@ -325,7 +325,16 @@ QString BitcoinUnits::getAmountColumnTitle(Unit unit)
 int BitcoinUnits::rowCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-    return displayAll ? 16 : 4;
+    switch (modelType)
+    {
+        case ModelType::SingleAmountTypeSingleScaleType:
+            return 4;
+        case ModelType::SingleAmountTypeBothScaleTypes:
+        case ModelType::BothAmountTypesSingleScaleType:
+            return 8;
+        case ModelType::AllTypes:
+            return 16;
+    }
 }
 
 int BitcoinUnits::columnCount(const QModelIndex &parent) const
@@ -337,10 +346,42 @@ int BitcoinUnits::columnCount(const QModelIndex &parent) const
 QVariant BitcoinUnits::data(const QModelIndex &index, int role) const
 {
     int row = index.row();
-    int col = displayAll ? 0 : index.column(); // ignore column if displaying all
-    if(row >= 0 && row < (displayAll ? 16 : 4))
+    int location = -1;
+    switch (modelType)
     {
-        Unit unit = unitlist.at(row + col * 4);
+        case ModelType::SingleAmountTypeSingleScaleType:
+        {
+            int col = index.column();
+            if (row >= 0 && row < 4)
+                location = row + col * 4;
+            break;
+        }
+        case ModelType::SingleAmountTypeBothScaleTypes:
+        {
+            int col = index.column() % 2;
+            if (row >= 0 && row < 4)
+                location = row + col * 4;
+            if (row >= 4 && row < 8)
+                location = row % 4 + col * 4 + 8;
+            break;
+        }
+        case ModelType::BothAmountTypesSingleScaleType:
+        {
+            int col = index.column() % 2;
+            if (row >= 0 && row < 8)
+                location = row + col * 8;
+            break;
+        }
+        case ModelType::AllTypes:
+        {
+            if (row >= 0 && row < 16)
+                location = row;
+            break;
+        }
+    }
+    if(location != -1)
+    {
+        Unit unit = unitlist.at(location);
         switch(role)
         {
         case Qt::EditRole:

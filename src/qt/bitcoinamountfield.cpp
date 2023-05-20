@@ -250,7 +250,7 @@ BitcoinAmountField::BitcoinAmountField(QWidget *parent) :
 
 void BitcoinAmountField::showAllUnits()
 {
-    unit->setModel(new BitcoinUnits(this, true));
+    unit->setModel(new BitcoinUnits(this, BitcoinUnits::ModelType::AllTypes));
 }
 
 void BitcoinAmountField::clear()
