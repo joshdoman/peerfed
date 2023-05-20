@@ -78,6 +78,9 @@ void CTxMemPoolEntry::UpdateModifiedFee(CAmount fee_diff, CAmounts totalSupply)
 
 void CTxMemPoolEntry::UpdateNormalizedFee(CAmounts totalSupply)
 {
+    if (totalSupply[CASH] == 0 && totalSupply[BOND] == 0)
+        // Skip if total supply is invalid
+        return;
     CAmount normalizedBondFee = nFees[BOND] > 0 ? GetConvertedAmount(totalSupply, nFees[BOND], BOND) : 0;
     nNormalizedFee = nFees[CASH] + normalizedBondFee;
 
@@ -135,7 +138,7 @@ void CTxMemPool::UpdateForDescendants(txiter updateIt, cacheMap& cachedDescendan
     int64_t modifySize = 0;
     CAmounts modifyFees = {0};
     int64_t modifyCount = 0;
-    CAmounts totalSupply = total_supply;
+    CAmounts totalSupply = m_total_supply;
     for (const CTxMemPoolEntry& descendant : descendants) {
         if (!setExclude.count(descendant.GetTx().GetHash())) {
             modifySize += descendant.GetTxSize();
@@ -348,7 +351,7 @@ void CTxMemPool::UpdateAncestorsOf(bool add, txiter it, setEntries &setAncestors
     CAmounts updateFees = {0};
     updateFees[CASH] = updateCount * it->GetModifiedFees()[CASH];
     updateFees[BOND] = updateCount * it->GetModifiedFees()[BOND];
-    CAmounts totalSupply = total_supply;
+    CAmounts totalSupply = m_total_supply;
     for (txiter ancestorIt : setAncestors) {
         mapTx.modify(ancestorIt, [=](CTxMemPoolEntry& e) { e.UpdateDescendantState(updateSize, updateFees, updateCount, totalSupply); });
     }
@@ -360,7 +363,7 @@ void CTxMemPool::UpdateEntryForAncestors(txiter it, const setEntries &setAncesto
     int64_t updateSize = 0;
     CAmounts updateFees = {0};
     int64_t updateSigOpsCost = 0;
-    CAmounts totalSupply = total_supply;
+    CAmounts totalSupply = m_total_supply;
     for (txiter ancestorIt : setAncestors) {
         updateSize += ancestorIt->GetTxSize();
         updateFees[CASH] += ancestorIt->GetModifiedFees()[CASH];
@@ -381,7 +384,7 @@ void CTxMemPool::UpdateChildrenForRemoval(txiter it)
 void CTxMemPool::UpdateNormalizedFees(CAmounts totalSupply)
 {
     // Update the local total supply reference
-    total_supply = totalSupply;
+    m_total_supply = totalSupply;
     // Get all entries in mempool
     std::vector<txiter> view;
     for (auto mi = mapTx.get<ancestor_score>().begin(); mi != mapTx.get<ancestor_score>().end(); ++mi) {
@@ -414,7 +417,7 @@ void CTxMemPool::UpdateForRemoveFromMempool(const setEntries &entriesToRemove, b
             modifyFees[CASH] = -removeIt->GetModifiedFees()[CASH];
             modifyFees[BOND] = -removeIt->GetModifiedFees()[BOND];
             int modifySigOps = -removeIt->GetSigOpCost();
-            CAmounts totalSupply = total_supply;
+            CAmounts totalSupply = m_total_supply;
             for (txiter dit : setDescendants) {
                 mapTx.modify(dit, [=](CTxMemPoolEntry& e){ e.UpdateAncestorState(modifySize, modifyFees, -1, modifySigOps, totalSupply); });
             }
@@ -526,7 +529,7 @@ void CTxMemPool::addUnchecked(const CTxMemPoolEntry &entry, setEntries &setAnces
     // The following call to UpdateModifiedFee assumes no previous fee modifications
     Assume(entry.GetNormalizedFee() == entry.GetModifiedFee());
     if (delta) {
-        CAmounts totalSupply = total_supply;
+        CAmounts totalSupply = m_total_supply;
         mapTx.modify(newit, [&delta, &totalSupply](CTxMemPoolEntry& e) { e.UpdateModifiedFee(delta, totalSupply); });
     }
 
@@ -999,7 +1002,7 @@ void CTxMemPool::PrioritiseTransaction(const uint256& hash, const CAmount& nFeeD
         CAmount &delta = mapDeltas[hash];
         delta = SaturatingAdd(delta, nFeeDelta);
         CAmounts nFeeDeltas = {nFeeDelta, 0};
-        CAmounts totalSupply = total_supply;
+        CAmounts totalSupply = m_total_supply;
         txiter it = mapTx.find(hash);
         if (it != mapTx.end()) {
             mapTx.modify(it, [&nFeeDelta, &totalSupply](CTxMemPoolEntry& e) { e.UpdateModifiedFee(nFeeDelta, totalSupply); });
@@ -1320,5 +1323,5 @@ void CTxMemPool::SetLoadTried(bool load_tried)
 CAmount CTxMemPool::GetTotalNormalizedFee() const
 {
     AssertLockHeld(cs);
-    return m_total_fees[CASH] + GetConvertedAmount(total_supply, m_total_fees[BOND], BOND);
+    return m_total_fees[CASH] + GetConvertedAmount(m_total_supply, m_total_fees[BOND], BOND);
 }

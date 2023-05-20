@@ -453,7 +453,7 @@ protected:
     CAmounts m_total_fees GUARDED_BY(cs){{0}};  //!< sum of all mempool tx's fees (NOT modified fee)
     uint64_t cachedInnerUsage GUARDED_BY(cs);   //!< sum of dynamic memory usage of all the map elements (NOT the maps themselves)
 
-    CAmounts total_supply GUARDED_BY(cs);   //!< reference to latest total supply of cash and bonds (set each new block and reorg by UpdateNormalizedFees)
+    CAmounts m_total_supply GUARDED_BY(cs);   //!< reference to latest total supply of cash and bonds (set each new block and reorg by UpdateNormalizedFees)
 
     mutable int64_t lastRollingFeeUpdate GUARDED_BY(cs);
     mutable bool blockSinceLastRollingFeeBump GUARDED_BY(cs);
