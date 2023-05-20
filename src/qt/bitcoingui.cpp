@@ -274,7 +274,7 @@ void BitcoinGUI::createActions()
     receiveCoinsAction->setShortcut(QKeySequence(QStringLiteral("Alt+3")));
     tabGroup->addAction(receiveCoinsAction);
 
-    convertCoinsAction = new QAction(platformStyle->SingleColorIcon(":/icons/send"), tr("&Convert"), this); // TODO: replace icon
+    convertCoinsAction = new QAction(platformStyle->SingleColorIcon(":/icons/convert"), tr("&Convert"), this);
     convertCoinsAction->setStatusTip(tr("Convert between cash and bonds"));
     convertCoinsAction->setToolTip(convertCoinsAction->statusTip());
     convertCoinsAction->setCheckable(true);
@@ -1256,7 +1256,7 @@ void BitcoinGUI::changeEvent(QEvent *e)
         overviewAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/overview")));
         sendCoinsAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/send")));
         receiveCoinsAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/receiving_addresses")));
-        convertCoinsAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/send"))); // TODO: replace icon
+        convertCoinsAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/convert")));
         historyAction->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/history")));
     }
 

@@ -1410,7 +1410,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
        </property>
        <property name="icon">
         <iconset resource="../bitcoin.qrc">
-         <normaloff>:/icons/send</normaloff>:/icons/send</iconset>
+         <normaloff>:/icons/convert</normaloff>:/icons/convert</iconset>
        </property>
        <property name="autoDefault">
         <bool>false</bool>

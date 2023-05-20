@@ -98,7 +98,7 @@ ConvertCoinsDialog::ConvertCoinsDialog(const PlatformStyle *_platformStyle, QWid
         ui->convertButton->setIcon(QIcon());
     } else {
         ui->clearButton->setIcon(_platformStyle->SingleColorIcon(":/icons/remove"));
-        ui->convertButton->setIcon(_platformStyle->SingleColorIcon(":/icons/send"));
+        ui->convertButton->setIcon(_platformStyle->SingleColorIcon(":/icons/convert"));
     }
 
     ui->reqSlippage->setValue(DEFAULT_SLIPPAGE);

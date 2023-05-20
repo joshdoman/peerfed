@@ -413,6 +413,8 @@ QVariant TransactionTableModel::txAddressDecoration(const TransactionRecord *wtx
     case TransactionRecord::SendToAddress:
     case TransactionRecord::SendToOther:
         return QIcon(":/icons/tx_output");
+    case TransactionRecord::Converted:
+        return QIcon(":/icons/convert");
     default:
         return QIcon(":/icons/tx_inout");
     }
