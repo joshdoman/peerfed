@@ -87,6 +87,11 @@ Files: src/qt/res/icons/proxy.png
 Copyright: Cristian Mircea Messel
 License: public-domain
 
+Files: src/qt/res/icons/convert.png
+Copyright: Andrey Krylov
+License: Creative Commons CCBY3.0
+Comment: Site: https://thenounproject.com/icon/convert-4239293/
+
 Files: src/qt/res/fonts/RobotoMono-Bold.ttf
 License: Apache-2.0
 Comment: Site: https://fonts.google.com/specimen/Roboto+Mono

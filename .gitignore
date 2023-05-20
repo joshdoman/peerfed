@@ -144,6 +144,8 @@ db4/
 # clang-check
 *.plist
 
+.vscode/
+
 osx_volname
 dist/
 
