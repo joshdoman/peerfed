@@ -574,8 +574,10 @@ static RPCHelpMan getblocktemplate()
                 {
                     {RPCResult::Type::STR_HEX, "key", "values must be in the coinbase (keys may be ignored)"},
                 }},
-                {RPCResult::Type::NUM, "coinbasecashvalue", "maximum allowable unscaled cash input to coinbase transaction, including the generation award and transaction fees (in satoshis) and excluding any conversion remainders"},
-                {RPCResult::Type::NUM, "coinbasebondvalue", "maximum allowable unscaled bond input to coinbase transaction, including the generation award and transaction fees (in satoshis) and excluding any conversion remainders"},
+                {RPCResult::Type::NUM, "coinbasecashvalue", "maximum allowable unscaled cash input to coinbase transaction, including the generation award and transaction fees (in satoshis) and excluding any conversion remainders not sent to the miner"},
+                {RPCResult::Type::NUM, "coinbasebondvalue", "maximum allowable unscaled bond input to coinbase transaction, including the generation award and transaction fees (in satoshis) and excluding any conversion remainders not sent to the miner"},
+                {RPCResult::Type::NUM, "cashSupply", "The total unscaled cash supply (in satoshis)"},
+                {RPCResult::Type::NUM, "bondSupply", "The total unscaled bond supply (in satoshis)"},
                 {RPCResult::Type::STR, "longpollid", "an id to include with a request to longpoll on an update to this template"},
                 {RPCResult::Type::STR, "target", "The hash target"},
                 {RPCResult::Type::NUM_TIME, "mintime", "The minimum timestamp appropriate for the next block time, expressed in " + UNIX_EPOCH_TIME},
@@ -883,6 +885,8 @@ static RPCHelpMan getblocktemplate()
     result.pushKV("coinbaseaux", aux);
     result.pushKV("coinbasecashvalue", (int64_t)pblock->vtx[0]->vout[CASH].nValue);
     result.pushKV("coinbasebondvalue", (int64_t)pblock->vtx[0]->vout[BOND].nValue);
+    result.pushKV("cashSupply", (int64_t)pblock->cashSupply);
+    result.pushKV("bondSupply", (int64_t)pblock->bondSupply);
     result.pushKV("longpollid", active_chain.Tip()->GetBlockHash().GetHex() + ToString(nTransactionsUpdatedLast));
     result.pushKV("target", hashTarget.GetHex());
     result.pushKV("mintime", (int64_t)pindexPrev->GetMedianTimePast()+1);
