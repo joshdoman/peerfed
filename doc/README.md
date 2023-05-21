@@ -16,7 +16,7 @@ The following are some helpful notes on how to run PeerFed Core on your native p
 Unpack the files into a directory and run:
 
 - `bin/peerfed-qt` (GUI) or
-- `bin/bitcoind` (headless)
+- `bin/peerfedd` (headless)
 
 ### Windows
 

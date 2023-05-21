@@ -168,7 +168,7 @@ built by default.
 
 Notes
 -----
-The release is built with GCC and then "strip bitcoind" to strip the debug
+The release is built with GCC and then "strip peerfedd" to strip the debug
 symbols, which reduces the executable size by about 90%.
 
 miniupnpc
@@ -285,6 +285,6 @@ This example lists the steps necessary to setup and build a command line only di
     ./autogen.sh
     ./configure
     make check
-    ./src/bitcoind
+    ./src/peerfedd
 
 If you intend to work with legacy Berkeley DB wallets, see [Berkeley DB](#berkeley-db) section.

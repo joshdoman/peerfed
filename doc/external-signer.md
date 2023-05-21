@@ -11,7 +11,7 @@ When using a hardware wallet, consult the manufacturer website for (alternative)
 Start PeerFed Core:
 
 ```sh
-$ bitcoind -signer=../HWI/hwi.py
+$ peerfedd -signer=../HWI/hwi.py
 ```
 
 ### Device setup

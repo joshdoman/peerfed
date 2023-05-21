@@ -8,7 +8,7 @@ import sys
 import tempfile
 
 BINARIES = [
-'src/bitcoind',
+'src/peerfedd',
 'src/bitcoin-cli',
 'src/bitcoin-tx',
 'src/bitcoin-wallet',
