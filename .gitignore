@@ -50,11 +50,11 @@ src/qt/forms/ui_*.h
 
 src/qt/test/moc*.cpp
 
-src/qt/bitcoin-qt.config
-src/qt/bitcoin-qt.creator
-src/qt/bitcoin-qt.creator.user
-src/qt/bitcoin-qt.files
-src/qt/bitcoin-qt.includes
+src/qt/peerfed-qt.config
+src/qt/peerfed-qt.creator
+src/qt/peerfed-qt.creator.user
+src/qt/peerfed-qt.files
+src/qt/peerfed-qt.includes
 
 .deps
 .dirstamp
@@ -92,7 +92,7 @@ src/qt/bitcoin-qt.includes
 *.qm
 Makefile
 !depends/Makefile
-src/qt/bitcoin-qt
+src/qt/peerfed-qt
 PeerFed-Qt.app
 
 # Qt Creator

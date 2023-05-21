@@ -9,8 +9,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\qt\main.cpp" />
-    <ClCompile Include="..\..\src\init\bitcoin-qt.cpp" />
-    <ResourceCompile Include="..\..\src\qt\res\bitcoin-qt-res.rc" />
+    <ClCompile Include="..\..\src\init\peerfed-qt.cpp" />
+    <ResourceCompile Include="..\..\src\qt\res\peerfed-qt-res.rc" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\libbitcoinconsensus\libbitcoinconsensus.vcxproj">

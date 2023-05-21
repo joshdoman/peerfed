@@ -5,9 +5,9 @@ dnl file COPYING or http://www.opensource.org/licenses/mit-license.php.
 dnl Helper for cases where a qt dependency is not met.
 dnl Output: If qt version is auto, set bitcoin_enable_qt to false. Else, exit.
 AC_DEFUN([BITCOIN_QT_FAIL],[
-  if test "$bitcoin_qt_want_version" = "auto" && test "$bitcoin_qt_force" != "yes"; then
+  if test "$peerfed_qt_want_version" = "auto" && test "$peerfed_qt_force" != "yes"; then
     if test "$bitcoin_enable_qt" != "no"; then
-      AC_MSG_WARN([$1; bitcoin-qt frontend will not be built])
+      AC_MSG_WARN([$1; peerfed-qt frontend will not be built])
     fi
     bitcoin_enable_qt=no
     bitcoin_enable_qt_test=no
@@ -17,7 +17,7 @@ AC_DEFUN([BITCOIN_QT_FAIL],[
 ])
 
 AC_DEFUN([BITCOIN_QT_CHECK],[
-  if test "$bitcoin_enable_qt" != "no" && test "$bitcoin_qt_want_version" != "no"; then
+  if test "$bitcoin_enable_qt" != "no" && test "$peerfed_qt_want_version" != "no"; then
     true
     $1
   else
@@ -54,20 +54,20 @@ AC_DEFUN([BITCOIN_QT_INIT],[
   dnl enable qt support
   AC_ARG_WITH([gui],
     [AS_HELP_STRING([--with-gui@<:@=no|qt5|auto@:>@],
-    [build bitcoin-qt GUI (default=auto)])],
+    [build peerfed-qt GUI (default=auto)])],
     [
-     bitcoin_qt_want_version=$withval
-     if test "$bitcoin_qt_want_version" = "yes"; then
-       bitcoin_qt_force=yes
-       bitcoin_qt_want_version=auto
+     peerfed_qt_want_version=$withval
+     if test "$peerfed_qt_want_version" = "yes"; then
+       peerfed_qt_force=yes
+       peerfed_qt_want_version=auto
      fi
     ],
-    [bitcoin_qt_want_version=auto])
+    [peerfed_qt_want_version=auto])
 
   AS_IF([test "$with_gui" = "qt5_debug"],
         [AS_CASE([$host],
                  [*darwin*], [qt_lib_suffix=_debug],
-                 [qt_lib_suffix= ]); bitcoin_qt_want_version=qt5],
+                 [qt_lib_suffix= ]); peerfed_qt_want_version=qt5],
         [qt_lib_suffix= ])
 
   AS_CASE([$host], [*android*], [qt_lib_suffix=_$ANDROID_ARCH])

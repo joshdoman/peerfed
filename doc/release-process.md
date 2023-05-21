@@ -282,7 +282,7 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
 
   - Update packaging repo
 
-      - Push the flatpak to flathub, e.g. https://github.com/flathub/org.bitcoincore.bitcoin-qt/pull/2
+      - Push the flatpak to flathub, e.g. https://github.com/flathub/org.bitcoincore.peerfed-qt/pull/2
 
       - Push the snap, see https://github.com/bitcoin-core/packaging/blob/master/snap/build.md
 

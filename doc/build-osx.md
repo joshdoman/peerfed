@@ -65,7 +65,7 @@ git clone https://github.com/bitcoin/bitcoin.git
 
 #### Wallet Dependencies
 
-It is not necessary to build wallet functionality to run `bitcoind` or  `bitcoin-qt`.
+It is not necessary to build wallet functionality to run `bitcoind` or  `peerfed-qt`.
 
 ###### Descriptor Wallet Support
 
@@ -239,9 +239,9 @@ make deploy
 ## Running PeerFed Core
 
 PeerFed Core should now be available at `./src/bitcoind`.
-If you compiled support for the GUI, it should be available at `./src/qt/bitcoin-qt`.
+If you compiled support for the GUI, it should be available at `./src/qt/peerfed-qt`.
 
-The first time you run `bitcoind` or `bitcoin-qt`, it will start downloading the blockchain.
+The first time you run `bitcoind` or `peerfed-qt`, it will start downloading the blockchain.
 This process could take many hours, or even days on slower than average systems.
 
 By default, blockchain and wallet data files will be stored in:
@@ -272,5 +272,5 @@ tail -f $HOME/Library/Application\ Support/Bitcoin/debug.log
 ./src/bitcoind -daemon      # Starts the bitcoin daemon.
 ./src/bitcoin-cli --help    # Outputs a list of command-line options.
 ./src/bitcoin-cli help      # Outputs a list of RPC commands when the daemon is running.
-./src/qt/bitcoin-qt -server # Starts the bitcoin-qt server mode, allows bitcoin-cli control
+./src/qt/peerfed-qt -server # Starts the peerfed-qt server mode, allows bitcoin-cli control
 ```
