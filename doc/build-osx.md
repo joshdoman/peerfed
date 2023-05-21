@@ -51,7 +51,7 @@ To install, run the following from your terminal:
 brew install automake libtool boost pkg-config libevent
 ```
 
-### 4. Clone Bitcoin repository
+### 4. Clone PeerFed repository
 
 `git` should already be installed by default on your system.
 Now that all the required dependencies are installed, let's clone the PeerFed Core repository to a directory.
