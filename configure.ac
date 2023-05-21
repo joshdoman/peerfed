@@ -635,44 +635,44 @@ CORE_CPPFLAGS="$CORE_CPPFLAGS -DHAVE_BUILD_INFO"
 AC_ARG_WITH([utils],
   [AS_HELP_STRING([--with-utils],
   [build peerfed-cli peerfed-tx peerfed-util peerfed-wallet (default=yes)])],
-  [build_bitcoin_utils=$withval],
-  [build_bitcoin_utils=yes])
+  [build_peerfed_utils=$withval],
+  [build_peerfed_utils=yes])
 
 AC_ARG_ENABLE([util-cli],
   [AS_HELP_STRING([--enable-util-cli],
   [build peerfed-cli])],
-  [build_bitcoin_cli=$enableval],
-  [build_bitcoin_cli=$build_bitcoin_utils])
+  [build_peerfed_cli=$enableval],
+  [build_peerfed_cli=$build_peerfed_utils])
 
 AC_ARG_ENABLE([util-tx],
   [AS_HELP_STRING([--enable-util-tx],
   [build peerfed-tx])],
-  [build_bitcoin_tx=$enableval],
-  [build_bitcoin_tx=$build_bitcoin_utils])
+  [build_peerfed_tx=$enableval],
+  [build_peerfed_tx=$build_peerfed_utils])
 
 AC_ARG_ENABLE([util-wallet],
   [AS_HELP_STRING([--enable-util-wallet],
   [build peerfed-wallet])],
-  [build_bitcoin_wallet=$enableval],
-  [build_bitcoin_wallet=$build_bitcoin_utils])
+  [build_peerfed_wallet=$enableval],
+  [build_peerfed_wallet=$build_peerfed_utils])
 
 AC_ARG_ENABLE([util-util],
   [AS_HELP_STRING([--enable-util-util],
   [build peerfed-util])],
-  [build_bitcoin_util=$enableval],
-  [build_bitcoin_util=$build_bitcoin_utils])
+  [build_peerfed_util=$enableval],
+  [build_peerfed_util=$build_peerfed_utils])
 
 AC_ARG_ENABLE([experimental-util-chainstate],
   [AS_HELP_STRING([--enable-experimental-util-chainstate],
   [build experimental peerfed-chainstate executable (default=no)])],
-  [build_bitcoin_chainstate=$enableval],
-  [build_bitcoin_chainstate=no])
+  [build_peerfed_chainstate=$enableval],
+  [build_peerfed_chainstate=no])
 
 AC_ARG_WITH([libs],
   [AS_HELP_STRING([--with-libs],
   [build libraries (default=yes)])],
-  [build_bitcoin_libs=$withval],
-  [build_bitcoin_libs=yes])
+  [build_peerfed_libs=$withval],
+  [build_peerfed_libs=yes])
 
 AC_ARG_WITH([experimental-kernel-lib],
   [AS_HELP_STRING([--with-experimental-kernel-lib],
@@ -1308,14 +1308,14 @@ AC_DEFUN([SUPPRESS_WARNINGS],
 dnl enable-fuzz should disable all other targets
 if test "$enable_fuzz" = "yes"; then
   AC_MSG_WARN([enable-fuzz will disable all other targets and force --enable-fuzz-binary=yes])
-  build_bitcoin_utils=no
-  build_bitcoin_cli=no
-  build_bitcoin_tx=no
-  build_bitcoin_util=no
-  build_bitcoin_chainstate=no
-  build_bitcoin_wallet=no
+  build_peerfed_utils=no
+  build_peerfed_cli=no
+  build_peerfed_tx=no
+  build_peerfed_util=no
+  build_peerfed_chainstate=no
+  build_peerfed_wallet=no
   build_peerfedd=no
-  build_bitcoin_libs=no
+  build_peerfed_libs=no
   bitcoin_enable_qt=no
   bitcoin_enable_qt_test=no
   bitcoin_enable_qt_dbus=no
@@ -1413,7 +1413,7 @@ if test "$use_usdt" != "no"; then
 fi
 AM_CONDITIONAL([ENABLE_USDT_TRACEPOINTS], [test "$use_usdt" = "yes"])
 
-if test "$build_bitcoin_cli$build_bitcoin_tx$build_bitcoin_util$build_peerfedd$bitcoin_enable_qt$use_bench$use_tests" = "nonononononono"; then
+if test "$build_peerfed_cli$build_peerfed_tx$build_peerfed_util$build_peerfedd$bitcoin_enable_qt$use_bench$use_tests" = "nonononononono"; then
   use_upnp=no
   use_natpmp=no
   use_zmq=no
@@ -1461,7 +1461,7 @@ if test "$use_natpmp" != "no"; then
   CPPFLAGS="$TEMP_CPPFLAGS"
 fi
 
-if test "$build_bitcoin_wallet$build_bitcoin_cli$build_bitcoin_tx$build_peerfedd$bitcoin_enable_qt$use_tests$use_bench" = "nonononononono"; then
+if test "$build_peerfed_wallet$build_peerfed_cli$build_peerfed_tx$build_peerfedd$bitcoin_enable_qt$use_tests$use_bench" = "nonononononono"; then
   use_boost=no
 else
   use_boost=yes
@@ -1582,7 +1582,7 @@ fi
 dnl libevent check
 
 use_libevent=no
-if test "$build_bitcoin_cli$build_peerfedd$bitcoin_enable_qt$enable_fuzz_binary$use_tests$use_bench" != "nononononono"; then
+if test "$build_peerfed_cli$build_peerfedd$bitcoin_enable_qt$enable_fuzz_binary$use_tests$use_bench" != "nononononono"; then
   PKG_CHECK_MODULES([EVENT], [libevent >= 2.1.8], [use_libevent=yes], [AC_MSG_ERROR([libevent version 2.1.8 or greater not found.])])
   if test "$TARGET_OS" != "windows"; then
     PKG_CHECK_MODULES([EVENT_PTHREADS], [libevent_pthreads >= 2.1.8], [], [AC_MSG_ERROR([libevent_pthreads version 2.1.8 or greater not found.])])
@@ -1685,41 +1685,41 @@ AM_CONDITIONAL([BUILD_BITCOIND], [test $build_peerfedd = "yes"])
 AC_MSG_RESULT($build_peerfedd)
 
 AC_MSG_CHECKING([whether to build peerfed-cli])
-AM_CONDITIONAL([BUILD_BITCOIN_CLI], [test $build_bitcoin_cli = "yes"])
-AC_MSG_RESULT($build_bitcoin_cli)
+AM_CONDITIONAL([BUILD_BITCOIN_CLI], [test $build_peerfed_cli = "yes"])
+AC_MSG_RESULT($build_peerfed_cli)
 
 AC_MSG_CHECKING([whether to build peerfed-tx])
-AM_CONDITIONAL([BUILD_BITCOIN_TX], [test $build_bitcoin_tx = "yes"])
-AC_MSG_RESULT($build_bitcoin_tx)
+AM_CONDITIONAL([BUILD_BITCOIN_TX], [test $build_peerfed_tx = "yes"])
+AC_MSG_RESULT($build_peerfed_tx)
 
 AC_MSG_CHECKING([whether to build peerfed-wallet])
-AM_CONDITIONAL([BUILD_BITCOIN_WALLET], [test $build_bitcoin_wallet = "yes"])
-AC_MSG_RESULT($build_bitcoin_wallet)
+AM_CONDITIONAL([BUILD_BITCOIN_WALLET], [test $build_peerfed_wallet = "yes"])
+AC_MSG_RESULT($build_peerfed_wallet)
 
 AC_MSG_CHECKING([whether to build peerfed-util])
-AM_CONDITIONAL([BUILD_BITCOIN_UTIL], [test $build_bitcoin_util = "yes"])
-AC_MSG_RESULT($build_bitcoin_util)
+AM_CONDITIONAL([BUILD_BITCOIN_UTIL], [test $build_peerfed_util = "yes"])
+AC_MSG_RESULT($build_peerfed_util)
 
 AC_MSG_CHECKING([whether to build experimental peerfed-chainstate])
-if test "$build_bitcoin_chainstate" = "yes"; then
+if test "$build_peerfed_chainstate" = "yes"; then
   if test "$build_experimental_kernel_lib" = "no"; then
     AC_MSG_ERROR([experimental peerfed-chainstate cannot be built without the experimental bitcoinkernel library. Use --with-experimental-kernel-lib]);
   fi
 fi
-AM_CONDITIONAL([BUILD_BITCOIN_CHAINSTATE], [test $build_bitcoin_chainstate = "yes"])
-AC_MSG_RESULT($build_bitcoin_chainstate)
+AM_CONDITIONAL([BUILD_BITCOIN_CHAINSTATE], [test $build_peerfed_chainstate = "yes"])
+AC_MSG_RESULT($build_peerfed_chainstate)
 
 AC_MSG_CHECKING([whether to build libraries])
-AM_CONDITIONAL([BUILD_BITCOIN_LIBS], [test $build_bitcoin_libs = "yes"])
+AM_CONDITIONAL([BUILD_BITCOIN_LIBS], [test $build_peerfed_libs = "yes"])
 
-if test "$build_bitcoin_libs" = "yes"; then
+if test "$build_peerfed_libs" = "yes"; then
   AC_DEFINE([HAVE_CONSENSUS_LIB], [1], [Define this symbol if the consensus lib has been built])
   AC_CONFIG_FILES([libbitcoinconsensus.pc:libbitcoinconsensus.pc.in])
 fi
 
-AM_CONDITIONAL([BUILD_BITCOIN_KERNEL_LIB], [test "$build_experimental_kernel_lib" != "no" && ( test "$build_experimental_kernel_lib" = "yes" || test "$build_bitcoin_chainstate" = "yes" )])
+AM_CONDITIONAL([BUILD_BITCOIN_KERNEL_LIB], [test "$build_experimental_kernel_lib" != "no" && ( test "$build_experimental_kernel_lib" = "yes" || test "$build_peerfed_chainstate" = "yes" )])
 
-AC_MSG_RESULT($build_bitcoin_libs)
+AC_MSG_RESULT($build_peerfed_libs)
 
 AC_LANG_POP
 
@@ -1870,7 +1870,7 @@ else
   AC_MSG_RESULT([no])
 fi
 
-if test "$build_bitcoin_wallet$build_bitcoin_cli$build_bitcoin_tx$build_bitcoin_libs$build_peerfedd$bitcoin_enable_qt$enable_fuzz_binary$use_bench$use_tests" = "nonononononononono"; then
+if test "$build_peerfed_wallet$build_peerfed_cli$build_peerfed_tx$build_peerfed_libs$build_peerfedd$bitcoin_enable_qt$enable_fuzz_binary$use_bench$use_tests" = "nonononononononono"; then
   AC_MSG_ERROR([No targets! Please specify at least one of: --with-utils --with-libs --with-daemon --with-gui --enable-fuzz(-binary) --enable-bench or --enable-tests])
 fi
 
@@ -2034,7 +2034,7 @@ echo "Options used to compile and link:"
 echo "  external signer = $use_external_signer"
 echo "  multiprocess    = $build_multiprocess"
 echo "  with experimental syscall sandbox support = $use_syscall_sandbox"
-echo "  with libs       = $build_bitcoin_libs"
+echo "  with libs       = $build_peerfed_libs"
 echo "  with wallet     = $enable_wallet"
 if test "$enable_wallet" != "no"; then
     echo "    with sqlite   = $use_sqlite"
