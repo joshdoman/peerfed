@@ -865,12 +865,12 @@ void PrintExceptionContinue(const std::exception* pex, std::string_view thread_n
 
 fs::path GetDefaultDataDir()
 {
-    // Windows: C:\Users\Username\AppData\Roaming\Bitcoin
-    // macOS: ~/Library/Application Support/Bitcoin
-    // Unix-like: ~/.bitcoin
+    // Windows: C:\Users\Username\AppData\Roaming\PeerFed
+    // macOS: ~/Library/Application Support/PeerFed
+    // Unix-like: ~/.peerfed
 #ifdef WIN32
     // Windows
-    return GetSpecialFolderPath(CSIDL_APPDATA) / "Bitcoin";
+    return GetSpecialFolderPath(CSIDL_APPDATA) / "PeerFed";
 #else
     fs::path pathRet;
     char* pszHome = getenv("HOME");
@@ -880,10 +880,10 @@ fs::path GetDefaultDataDir()
         pathRet = fs::path(pszHome);
 #ifdef MAC_OSX
     // macOS
-    return pathRet / "Library/Application Support/Bitcoin";
+    return pathRet / "Library/Application Support/PeerFed";
 #else
     // Unix-like
-    return pathRet / ".bitcoin";
+    return pathRet / ".peerfed";
 #endif
 #endif
 }
