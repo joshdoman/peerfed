@@ -3,7 +3,7 @@ PeerFed Core integration/staging tree
 
 https://peerfed.org
 
-For an immediately usable, binary version of the Bitcoin Core software, see
+For an immediately usable, binary version of the PeerFed Core software, see
 https://peerfed.org/en/download/.
 
 What is PeerFed Core?
