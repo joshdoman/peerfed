@@ -12,7 +12,7 @@ BINARIES = [
 'src/peerfed-cli',
 'src/peerfed-tx',
 'src/peerfed-wallet',
-'src/bitcoin-util',
+'src/peerfed-util',
 'src/qt/peerfed-qt',
 ]
 

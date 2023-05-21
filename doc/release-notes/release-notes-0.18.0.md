@@ -808,7 +808,7 @@ Changes for particular platforms
 
 ### Tests and QA
 - #15405 appveyor: Clean cache when build configuration changes (Sjors)
-- #13953 Fix deprecation in bitcoin-util-test.py (isghe)
+- #13953 Fix deprecation in peerfed-util-test.py (isghe)
 - #13963 Replace usage of tostring() with tobytes() (dongcarl)
 - #13964 ci: Add appveyor ci (ken2812221)
 - #13997 appveyor: fetch the latest port data (ken2812221)

@@ -8,7 +8,7 @@ src/peerfed-cli
 src/peerfed-gui
 src/peerfed-node
 src/peerfed-tx
-src/bitcoin-util
+src/peerfed-util
 src/bitcoin-chainstate
 src/peerfed-wallet
 src/test/fuzz/fuzz

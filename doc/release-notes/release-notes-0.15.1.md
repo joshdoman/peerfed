@@ -202,7 +202,7 @@ Low-level RPC changes
 - #11399 `a825d4a` Fix bip68-sequence rpc test (jl2012)
 - #11150 `847c75e` Add getmininginfo test (mess110)
 - #11407 `806c78f` add functional test for mempoolreplacement command line arg (instagibbs)
-- #11433 `e169349` Restore bitcoin-util-test py2 compatibility (MarcoFalke)
+- #11433 `e169349` Restore peerfed-util-test py2 compatibility (MarcoFalke)
 - #11308 `2e1ac70` zapwallettxes: Wait up to 3s for mempool reload (MarcoFalke)
 - #10798 `716066d` test peerfed-cli (jnewbery)
 - #11443 `019c492` Allow "make cov" out-of-tree; Fix rpc mapping check (MarcoFalke)

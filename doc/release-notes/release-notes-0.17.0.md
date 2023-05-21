@@ -623,7 +623,7 @@ Support for Python 2 has been discontinued for all test files and tools.
 - #13465 `81069a7` Avoid concurrency issue when make multiple target (ken2812221)
 - #13454 `45c00f8` Make sure `LC_ALL=C` is set in all shell scripts (practicalswift)
 - #13480 `31145a3` Avoid copies in range-for loops and add a warning to detect them (theuni)
-- #13486 `66e1a08` Move rpc/util.cpp from libbitcoin-util to libbitcoin-server (ken2812221)
+- #13486 `66e1a08` Move rpc/util.cpp from libpeerfed-util to libbitcoin-server (ken2812221)
 - #13580 `40334c7` Detect if char equals `int8_t` (ken2812221)
 - #12788 `287e4ed` Tune wildcards for LIBSECP256K1 target (kallewoof)
 - #13611 `b55f0c3` bugfix: Use `__cpuid_count` for gnu C to avoid gitian build fail (ken2812221)

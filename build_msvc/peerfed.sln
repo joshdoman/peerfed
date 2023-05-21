@@ -30,7 +30,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bench_bitcoin", "bench_bitc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "peerfed-tx", "peerfed-tx\peerfed-tx.vcxproj", "{D3022AF6-AD33-4CE3-B358-87CB6A1B29CF}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bitcoin-util", "bitcoin-util\bitcoin-util.vcxproj", "{57A04EC9-542A-4E40-83D0-AC3BE1F36805}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "peerfed-util", "peerfed-util\peerfed-util.vcxproj", "{57A04EC9-542A-4E40-83D0-AC3BE1F36805}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "peerfed-wallet", "peerfed-wallet\peerfed-wallet.vcxproj", "{84DE8790-EDE3-4483-81AC-C32F15E861F4}"
 EndProject
