@@ -110,7 +110,7 @@ if BUILD_BITCOIN_UTIL
 endif
 
 if BUILD_BITCOIN_CHAINSTATE
-  bin_PROGRAMS += bitcoin-chainstate
+  bin_PROGRAMS += peerfed-chainstate
 endif
 
 .PHONY: FORCE check-symbols check-security
@@ -844,13 +844,13 @@ bitcoin_util_LDADD = \
   $(LIBSECP256K1)
 #
 
-# bitcoin-chainstate binary #
-bitcoin_chainstate_SOURCES = bitcoin-chainstate.cpp
+# peerfed-chainstate binary #
+bitcoin_chainstate_SOURCES = peerfed-chainstate.cpp
 bitcoin_chainstate_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
 bitcoin_chainstate_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
 # $(LIBTOOL_APP_LDFLAGS) deliberately omitted here so that we can test linking
-# bitcoin-chainstate against libbitcoinkernel as a shared or static library by
+# peerfed-chainstate against libbitcoinkernel as a shared or static library by
 # setting --{en,dis}able-shared.
 bitcoin_chainstate_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(PTHREAD_FLAGS)
 bitcoin_chainstate_LDADD = $(LIBBITCOINKERNEL)

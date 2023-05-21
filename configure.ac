@@ -35,7 +35,7 @@ BITCOIN_TEST_NAME=test_bitcoin
 BITCOIN_CLI_NAME=peerfed-cli
 BITCOIN_TX_NAME=peerfed-tx
 BITCOIN_UTIL_NAME=peerfed-util
-BITCOIN_CHAINSTATE_NAME=bitcoin-chainstate
+BITCOIN_CHAINSTATE_NAME=peerfed-chainstate
 BITCOIN_WALLET_TOOL_NAME=peerfed-wallet
 dnl Multi Process
 BITCOIN_MP_NODE_NAME=peerfed-node
@@ -664,7 +664,7 @@ AC_ARG_ENABLE([util-util],
 
 AC_ARG_ENABLE([experimental-util-chainstate],
   [AS_HELP_STRING([--enable-experimental-util-chainstate],
-  [build experimental bitcoin-chainstate executable (default=no)])],
+  [build experimental peerfed-chainstate executable (default=no)])],
   [build_bitcoin_chainstate=$enableval],
   [build_bitcoin_chainstate=no])
 
@@ -1700,10 +1700,10 @@ AC_MSG_CHECKING([whether to build peerfed-util])
 AM_CONDITIONAL([BUILD_BITCOIN_UTIL], [test $build_bitcoin_util = "yes"])
 AC_MSG_RESULT($build_bitcoin_util)
 
-AC_MSG_CHECKING([whether to build experimental bitcoin-chainstate])
+AC_MSG_CHECKING([whether to build experimental peerfed-chainstate])
 if test "$build_bitcoin_chainstate" = "yes"; then
   if test "$build_experimental_kernel_lib" = "no"; then
-    AC_MSG_ERROR([experimental bitcoin-chainstate cannot be built without the experimental bitcoinkernel library. Use --with-experimental-kernel-lib]);
+    AC_MSG_ERROR([experimental peerfed-chainstate cannot be built without the experimental bitcoinkernel library. Use --with-experimental-kernel-lib]);
   fi
 fi
 AM_CONDITIONAL([BUILD_BITCOIN_CHAINSTATE], [test $build_bitcoin_chainstate = "yes"])

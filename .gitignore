@@ -9,7 +9,7 @@ src/peerfed-gui
 src/peerfed-node
 src/peerfed-tx
 src/peerfed-util
-src/bitcoin-chainstate
+src/peerfed-chainstate
 src/peerfed-wallet
 src/test/fuzz/fuzz
 src/test/test_bitcoin
