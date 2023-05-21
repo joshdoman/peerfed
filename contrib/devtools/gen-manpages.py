@@ -11,7 +11,7 @@ BINARIES = [
 'src/peerfedd',
 'src/bitcoin-cli',
 'src/bitcoin-tx',
-'src/bitcoin-wallet',
+'src/peerfed-wallet',
 'src/bitcoin-util',
 'src/qt/peerfed-qt',
 ]

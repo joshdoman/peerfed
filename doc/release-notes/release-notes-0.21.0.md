@@ -279,7 +279,7 @@ Wallet
   empty. Previously it failed. (#17219)
 
 - The `-salvagewallet` startup option has been removed. A new `salvage` command
-  has been added to the `bitcoin-wallet` tool which performs the salvage
+  has been added to the `peerfed-wallet` tool which performs the salvage
   operations that `-salvagewallet` did. (#18918)
 
 - A new configuration flag `-maxapsfee` has been added, which sets the max
@@ -333,7 +333,7 @@ Bitcoin Core will now just log warnings instead of creating new wallets with
 new keys and addresses like previous releases did.
 
 New wallets can be created through the GUI (which has a more prominent create
-wallet option), through the `bitcoin-cli createwallet` or `bitcoin-wallet
+wallet option), through the `bitcoin-cli createwallet` or `peerfed-wallet
 create` commands, or the `createwallet` RPC. (#15454, #20186)
 
 ### Experimental Descriptor Wallets
@@ -697,7 +697,7 @@ Tests
 - #20130 Remove db mode string (S3RK)
 - #19077 Add sqlite as an alternative wallet database and use it for new descriptor wallets (achow101)
 - #20125 Expose database format in getwalletinfo (promag)
-- #20198 Show name, format and if uses descriptors in bitcoin-wallet tool (jonasschnelli)
+- #20198 Show name, format and if uses descriptors in peerfed-wallet tool (jonasschnelli)
 - #20216 Fix buffer over-read in SQLite file magic check (theStack)
 - #20186 Make -wallet setting not create wallets (ryanofsky)
 - #20230 Fix bug when just created encrypted wallet cannot get address (hebasto)
@@ -820,7 +820,7 @@ Tests
 - gui#120 Fix multiwallet transaction notifications (promag)
 
 ### Build system
-- #18504 Drop bitcoin-tx and bitcoin-wallet dependencies on libevent (ryanofsky)
+- #18504 Drop bitcoin-tx and peerfed-wallet dependencies on libevent (ryanofsky)
 - #18586 Bump gitian descriptors to 0.21 (laanwj)
 - #17595 guix: Enable building for `x86_64-w64-mingw32` target (dongcarl)
 - #17929 add linker optimisation flags to gitian & guix (Linux) (fanquake)

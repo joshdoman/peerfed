@@ -9,9 +9,9 @@
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\bitcoin-wallet.cpp" />
-    <ClCompile Include="..\..\src\init\bitcoin-wallet.cpp">
-      <ObjectFileName>$(IntDir)init_bitcoin-wallet.obj</ObjectFileName>
+    <ClCompile Include="..\..\src\peerfed-wallet.cpp" />
+    <ClCompile Include="..\..\src\init\peerfed-wallet.cpp">
+      <ObjectFileName>$(IntDir)init_peerfed-wallet.obj</ObjectFileName>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

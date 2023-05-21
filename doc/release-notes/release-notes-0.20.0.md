@@ -779,7 +779,7 @@ Build system
 - #17598 Update release process with latest changes (MarcoFalke)
 - #17617 Unify unix epoch time descriptions (jonatack)
 - #17637 script: Add keyserver to verify-commits readme (emilengler)
-- #17648 Rename wallet-tool references to bitcoin-wallet (hel-o)
+- #17648 Rename wallet-tool references to peerfed-wallet (hel-o)
 - #17688 Add "ci" prefix to CONTRIBUTING.md (hebasto)
 - #17751 Use recommended shebang approach in documentation code block (hackerrdave)
 - #17752 Fix directory path for secp256k1 subtree in developer-notes (hackerrdave)

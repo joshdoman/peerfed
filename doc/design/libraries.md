@@ -8,11 +8,11 @@
 | *libbitcoinconsensus*    | Shared library build of static *libbitcoin_consensus* library |
 | *libbitcoin_kernel*      | Consensus engine and support library used for validation by *libbitcoin_node* and also exposed as a [shared library](../shared-libraries.md). |
 | *libbitcoinqt*           | GUI functionality used by *peerfed-qt* and *bitcoin-gui* executables |
-| *libbitcoin_ipc*         | IPC functionality used by *bitcoin-node*, *bitcoin-wallet*, *bitcoin-gui* executables to communicate when [`--enable-multiprocess`](multiprocess.md) is used. |
+| *libbitcoin_ipc*         | IPC functionality used by *bitcoin-node*, *peerfed-wallet*, *bitcoin-gui* executables to communicate when [`--enable-multiprocess`](multiprocess.md) is used. |
 | *libbitcoin_node*        | P2P and RPC server functionality used by *peerfedd* and *peerfed-qt* executables. |
 | *libbitcoin_util*        | Home for common functionality shared by different executables and libraries. Similar to *libbitcoin_common*, but lower-level (see [Dependencies](#dependencies)). |
-| *libbitcoin_wallet*      | Wallet functionality used by *peerfedd* and *bitcoin-wallet* executables. |
-| *libbitcoin_wallet_tool* | Lower-level wallet functionality used by *bitcoin-wallet* executable. |
+| *libbitcoin_wallet*      | Wallet functionality used by *peerfedd* and *peerfed-wallet* executables. |
+| *libbitcoin_wallet_tool* | Lower-level wallet functionality used by *peerfed-wallet* executable. |
 | *libbitcoin_zmq*         | [ZeroMQ](../zmq.md) functionality used by *peerfedd* and *peerfed-qt* executables. |
 
 ## Conventions
@@ -48,8 +48,8 @@ peerfed-qt[peerfed-qt]-->libbitcoin_node;
 peerfed-qt[peerfed-qt]-->libbitcoinqt;
 peerfed-qt[peerfed-qt]-->libbitcoin_wallet;
 
-bitcoin-wallet[bitcoin-wallet]-->libbitcoin_wallet;
-bitcoin-wallet[bitcoin-wallet]-->libbitcoin_wallet_tool;
+peerfed-wallet[peerfed-wallet]-->libbitcoin_wallet;
+peerfed-wallet[peerfed-wallet]-->libbitcoin_wallet_tool;
 
 libbitcoin_cli-->libbitcoin_common;
 libbitcoin_cli-->libbitcoin_util;
@@ -75,7 +75,7 @@ libbitcoin_wallet_tool-->libbitcoin_util;
 libbitcoin_wallet_tool-->libbitcoin_wallet;
 
 classDef bold stroke-width:2px, font-weight:bold, font-size: smaller;
-class peerfed-qt,peerfedd,bitcoin-cli,bitcoin-wallet bold
+class peerfed-qt,peerfedd,bitcoin-cli,peerfed-wallet bold
 ```
 </td></tr><tr><td>
 
