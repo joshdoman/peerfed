@@ -174,7 +174,7 @@ Updated RPCs
 - #20861 BIP 350: Implement Bech32m and use it for v1+ segwit addresses (sipa)
 
 ### Documentation
-- #21384 add signet to bitcoin.conf documentation (jonatack)
+- #21384 add signet to peerfed.conf documentation (jonatack)
 - #21342 Remove outdated comment (hebasto)
 
 Credits

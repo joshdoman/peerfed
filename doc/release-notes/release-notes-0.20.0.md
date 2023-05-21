@@ -624,7 +624,7 @@ Build system
 - #17299 add reason checks for non-standard txs in `test_IsStandard` (theStack)
 - #17322 Fix input size assertion in `wallet_bumpfee.py` (instagibbs)
 - #17327 Add `rpc_fundrawtransaction` logging (jonatack)
-- #17330 Add `shrinkdebugfile=0` to regtest bitcoin.conf (sdaftuar)
+- #17330 Add `shrinkdebugfile=0` to regtest peerfed.conf (sdaftuar)
 - #17340 Speed up fundrawtransaction test (jnewbery)
 - #17345 Do not instantiate CAddrDB for static call CAddrDB::Read() (hebasto)
 - #17362 Speed up `wallet_avoidreuse`, add logging (jonatack)

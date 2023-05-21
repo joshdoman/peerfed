@@ -327,7 +327,7 @@ Wallet
 
 Bitcoin Core will no longer automatically create new wallets on startup. It will
 load existing wallets specified by `-wallet` options on the command line or in
-`bitcoin.conf` or `settings.json` files. And by default it will also load a
+`peerfed.conf` or `settings.json` files. And by default it will also load a
 top-level unnamed ("") wallet. However, if specified wallets don't exist,
 Bitcoin Core will now just log warnings instead of creating new wallets with
 new keys and addresses like previous releases did.
@@ -494,7 +494,7 @@ GUI changes
 - Wallets created or loaded in the GUI will now be automatically loaded on
   startup, so they don't need to be manually reloaded next time Bitcoin Core is
   started. The list of wallets to load on startup is stored in
-  `\<datadir\>/settings.json` and augments any command line or `bitcoin.conf`
+  `\<datadir\>/settings.json` and augments any command line or `peerfed.conf`
   `-wallet=` settings that specify more wallets to load. Wallets that are
   unloaded in the GUI get removed from the settings list so they won't load
   again automatically next startup. (#19754)

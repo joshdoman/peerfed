@@ -250,12 +250,12 @@ file rather than to the Qt settings backend (windows registry or unix desktop
 config files), so these settings will now apply to bitcoind, instead of being
 ignored. (#15936, gui#602)
 
-- Also, the interaction between GUI settings and `bitcoin.conf` settings is
-simplified. Settings from `bitcoin.conf` are now displayed normally in the GUI
+- Also, the interaction between GUI settings and `peerfed.conf` settings is
+simplified. Settings from `peerfed.conf` are now displayed normally in the GUI
 settings dialog, instead of in a separate warning message ("Options set in this
 dialog are overridden by the configuration file: -setting=value"). And these
 settings can now be edited because `settings.json` values take precedence over
-`bitcoin.conf` values. (#15936)
+`peerfed.conf` values. (#15936)
 
 Low-level changes
 =================
