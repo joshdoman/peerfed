@@ -11,7 +11,7 @@
 class ArgsManager;
 
 /**
- * CBaseChainParams defines the base parameters (shared between bitcoin-cli and peerfedd)
+ * CBaseChainParams defines the base parameters (shared between peerfed-cli and peerfedd)
  * of a given instance of the Bitcoin system.
  */
 class CBaseChainParams

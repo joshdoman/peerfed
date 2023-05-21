@@ -4,7 +4,7 @@
 *.pdb
 src/bitcoin
 src/peerfedd
-src/bitcoin-cli
+src/peerfed-cli
 src/peerfed-gui
 src/peerfed-node
 src/bitcoin-tx

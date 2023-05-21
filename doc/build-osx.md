@@ -270,7 +270,7 @@ tail -f $HOME/Library/Application\ Support/Bitcoin/debug.log
 
 ```shell
 ./src/peerfedd -daemon      # Starts the bitcoin daemon.
-./src/bitcoin-cli --help    # Outputs a list of command-line options.
-./src/bitcoin-cli help      # Outputs a list of RPC commands when the daemon is running.
-./src/qt/peerfed-qt -server # Starts the peerfed-qt server mode, allows bitcoin-cli control
+./src/peerfed-cli --help    # Outputs a list of command-line options.
+./src/peerfed-cli help      # Outputs a list of RPC commands when the daemon is running.
+./src/qt/peerfed-qt -server # Starts the peerfed-qt server mode, allows peerfed-cli control
 ```

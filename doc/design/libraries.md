@@ -2,7 +2,7 @@
 
 | Name                     | Description |
 |--------------------------|-------------|
-| *libbitcoin_cli*         | RPC client functionality used by *bitcoin-cli* executable |
+| *libbitcoin_cli*         | RPC client functionality used by *peerfed-cli* executable |
 | *libbitcoin_common*      | Home for common functionality shared by different executables and libraries. Similar to *libbitcoin_util*, but higher-level (see [Dependencies](#dependencies)). |
 | *libbitcoin_consensus*   | Stable, backwards-compatible consensus functionality used by *libbitcoin_node* and *libbitcoin_wallet* and also exposed as a [shared library](../shared-libraries.md). |
 | *libbitcoinconsensus*    | Shared library build of static *libbitcoin_consensus* library |
@@ -39,7 +39,7 @@
 
 graph TD;
 
-bitcoin-cli[bitcoin-cli]-->libbitcoin_cli;
+peerfed-cli[peerfed-cli]-->libbitcoin_cli;
 
 peerfedd[peerfedd]-->libbitcoin_node;
 peerfedd[peerfedd]-->libbitcoin_wallet;
@@ -75,7 +75,7 @@ libbitcoin_wallet_tool-->libbitcoin_util;
 libbitcoin_wallet_tool-->libbitcoin_wallet;
 
 classDef bold stroke-width:2px, font-weight:bold, font-size: smaller;
-class peerfed-qt,peerfedd,bitcoin-cli,peerfed-wallet bold
+class peerfed-qt,peerfedd,peerfed-cli,peerfed-wallet bold
 ```
 </td></tr><tr><td>
 

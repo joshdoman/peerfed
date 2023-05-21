@@ -9,7 +9,7 @@ import tempfile
 
 BINARIES = [
 'src/peerfedd',
-'src/bitcoin-cli',
+'src/peerfed-cli',
 'src/bitcoin-tx',
 'src/peerfed-wallet',
 'src/bitcoin-util',
