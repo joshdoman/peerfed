@@ -7,7 +7,7 @@ src/peerfedd
 src/peerfed-cli
 src/peerfed-gui
 src/peerfed-node
-src/bitcoin-tx
+src/peerfed-tx
 src/bitcoin-util
 src/bitcoin-chainstate
 src/peerfed-wallet

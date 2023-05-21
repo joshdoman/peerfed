@@ -820,7 +820,7 @@ Tests
 - gui#120 Fix multiwallet transaction notifications (promag)
 
 ### Build system
-- #18504 Drop bitcoin-tx and peerfed-wallet dependencies on libevent (ryanofsky)
+- #18504 Drop peerfed-tx and peerfed-wallet dependencies on libevent (ryanofsky)
 - #18586 Bump gitian descriptors to 0.21 (laanwj)
 - #17595 guix: Enable building for `x86_64-w64-mingw32` target (dongcarl)
 - #17929 add linker optimisation flags to gitian & guix (Linux) (fanquake)

@@ -33,7 +33,7 @@ BITCOIN_DAEMON_NAME=peerfedd
 BITCOIN_GUI_NAME=peerfed-qt
 BITCOIN_TEST_NAME=test_bitcoin
 BITCOIN_CLI_NAME=peerfed-cli
-BITCOIN_TX_NAME=bitcoin-tx
+BITCOIN_TX_NAME=peerfed-tx
 BITCOIN_UTIL_NAME=bitcoin-util
 BITCOIN_CHAINSTATE_NAME=bitcoin-chainstate
 BITCOIN_WALLET_TOOL_NAME=peerfed-wallet
@@ -634,7 +634,7 @@ CORE_CPPFLAGS="$CORE_CPPFLAGS -DHAVE_BUILD_INFO"
 
 AC_ARG_WITH([utils],
   [AS_HELP_STRING([--with-utils],
-  [build peerfed-cli bitcoin-tx bitcoin-util peerfed-wallet (default=yes)])],
+  [build peerfed-cli peerfed-tx bitcoin-util peerfed-wallet (default=yes)])],
   [build_bitcoin_utils=$withval],
   [build_bitcoin_utils=yes])
 
@@ -646,7 +646,7 @@ AC_ARG_ENABLE([util-cli],
 
 AC_ARG_ENABLE([util-tx],
   [AS_HELP_STRING([--enable-util-tx],
-  [build bitcoin-tx])],
+  [build peerfed-tx])],
   [build_bitcoin_tx=$enableval],
   [build_bitcoin_tx=$build_bitcoin_utils])
 
@@ -1688,7 +1688,7 @@ AC_MSG_CHECKING([whether to build peerfed-cli])
 AM_CONDITIONAL([BUILD_BITCOIN_CLI], [test $build_bitcoin_cli = "yes"])
 AC_MSG_RESULT($build_bitcoin_cli)
 
-AC_MSG_CHECKING([whether to build bitcoin-tx])
+AC_MSG_CHECKING([whether to build peerfed-tx])
 AM_CONDITIONAL([BUILD_BITCOIN_TX], [test $build_bitcoin_tx = "yes"])
 AC_MSG_RESULT($build_bitcoin_tx)
 

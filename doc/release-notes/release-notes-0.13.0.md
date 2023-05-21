@@ -338,7 +338,7 @@ Low-level RPC changes
     - RPC `decodescript`
     - REST `/rest/tx/` (JSON format)
     - REST `/rest/block/` (JSON format when including extended tx details)
-    - `bitcoin-tx -json`
+    - `peerfed-tx -json`
 
 - The sorting of the output of the `getrawmempool` output has changed.
 

@@ -96,7 +96,7 @@ if BUILD_BITCOIN_CLI
 endif
 
 if BUILD_BITCOIN_TX
-  bin_PROGRAMS += bitcoin-tx
+  bin_PROGRAMS += peerfed-tx
 endif
 
 if ENABLE_WALLET
@@ -783,14 +783,14 @@ bitcoin_cli_LDADD = \
 bitcoin_cli_LDADD += $(EVENT_LIBS)
 #
 
-# bitcoin-tx binary #
-bitcoin_tx_SOURCES = bitcoin-tx.cpp
+# peerfed-tx binary #
+bitcoin_tx_SOURCES = peerfed-tx.cpp
 bitcoin_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 bitcoin_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 bitcoin_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
-bitcoin_tx_SOURCES += bitcoin-tx-res.rc
+bitcoin_tx_SOURCES += peerfed-tx-res.rc
 endif
 
 bitcoin_tx_LDADD = \
