@@ -349,12 +349,12 @@ qt_peerfed_qt_LDADD = $(peerfed_qt_ldadd)
 qt_peerfed_qt_LDFLAGS = $(peerfed_qt_ldflags)
 qt_peerfed_qt_LIBTOOLFLAGS = $(peerfed_qt_libtoolflags)
 
-bitcoin_gui_CPPFLAGS = $(peerfed_qt_cppflags)
-bitcoin_gui_CXXFLAGS = $(peerfed_qt_cxxflags)
-bitcoin_gui_SOURCES = $(peerfed_qt_sources) init/peerfed-gui.cpp
-bitcoin_gui_LDADD = $(peerfed_qt_ldadd) $(LIBBITCOIN_IPC) $(LIBBITCOIN_UTIL) $(LIBMULTIPROCESS_LIBS)
-bitcoin_gui_LDFLAGS = $(peerfed_qt_ldflags)
-bitcoin_gui_LIBTOOLFLAGS = $(peerfed_qt_libtoolflags)
+peerfed_gui_CPPFLAGS = $(peerfed_qt_cppflags)
+peerfed_gui_CXXFLAGS = $(peerfed_qt_cxxflags)
+peerfed_gui_SOURCES = $(peerfed_qt_sources) init/peerfed-gui.cpp
+peerfed_gui_LDADD = $(peerfed_qt_ldadd) $(LIBBITCOIN_IPC) $(LIBBITCOIN_UTIL) $(LIBMULTIPROCESS_LIBS)
+peerfed_gui_LDFLAGS = $(peerfed_qt_ldflags)
+peerfed_gui_LIBTOOLFLAGS = $(peerfed_qt_libtoolflags)
 
 #locale/foo.ts -> locale/foo.qm
 QT_QM=$(QT_TS:.ts=.qm)

@@ -729,13 +729,13 @@ nodist_libbitcoin_util_a_SOURCES = $(srcdir)/obj/build.h
 #
 
 # peerfedd & peerfed-node binaries #
-bitcoin_daemon_sources = peerfedd.cpp
+peerfed_daemon_sources = peerfedd.cpp
 bitcoin_bin_cppflags = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 bitcoin_bin_cxxflags = $(AM_CXXFLAGS) $(PIE_FLAGS)
 bitcoin_bin_ldflags = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
-bitcoin_daemon_sources += peerfedd-res.rc
+peerfed_daemon_sources += peerfedd-res.rc
 endif
 
 bitcoin_bin_ldadd = \
@@ -758,42 +758,42 @@ peerfedd_CXXFLAGS = $(bitcoin_bin_cxxflags)
 peerfedd_LDFLAGS = $(bitcoin_bin_ldflags)
 peerfedd_LDADD = $(LIBBITCOIN_NODE) $(bitcoin_bin_ldadd)
 
-bitcoin_node_SOURCES = $(bitcoin_daemon_sources) init/peerfed-node.cpp
-bitcoin_node_CPPFLAGS = $(bitcoin_bin_cppflags)
-bitcoin_node_CXXFLAGS = $(bitcoin_bin_cxxflags)
-bitcoin_node_LDFLAGS = $(bitcoin_bin_ldflags)
-bitcoin_node_LDADD = $(LIBBITCOIN_NODE) $(bitcoin_bin_ldadd) $(LIBBITCOIN_IPC) $(LIBMULTIPROCESS_LIBS)
+peerfed_node_SOURCES = $(bitcoin_daemon_sources) init/peerfed-node.cpp
+peerfed_node_CPPFLAGS = $(bitcoin_bin_cppflags)
+peerfed_node_CXXFLAGS = $(bitcoin_bin_cxxflags)
+peerfed_node_LDFLAGS = $(bitcoin_bin_ldflags)
+peerfed_node_LDADD = $(LIBBITCOIN_NODE) $(bitcoin_bin_ldadd) $(LIBBITCOIN_IPC) $(LIBMULTIPROCESS_LIBS)
 
 # peerfed-cli binary #
-bitcoin_cli_SOURCES = peerfed-cli.cpp
-bitcoin_cli_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(EVENT_CFLAGS)
-bitcoin_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-bitcoin_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
+peerfed_cli_SOURCES = peerfed-cli.cpp
+peerfed_cli_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(EVENT_CFLAGS)
+peerfed_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+peerfed_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
-bitcoin_cli_SOURCES += peerfed-cli-res.rc
+peerfed_cli_SOURCES += peerfed-cli-res.rc
 endif
 
-bitcoin_cli_LDADD = \
+peerfed_cli_LDADD = \
   $(LIBBITCOIN_CLI) \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO)
 
-bitcoin_cli_LDADD += $(EVENT_LIBS)
+peerfed_cli_LDADD += $(EVENT_LIBS)
 #
 
 # peerfed-tx binary #
-bitcoin_tx_SOURCES = peerfed-tx.cpp
-bitcoin_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
-bitcoin_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-bitcoin_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
+peerfed_tx_SOURCES = peerfed-tx.cpp
+peerfed_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+peerfed_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+peerfed_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
-bitcoin_tx_SOURCES += peerfed-tx-res.rc
+peerfed_tx_SOURCES += peerfed-tx-res.rc
 endif
 
-bitcoin_tx_LDADD = \
+peerfed_tx_LDADD = \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_COMMON) \
   $(LIBBITCOIN_UTIL) \
@@ -803,12 +803,12 @@ bitcoin_tx_LDADD = \
 #
 
 # peerfed-wallet binary #
-bitcoin_wallet_SOURCES = peerfed-wallet.cpp
-bitcoin_wallet_SOURCES += init/peerfed-wallet.cpp
-bitcoin_wallet_CPPFLAGS = $(bitcoin_bin_cppflags)
-bitcoin_wallet_CXXFLAGS = $(bitcoin_bin_cxxflags)
-bitcoin_wallet_LDFLAGS = $(bitcoin_bin_ldflags)
-bitcoin_wallet_LDADD = \
+peerfed_wallet_SOURCES = peerfed-wallet.cpp
+peerfed_wallet_SOURCES += init/peerfed-wallet.cpp
+peerfed_wallet_CPPFLAGS = $(bitcoin_bin_cppflags)
+peerfed_wallet_CXXFLAGS = $(bitcoin_bin_cxxflags)
+peerfed_wallet_LDFLAGS = $(bitcoin_bin_ldflags)
+peerfed_wallet_LDADD = \
   $(LIBBITCOIN_WALLET_TOOL) \
   $(LIBBITCOIN_WALLET) \
   $(LIBBITCOIN_COMMON) \
@@ -821,21 +821,21 @@ bitcoin_wallet_LDADD = \
   $(SQLITE_LIBS)
 
 if TARGET_WINDOWS
-bitcoin_wallet_SOURCES += peerfed-wallet-res.rc
+peerfed_wallet_SOURCES += peerfed-wallet-res.rc
 endif
 #
 
 # peerfed-util binary #
-bitcoin_util_SOURCES = peerfed-util.cpp
-bitcoin_util_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
-bitcoin_util_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-bitcoin_util_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
+peerfed_util_SOURCES = peerfed-util.cpp
+peerfed_util_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+peerfed_util_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+peerfed_util_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
-bitcoin_util_SOURCES += peerfed-util-res.rc
+peerfed_util_SOURCES += peerfed-util-res.rc
 endif
 
-bitcoin_util_LDADD = \
+peerfed_util_LDADD = \
   $(LIBBITCOIN_COMMON) \
   $(LIBBITCOIN_UTIL) \
   $(LIBUNIVALUE) \
@@ -845,15 +845,15 @@ bitcoin_util_LDADD = \
 #
 
 # peerfed-chainstate binary #
-bitcoin_chainstate_SOURCES = peerfed-chainstate.cpp
-bitcoin_chainstate_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
-bitcoin_chainstate_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+peerfed_chainstate_SOURCES = peerfed-chainstate.cpp
+peerfed_chainstate_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
+peerfed_chainstate_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
 # $(LIBTOOL_APP_LDFLAGS) deliberately omitted here so that we can test linking
 # peerfed-chainstate against libbitcoinkernel as a shared or static library by
 # setting --{en,dis}able-shared.
-bitcoin_chainstate_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(PTHREAD_FLAGS)
-bitcoin_chainstate_LDADD = $(LIBBITCOINKERNEL)
+peerfed_chainstate_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(PTHREAD_FLAGS)
+peerfed_chainstate_LDADD = $(LIBBITCOINKERNEL)
 #
 
 # bitcoinkernel library #

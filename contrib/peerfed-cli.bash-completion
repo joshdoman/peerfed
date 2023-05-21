@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 # call $peerfed-cli for RPC
-_bitcoin_rpc() {
+_peerfed_rpc() {
     # determine already specified args necessary for RPC
     local rpcargs=()
     for i in ${COMP_LINE}; do
@@ -17,7 +17,7 @@ _bitcoin_rpc() {
     $bitcoin_cli "${rpcargs[@]}" "$@"
 }
 
-_bitcoin_cli() {
+_peerfed_cli() {
     local cur prev words=() cword
     local bitcoin_cli
 
@@ -117,7 +117,7 @@ _bitcoin_cli() {
 
             # only parse help if senseful
             if [[ -z "$cur" || "$cur" =~ ^[a-z] ]]; then
-                commands=$(_bitcoin_rpc help 2>/dev/null | awk '$1 ~ /^[a-z]/ { print $1; }')
+                commands=$(_peerfed_rpc help 2>/dev/null | awk '$1 ~ /^[a-z]/ { print $1; }')
             fi
 
             COMPREPLY=( $( compgen -W "$helpopts $commands" -- "$cur" ) )
@@ -130,7 +130,7 @@ _bitcoin_cli() {
             ;;
     esac
 } &&
-complete -F _bitcoin_cli peerfed-cli
+complete -F _peerfed_cli peerfed-cli
 
 # Local variables:
 # mode: shell-script
