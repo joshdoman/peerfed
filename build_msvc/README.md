@@ -60,10 +60,10 @@ python build_msvc\msvc-autogen.py
 3. To build from the command-line with the Visual Studio toolchain use:
 
 ```cmd
-msbuild build_msvc\bitcoin.sln -property:Configuration=Release -maxCpuCount -verbosity:minimal
+msbuild build_msvc\peerfed.sln -property:Configuration=Release -maxCpuCount -verbosity:minimal
 ```
 
-Alternatively, open the `build_msvc/bitcoin.sln` file in Visual Studio.
+Alternatively, open the `build_msvc/peerfed.sln` file in Visual Studio.
 
 Security
 ---------------------
