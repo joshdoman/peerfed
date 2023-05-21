@@ -555,7 +555,7 @@ A detailed list of changes in this version follows. To keep the list to a manage
 - bitcoin/bitcoin#20471 Use C++17 in depends (fanquake)
 - bitcoin/bitcoin#20496 Drop unneeded macOS framework dependencies (hebasto)
 - bitcoin/bitcoin#20520 Do not force Precompiled Headers (PCH) for building Qt on Linux (hebasto)
-- bitcoin/bitcoin#20549 Support make src/bitcoin-node and src/bitcoin-gui (promag)
+- bitcoin/bitcoin#20549 Support make src/peerfed-node and src/peerfed-gui (promag)
 - bitcoin/bitcoin#20565 Ensure PIC build for bdb on Android (BlockMechanic)
 - bitcoin/bitcoin#20594 Fix getauxval calls in randomenv.cpp (jonasschnelli)
 - bitcoin/bitcoin#20603 Update crc32c subtree (MarcoFalke)

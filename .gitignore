@@ -5,8 +5,8 @@
 src/bitcoin
 src/peerfedd
 src/bitcoin-cli
-src/bitcoin-gui
-src/bitcoin-node
+src/peerfed-gui
+src/peerfed-node
 src/bitcoin-tx
 src/bitcoin-util
 src/bitcoin-chainstate

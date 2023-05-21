@@ -88,7 +88,7 @@ if BUILD_BITCOIND
 endif
 
 if BUILD_BITCOIN_NODE
-  bin_PROGRAMS += bitcoin-node
+  bin_PROGRAMS += peerfed-node
 endif
 
 if BUILD_BITCOIN_CLI
@@ -728,7 +728,7 @@ libbitcoin_cli_a_SOURCES = \
 nodist_libbitcoin_util_a_SOURCES = $(srcdir)/obj/build.h
 #
 
-# peerfedd & bitcoin-node binaries #
+# peerfedd & peerfed-node binaries #
 bitcoin_daemon_sources = peerfedd.cpp
 bitcoin_bin_cppflags = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 bitcoin_bin_cxxflags = $(AM_CXXFLAGS) $(PIE_FLAGS)
@@ -758,7 +758,7 @@ peerfedd_CXXFLAGS = $(bitcoin_bin_cxxflags)
 peerfedd_LDFLAGS = $(bitcoin_bin_ldflags)
 peerfedd_LDADD = $(LIBBITCOIN_NODE) $(bitcoin_bin_ldadd)
 
-bitcoin_node_SOURCES = $(bitcoin_daemon_sources) init/bitcoin-node.cpp
+bitcoin_node_SOURCES = $(bitcoin_daemon_sources) init/peerfed-node.cpp
 bitcoin_node_CPPFLAGS = $(bitcoin_bin_cppflags)
 bitcoin_node_CXXFLAGS = $(bitcoin_bin_cxxflags)
 bitcoin_node_LDFLAGS = $(bitcoin_bin_ldflags)

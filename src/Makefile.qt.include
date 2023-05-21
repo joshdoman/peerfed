@@ -5,7 +5,7 @@
 bin_PROGRAMS += qt/peerfed-qt
 
 if BUILD_BITCOIN_GUI
-  bin_PROGRAMS += bitcoin-gui
+  bin_PROGRAMS += peerfed-gui
 endif
 
 EXTRA_LIBRARIES += qt/libbitcoinqt.a
@@ -320,7 +320,7 @@ QT_FORMS_H=$(join $(dir $(QT_FORMS_UI)),$(addprefix ui_, $(notdir $(QT_FORMS_UI:
 $(QT_MOC): $(QT_FORMS_H)
 $(qt_libbitcoinqt_a_OBJECTS) $(qt_peerfed_qt_OBJECTS) $(bitcoin_gui_OBJECTS) : | $(QT_MOC)
 
-# peerfed-qt and bitcoin-gui binaries #
+# peerfed-qt and peerfed-gui binaries #
 peerfed_qt_cppflags = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BITCOIN_QT_INCLUDES) \
   $(QT_INCLUDES) $(QR_CFLAGS)
 peerfed_qt_cxxflags = $(AM_CXXFLAGS) $(QT_PIE_FLAGS)
@@ -351,7 +351,7 @@ qt_peerfed_qt_LIBTOOLFLAGS = $(peerfed_qt_libtoolflags)
 
 bitcoin_gui_CPPFLAGS = $(peerfed_qt_cppflags)
 bitcoin_gui_CXXFLAGS = $(peerfed_qt_cxxflags)
-bitcoin_gui_SOURCES = $(peerfed_qt_sources) init/bitcoin-gui.cpp
+bitcoin_gui_SOURCES = $(peerfed_qt_sources) init/peerfed-gui.cpp
 bitcoin_gui_LDADD = $(peerfed_qt_ldadd) $(LIBBITCOIN_IPC) $(LIBBITCOIN_UTIL) $(LIBMULTIPROCESS_LIBS)
 bitcoin_gui_LDFLAGS = $(peerfed_qt_ldflags)
 bitcoin_gui_LIBTOOLFLAGS = $(peerfed_qt_libtoolflags)
