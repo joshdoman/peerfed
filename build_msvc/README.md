@@ -44,7 +44,7 @@ nmake install
 
 One could speed up building with [`jom`](https://wiki.qt.io/Jom), a replacement for `nmake` which makes use of all CPU cores.
 
-To build PeerFed Core without Qt, unload or disable the `peerfed-qt`, `libbitcoin_qt` and `test_bitcoin-qt` projects.
+To build PeerFed Core without Qt, unload or disable the `peerfed-qt`, `libbitcoin_qt` and `test_peerfed-qt` projects.
 
 
 Building

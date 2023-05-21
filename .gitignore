@@ -13,7 +13,7 @@ src/bitcoin-chainstate
 src/bitcoin-wallet
 src/test/fuzz/fuzz
 src/test/test_bitcoin
-src/qt/test/test_bitcoin-qt
+src/qt/test/test_peerfed-qt
 
 # autoreconf
 Makefile.in

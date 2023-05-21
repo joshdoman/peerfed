@@ -524,7 +524,7 @@ Build system
 - #17730 Remove Qt networking features (fanquake)
 - #17738 Remove linking librt for backwards compatibility (fanquake)
 - #17740 Remove configure checks for win libraries we don't link against (fanquake)
-- #17741 Included `test_bitcoin-qt` in msvc build (sipsorcery)
+- #17741 Included `test_peerfed-qt` in msvc build (sipsorcery)
 - #17756 Remove `WINDOWS_BITS` from build system (fanquake)
 - #17769 Set `AC_PREREQ` to 2.69 (fanquake)
 - #17880 Add -Wdate-time to Werror flags (fanquake)
