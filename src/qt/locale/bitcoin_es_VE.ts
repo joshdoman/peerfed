@@ -459,7 +459,7 @@ Registrarse solo es posible utilizando  una direccion tipo "Legal"</translation>
         <translation type="unfinished">Barra de pestañas</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and peerfed: URIs)</source>
         <translation type="unfinished">Solicitar pagos (genera codigo QR y URL's de Bitcoin)</translation>
     </message>
     <message>

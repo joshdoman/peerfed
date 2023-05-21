@@ -1429,8 +1429,8 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">Встановлення з'єднань…</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Створити запит платежу (генерує QR-код та bitcoin: URI)</translation>
+        <source>Request payments (generates QR codes and peerfed: URIs)</source>
+        <translation type="unfinished">Створити запит платежу (генерує QR-код та peerfed: URI)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -1513,8 +1513,8 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">&amp;Адреси для отримання</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Відкрити URI-адресу "bitcoin:"</translation>
+        <source>Open a peerfed: URI</source>
+        <translation type="unfinished">Відкрити URI-адресу "peerfed:"</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -2926,7 +2926,7 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">Помилка запиту платежу</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start peerfed: click-to-pay handler</source>
         <translation type="unfinished">Не вдалося запустити біткоїн: обробник "click-to-pay"</translation>
     </message>
     <message>
@@ -2934,8 +2934,8 @@ Unable to restore backup of wallet.</source>
         <translation type="unfinished">Обробка URI</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">"bitcoin://" не є припустимим URI. Використовуйте натомість "bitcoin:".</translation>
+        <source>'peerfed://' is not a valid URI. Use 'peerfed:' instead.</source>
+        <translation type="unfinished">"peerfed://" не є припустимим URI. Використовуйте натомість "peerfed:".</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.
@@ -4093,8 +4093,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">Введіть мітку для цієї адреси для додавання її в список використаних адрес</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
-        <translation type="unfinished">Повідомлення, що було додане до bitcoin:URI та буде збережено разом з транзакцією для довідки. Примітка: це повідомлення не буде відправлено в мережу Біткоїн.</translation>
+        <source>A message that was attached to the peerfed: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
+        <translation type="unfinished">Повідомлення, що було додане до peerfed:URI та буде збережено разом з транзакцією для довідки. Примітка: це повідомлення не буде відправлено в мережу Біткоїн.</translation>
     </message>
 </context>
 <context>

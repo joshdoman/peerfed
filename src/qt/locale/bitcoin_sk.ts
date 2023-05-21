@@ -1235,8 +1235,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">Pripája sa k partnerom…</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Vyžiadať platby (vygeneruje QR kódy a bitcoin: URI)</translation>
+        <source>Request payments (generates QR codes and peerfed: URIs)</source>
+        <translation type="unfinished">Vyžiadať platby (vygeneruje QR kódy a peerfed: URI)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -1319,8 +1319,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">&amp;Prijímajúce adresy</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Otvoriť bitcoin: URI</translation>
+        <source>Open a peerfed: URI</source>
+        <translation type="unfinished">Otvoriť peerfed: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -2632,7 +2632,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">Chyba pri vyžiadaní platby</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start peerfed: click-to-pay handler</source>
         <translation type="unfinished">Nemôžeme spustiť Bitcoin: obsluha click-to-pay</translation>
     </message>
     <message>
@@ -2640,8 +2640,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">URI manipulácia</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' je neplatná URI. Použite 'bitcoin:'</translation>
+        <source>'peerfed://' is not a valid URI. Use 'peerfed:' instead.</source>
+        <translation type="unfinished">'peerfed://' je neplatná URI. Použite 'peerfed:'</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.
@@ -3784,8 +3784,8 @@ Poznámka: Keďže poplatok je počítaný za bajt, poplatok pri sadzbe "100 sat
         <translation type="unfinished">Vložte popis pre túto adresu aby sa uložila do zoznamu použitých adries</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
-        <translation type="unfinished">Správa ktorá bola pripojená k bitcoin: URI a ktorá bude uložená s transakcou pre Vaše potreby. Poznámka: Táto správa nebude poslaná cez sieť Bitcoin.</translation>
+        <source>A message that was attached to the peerfed: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
+        <translation type="unfinished">Správa ktorá bola pripojená k peerfed: URI a ktorá bude uložená s transakcou pre Vaše potreby. Poznámka: Táto správa nebude poslaná cez sieť Bitcoin.</translation>
     </message>
 </context>
 <context>

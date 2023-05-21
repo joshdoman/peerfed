@@ -1238,8 +1238,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">ピアに接続中...</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">支払いをリクエストする（QRコードと bitcoin:で始まるURIを生成する）</translation>
+        <source>Request payments (generates QR codes and peerfed: URIs)</source>
+        <translation type="unfinished">支払いをリクエストする（QRコードと peerfed:で始まるURIを生成する）</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -1320,8 +1320,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">受取用アドレス一覧(&amp;R)...</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">bitcoin: URIを開く</translation>
+        <source>Open a peerfed: URI</source>
+        <translation type="unfinished">peerfed: URIを開く</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -2631,7 +2631,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">支払いリクエスト エラー</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start peerfed: click-to-pay handler</source>
         <translation type="unfinished">Bitcoin を起動できません: click-to-pay handler</translation>
     </message>
     <message>
@@ -2639,8 +2639,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">URIの処理</translation>
     </message>
     <message>
-        <source>'bitcoin://' is not a valid URI. Use 'bitcoin:' instead.</source>
-        <translation type="unfinished">'bitcoin://' は正しいURIではありません｡ 'bitcoin:'を使用してください｡</translation>
+        <source>'peerfed://' is not a valid URI. Use 'peerfed:' instead.</source>
+        <translation type="unfinished">'peerfed://' は正しいURIではありません｡ 'peerfed:'を使用してください｡</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.
@@ -3772,7 +3772,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         <translation type="unfinished">このアドレスに対するラベルを入力することで、送金したことがあるアドレスの一覧に追加することができます</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
+        <source>A message that was attached to the peerfed: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
         <translation type="unfinished">bitcoin URIに添付されていたメッセージです。これは参照用として取引とともに保存されます。注意: メッセージは Bitcoin ネットワーク上へ送信されません。</translation>
     </message>
 </context>

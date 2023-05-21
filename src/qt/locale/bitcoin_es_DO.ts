@@ -460,7 +460,7 @@
         <translation type="unfinished">Barra de pestañas</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and peerfed: URIs)</source>
         <translation type="unfinished">Solicitar pagos (genera codigo QR y URL's de Bitcoin)</translation>
     </message>
     <message>
@@ -979,8 +979,8 @@
         <translation type="unfinished">Error en petición de pago</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation type="unfinished">No se pudo iniciar bitcoin: manejador de pago-al-clic</translation>
+        <source>Cannot start peerfed: click-to-pay handler</source>
+        <translation type="unfinished">No se pudo iniciar peerfed: manejador de pago-al-clic</translation>
     </message>
     <message>
         <source>URI handling</source>

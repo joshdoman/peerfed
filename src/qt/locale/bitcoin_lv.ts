@@ -402,8 +402,8 @@
         <translation type="unfinished">Sinhronizē ar tīklu</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Pieprasīt maksājumus (izveido QR kodu un bitcoin: URIs)</translation>
+        <source>Request payments (generates QR codes and peerfed: URIs)</source>
+        <translation type="unfinished">Pieprasīt maksājumus (izveido QR kodu un peerfed: URIs)</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>

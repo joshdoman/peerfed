@@ -485,7 +485,7 @@
         <translation type="unfinished">Vahelehe tööriistariba</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and peerfed: URIs)</source>
         <translation type="unfinished">Loo maksepäring (genereerib QR koodid ja bitcoini: URId)</translation>
     </message>
     <message>
@@ -1000,7 +1000,7 @@
         <translation type="unfinished">Maksepäringu tõrge</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start peerfed: click-to-pay handler</source>
         <translation type="unfinished">Bitcoin ei käivitu: vajuta-maksa toiming</translation>
     </message>
     <message>

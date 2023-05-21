@@ -698,7 +698,7 @@
 <context>
     <name>PaymentServer</name>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
+        <source>Cannot start peerfed: click-to-pay handler</source>
         <translation type="unfinished">Bitcoin incipere non potest: cliccare-ad-pensandum handler</translation>
     </message>
     <message>

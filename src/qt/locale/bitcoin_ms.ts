@@ -345,8 +345,8 @@ Alihkan fail data ke dalam tab semasa</translation>
 </translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">Request payments (generates QR codes and bitcoin: URIs)
+        <source>Request payments (generates QR codes and peerfed: URIs)</source>
+        <translation type="unfinished">Request payments (generates QR codes and peerfed: URIs)
 </translation>
     </message>
     <message>

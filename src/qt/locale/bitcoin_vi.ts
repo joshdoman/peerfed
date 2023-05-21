@@ -460,8 +460,8 @@
         <translation type="unfinished">&amp;Các địa chỉ đang nhận</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
-        <translation type="unfinished">Mở một bitcoin: URI</translation>
+        <source>Open a peerfed: URI</source>
+        <translation type="unfinished">Mở một peerfed: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>

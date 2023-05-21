@@ -885,8 +885,8 @@ Signing is only possible with addresses of the type 'legacy'</translation>
         <translation type="unfinished">กำลังเชื่อมต่อ ไปยัง peers…</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation type="unfinished">ขอการชำระเงิน (สร้างรหัส QR และ bitcoin: URIs)</translation>
+        <source>Request payments (generates QR codes and peerfed: URIs)</source>
+        <translation type="unfinished">ขอการชำระเงิน (สร้างรหัส QR และ peerfed: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -1662,7 +1662,7 @@ Signing is only possible with addresses of the type 'legacy'</translation>
     <name>OpenURIDialog</name>
     <message>
         <source>Open bitcoin URI</source>
-        <translation type="unfinished">เปิด bitcoin: URI</translation>
+        <translation type="unfinished">เปิด peerfed: URI</translation>
     </message>
     </context>
 <context>

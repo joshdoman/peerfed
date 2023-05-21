@@ -393,7 +393,7 @@
         <translation type="unfinished">Barra de ferramentas das pestanas</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
+        <source>Request payments (generates QR codes and peerfed: URIs)</source>
         <translation type="unfinished">Solicita pagamentos (xera un código QR e bitcoin : URIs)</translation>
     </message>
     <message>
@@ -456,7 +456,7 @@
         <translation type="unfinished">&amp;Enderezos de recepción</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI</source>
+        <source>Open a peerfed: URI</source>
         <translation type="unfinished">Abre una URI de Bitcoin</translation>
     </message>
     <message>
