@@ -544,7 +544,7 @@ Build system
 - #18290 Set minimum Automake version to 1.13 (hebasto)
 - #18320 guix: Remove now-unnecessary gcc make flag (dongcarl)
 - #18331 Use git archive as source tarball (hebasto)
-- #18397 Fix libevent linking for `bench_bitcoin` binary (hebasto)
+- #18397 Fix libevent linking for `bench_peerfed` binary (hebasto)
 - #18426 scripts: `Previous_release`: improve behaviour on failed download (theStack)
 - #18429 Remove double `LIBBITCOIN_SERVER` from bench-Makefile (brakmic)
 - #18528 Create `test_fuzz` library from src/test/fuzz/fuzz.cpp (brakmic)
