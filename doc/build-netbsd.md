@@ -36,7 +36,7 @@ See [dependencies.md](dependencies.md) for a complete overview.
 
 ### 2. Clone Bitcoin Repo
 
-Clone the Bitcoin Core repository to a directory. All build scripts and commands will run from this directory.
+Clone the PeerFed Core repository to a directory. All build scripts and commands will run from this directory.
 
 ```bash
 git clone https://github.com/bitcoin/bitcoin.git
@@ -66,7 +66,7 @@ pkgin install db4
 
 #### GUI Dependencies
 
-Bitcoin Core includes a GUI built with the cross-platform Qt Framework. To compile the GUI, we need to install `qt5`.
+PeerFed Core includes a GUI built with the cross-platform Qt Framework. To compile the GUI, we need to install `qt5`.
 
 ```bash
 pkgin install qt5
@@ -87,14 +87,14 @@ To run the test suite (recommended), you will need to have Python 3 installed:
 pkgin install python37
 ```
 
-### Building Bitcoin Core
+### Building PeerFed Core
 
 **Note**: Use `gmake` (the non-GNU `make` will exit with an error).
 
 
 ### 1. Configuration
 
-There are many ways to configure Bitcoin Core. Here is an example that
+There are many ways to configure PeerFed Core. Here is an example that
 explicitly disables the wallet and GUI:
 
 ```bash

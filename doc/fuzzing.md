@@ -1,8 +1,8 @@
-# Fuzzing Bitcoin Core using libFuzzer
+# Fuzzing PeerFed Core using libFuzzer
 
 ## Quickstart guide
 
-To quickly get started fuzzing Bitcoin Core using [libFuzzer](https://llvm.org/docs/LibFuzzer.html):
+To quickly get started fuzzing PeerFed Core using [libFuzzer](https://llvm.org/docs/LibFuzzer.html):
 
 ```sh
 $ git clone https://github.com/bitcoin/bitcoin
@@ -19,9 +19,9 @@ $ FUZZ=process_message src/test/fuzz/fuzz
 There is also a runner script to execute all fuzz targets. Refer to
 `./test/fuzz/test_runner.py --help` for more details.
 
-## Overview of Bitcoin Core fuzzing
+## Overview of PeerFed Core fuzzing
 
-[Google](https://github.com/google/fuzzing/) has a good overview of fuzzing in general, with contributions from key architects of some of the most-used fuzzers. [This paper](https://agroce.github.io/bitcoin_report.pdf) includes an external overview of the status of Bitcoin Core fuzzing, as of summer 2021.  [John Regehr](https://blog.regehr.org/archives/1687) provides good advice on writing code that assists fuzzers in finding bugs, which is useful for developers to keep in mind.
+[Google](https://github.com/google/fuzzing/) has a good overview of fuzzing in general, with contributions from key architects of some of the most-used fuzzers. [This paper](https://agroce.github.io/bitcoin_report.pdf) includes an external overview of the status of PeerFed Core fuzzing, as of summer 2021.  [John Regehr](https://blog.regehr.org/archives/1687) provides good advice on writing code that assists fuzzers in finding bugs, which is useful for developers to keep in mind.
 
 ## Fuzzing harnesses and output
 
@@ -119,7 +119,7 @@ Fuzzing on a harness compiled with `--with-sanitizers=address,fuzzer,undefined` 
 
 If you find coverage increasing inputs when fuzzing you are highly encouraged to submit them for inclusion in the [`bitcoin-core/qa-assets`](https://github.com/bitcoin-core/qa-assets) repo.
 
-Every single pull request submitted against the Bitcoin Core repo is automatically tested against all inputs in the [`bitcoin-core/qa-assets`](https://github.com/bitcoin-core/qa-assets) repo. Contributing new coverage increasing inputs is an easy way to help make Bitcoin Core more robust.
+Every single pull request submitted against the PeerFed Core repo is automatically tested against all inputs in the [`bitcoin-core/qa-assets`](https://github.com/bitcoin-core/qa-assets) repo. Contributing new coverage increasing inputs is an easy way to help make PeerFed Core more robust.
 
 ## macOS hints for libFuzzer
 
@@ -129,7 +129,7 @@ example using `brew install llvm`.
 
 Should you run into problems with the address sanitizer, it is possible you
 may need to run `./configure` with `--disable-asm` to avoid errors
-with certain assembly code from Bitcoin Core's code. See [developer notes on sanitizers](https://github.com/bitcoin/bitcoin/blob/master/doc/developer-notes.md#sanitizers)
+with certain assembly code from PeerFed Core's code. See [developer notes on sanitizers](https://github.com/bitcoin/bitcoin/blob/master/doc/developer-notes.md#sanitizers)
 for more information.
 
 You may also need to take care of giving the correct path for `clang` and
@@ -144,11 +144,11 @@ Full configure that was tested on macOS Catalina with `brew` installed `llvm`:
 
 Read the [libFuzzer documentation](https://llvm.org/docs/LibFuzzer.html) for more information. This [libFuzzer tutorial](https://github.com/google/fuzzing/blob/master/tutorial/libFuzzerTutorial.md) might also be of interest.
 
-# Fuzzing Bitcoin Core using afl++
+# Fuzzing PeerFed Core using afl++
 
 ## Quickstart guide
 
-To quickly get started fuzzing Bitcoin Core using [afl++](https://github.com/AFLplusplus/AFLplusplus):
+To quickly get started fuzzing PeerFed Core using [afl++](https://github.com/AFLplusplus/AFLplusplus):
 
 ```sh
 $ git clone https://github.com/bitcoin/bitcoin
@@ -171,11 +171,11 @@ $ FUZZ=bech32 AFLplusplus/afl-fuzz -i inputs/ -o outputs/ -- src/test/fuzz/fuzz
 
 Read the [afl++ documentation](https://github.com/AFLplusplus/AFLplusplus) for more information.
 
-# Fuzzing Bitcoin Core using Honggfuzz
+# Fuzzing PeerFed Core using Honggfuzz
 
 ## Quickstart guide
 
-To quickly get started fuzzing Bitcoin Core using [Honggfuzz](https://github.com/google/honggfuzz):
+To quickly get started fuzzing PeerFed Core using [Honggfuzz](https://github.com/google/honggfuzz):
 
 ```sh
 $ git clone https://github.com/bitcoin/bitcoin
@@ -193,7 +193,7 @@ $ FUZZ=process_message honggfuzz/honggfuzz -i inputs/ -- src/test/fuzz/fuzz
 
 Read the [Honggfuzz documentation](https://github.com/google/honggfuzz/blob/master/docs/USAGE.md) for more information.
 
-## Fuzzing the Bitcoin Core P2P layer using Honggfuzz NetDriver
+## Fuzzing the PeerFed Core P2P layer using Honggfuzz NetDriver
 
 Honggfuzz NetDriver allows for very easy fuzzing of TCP servers such as Bitcoin
 Core without having to write any custom fuzzing harness. The `bitcoind` server
@@ -267,11 +267,11 @@ $ honggfuzz/honggfuzz --exit_upon_crash --quiet --timeout 4 -n 1 -Q \
                        -debug
 ```
 
-# Fuzzing Bitcoin Core using Eclipser (v1.x)
+# Fuzzing PeerFed Core using Eclipser (v1.x)
 
 ## Quickstart guide
 
-To quickly get started fuzzing Bitcoin Core using [Eclipser v1.x](https://github.com/SoftSec-KAIST/Eclipser/tree/v1.x):
+To quickly get started fuzzing PeerFed Core using [Eclipser v1.x](https://github.com/SoftSec-KAIST/Eclipser/tree/v1.x):
 
 ```sh
 $ git clone https://github.com/bitcoin/bitcoin
@@ -336,7 +336,7 @@ Read the [Eclipser documentation for v1.x](https://github.com/SoftSec-KAIST/Ecli
 
 # OSS-Fuzz
 
-Bitcoin Core participates in Google's [OSS-Fuzz](https://github.com/google/oss-fuzz/tree/master/projects/bitcoin-core)
+PeerFed Core participates in Google's [OSS-Fuzz](https://github.com/google/oss-fuzz/tree/master/projects/bitcoin-core)
 program, which includes a dashboard of [publicly disclosed vulnerabilities](https://bugs.chromium.org/p/oss-fuzz/issues/list?q=bitcoin-core).
 Generally, we try to disclose vulnerabilities as soon as possible after they
 are fixed to give users the knowledge they need to be protected. However,
