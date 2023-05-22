@@ -729,13 +729,13 @@ nodist_libbitcoin_util_a_SOURCES = $(srcdir)/obj/build.h
 #
 
 # peerfedd & peerfed-node binaries #
-peerfed_daemon_sources = peerfedd.cpp
+bitcoin_daemon_sources = peerfedd.cpp
 bitcoin_bin_cppflags = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 bitcoin_bin_cxxflags = $(AM_CXXFLAGS) $(PIE_FLAGS)
 bitcoin_bin_ldflags = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
-peerfed_daemon_sources += peerfedd-res.rc
+bitcoin_daemon_sources += peerfedd-res.rc
 endif
 
 bitcoin_bin_ldadd = \
