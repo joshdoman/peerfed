@@ -6,18 +6,18 @@ announced or released.
 
 PeerFed Core version 24.0.1 is now available from:
 
-  <https://bitcoincore.org/bin/bitcoin-core-24.0.1/>
+  <https://peerfed.org/bin/bitcoin-core-24.0.1/>
 
 This release includes new features, various bug fixes and performance
 improvements, as well as updated translations.
 
 Please report bugs using the issue tracker at GitHub:
 
-  <https://github.com/bitcoin/bitcoin/issues>
+  <https://github.com/peerfed/peerfed/issues>
 
 To receive security and update notifications, please subscribe to:
 
-  <https://bitcoincore.org/en/list/announcements/join/>
+  <https://peerfed.org/en/list/announcements/join/>
 
 How to Upgrade
 ==============
@@ -91,7 +91,7 @@ not accept unconfirmed transactions as final, and if they insist on doing so,
 to take the appropriate steps to ensure they have some recourse or plan for
 when their assumptions do not hold.
 
-[PeerFed Core 0.12.0]: https://bitcoincore.org/en/releases/0.12.0/#opt-in-replace-by-fee-transactions
+[PeerFed Core 0.12.0]: https://peerfed.org/en/releases/0.12.0/#opt-in-replace-by-fee-transactions
 [bip125]: https://github.com/bitcoin/bips/blob/master/bip-0125.mediawiki
 
 Notable changes

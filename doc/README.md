@@ -5,7 +5,7 @@ Setup
 ---------------------
 PeerFed Core is the original Bitcoin client and it builds the backbone of the network. It downloads and, by default, stores the entire history of Bitcoin transactions, which requires a few hundred gigabytes of disk space. Depending on the speed of your computer and network connection, the synchronization process can take anywhere from a few hours to a day or more.
 
-To download PeerFed Core, visit [bitcoincore.org](https://bitcoincore.org/en/download/).
+To download PeerFed Core, visit [peerfed.org](https://peerfed.org/en/download/).
 
 Running
 ---------------------
@@ -54,7 +54,7 @@ The Bitcoin repo's [root README](/README.md) contains relevant information on th
 - [Developer Notes](developer-notes.md)
 - [Productivity Notes](productivity.md)
 - [Release Process](release-process.md)
-- [Source Code Documentation (External Link)](https://doxygen.bitcoincore.org/)
+- [Source Code Documentation (External Link)](https://doxygen.peerfed.org/)
 - [Translation Process](translation_process.md)
 - [Translation Strings Policy](translation_strings_policy.md)
 - [JSON-RPC Interface](JSON-RPC-interface.md)

@@ -86,7 +86,7 @@ Check out the source code in the following directory hierarchy.
     cd /path/to/your/toplevel/build
     git clone https://github.com/bitcoin-core/guix.sigs.git
     git clone https://github.com/bitcoin-core/bitcoin-detached-sigs.git
-    git clone https://github.com/bitcoin/bitcoin.git
+    git clone https://github.com/peerfed/peerfed.git
 
 ### Write the release notes
 
@@ -215,7 +215,7 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
 ```
 
 
-- Upload to the bitcoincore.org server (`/var/www/bin/bitcoin-core-${VERSION}/`):
+- Upload to the peerfed.org server (`/var/www/bin/bitcoin-core-${VERSION}/`):
     1. The contents of each `./bitcoin/guix-build-${VERSION}/output/${HOST}/` directory, except for
        `*-debug*` files.
 
@@ -228,11 +228,11 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
        for troubleshooting by developers. It is assumed that anyone that is
        interested in debugging can run guix to generate the files for
        themselves. To avoid end-user confusion about which file to pick, as well
-       as save storage space *do not upload these to the bitcoincore.org server,
+       as save storage space *do not upload these to the peerfed.org server,
        nor put them in the torrent*.
 
        ```sh
-       find guix-build-${VERSION}/output/ -maxdepth 2 -type f -not -name "SHA256SUMS.part" -and -not -name "*debug*" -exec scp {} user@bitcoincore.org:/var/www/bin/bitcoin-core-${VERSION} \;
+       find guix-build-${VERSION}/output/ -maxdepth 2 -type f -not -name "SHA256SUMS.part" -and -not -name "*debug*" -exec scp {} user@peerfed.org:/var/www/bin/bitcoin-core-${VERSION} \;
        ```
 
     2. The `SHA256SUMS` file
@@ -251,22 +251,22 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
   ```
 
   Insert the magnet URI into the announcement sent to mailing lists. This permits
-  people without access to `bitcoincore.org` to download the binary distribution.
+  people without access to `peerfed.org` to download the binary distribution.
   Also put it into the `optional_magnetlink:` slot in the YAML file for
-  bitcoincore.org.
+  peerfed.org.
 
 - Update other repositories and websites for new version
 
-  - bitcoincore.org blog post
+  - peerfed.org blog post
 
-  - bitcoincore.org maintained versions update:
-    [table](https://github.com/bitcoin-core/bitcoincore.org/commits/master/_includes/posts/maintenance-table.md)
+  - peerfed.org maintained versions update:
+    [table](https://github.com/bitcoin-core/peerfed.org/commits/master/_includes/posts/maintenance-table.md)
 
   - Delete post-EOL [release branches](https://github.com/bitcoin/bitcoin/branches/all) and create a tag `v${branch_name}-final`.
 
   - Delete ["Needs backport" labels](https://github.com/bitcoin/bitcoin/labels?q=backport) for non-existing branches.
 
-  - bitcoincore.org RPC documentation update
+  - peerfed.org RPC documentation update
 
       - Install [golang](https://golang.org/doc/install)
 
@@ -274,7 +274,7 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
 
       - Run peerfedd on regtest
 
-      - Clone the [bitcoincore.org repository](https://github.com/bitcoin-core/bitcoincore.org)
+      - Clone the [peerfed.org repository](https://github.com/bitcoin-core/peerfed.org)
 
       - Run: `go run generate.go` while being in `contrib/doc-gen` folder, and with peerfed-cli in PATH
 
@@ -296,7 +296,7 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
 
   - bitcoin-dev and bitcoin-core-dev mailing list
 
-  - PeerFed Core announcements list https://bitcoincore.org/en/list/announcements/join/
+  - PeerFed Core announcements list https://peerfed.org/en/list/announcements/join/
 
   - PeerFed Core Twitter https://twitter.com/bitcoincoreorg
 
