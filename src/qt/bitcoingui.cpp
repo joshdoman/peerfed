@@ -832,11 +832,13 @@ void BitcoinGUI::createTrayIconMenu()
 
     QAction* send_action{nullptr};
     QAction* receive_action{nullptr};
+    QAction* convert_action{nullptr};
     QAction* sign_action{nullptr};
     QAction* verify_action{nullptr};
     if (enableWallet) {
         send_action = trayIconMenu->addAction(sendCoinsAction->text(), sendCoinsAction, &QAction::trigger);
         receive_action = trayIconMenu->addAction(receiveCoinsAction->text(), receiveCoinsAction, &QAction::trigger);
+        convert_action = trayIconMenu->addAction(convertCoinsAction->text(), convertCoinsAction, &QAction::trigger);
         trayIconMenu->addSeparator();
         sign_action = trayIconMenu->addAction(signMessageAction->text(), signMessageAction, &QAction::trigger);
         verify_action = trayIconMenu->addAction(verifyMessageAction->text(), verifyMessageAction, &QAction::trigger);
@@ -872,7 +874,7 @@ void BitcoinGUI::createTrayIconMenu()
         // Using QSystemTrayIcon::Context is not reliable.
         // See https://bugreports.qt.io/browse/QTBUG-91697
         trayIconMenu.get(), &QMenu::aboutToShow,
-        [this, show_hide_action, send_action, receive_action, sign_action, verify_action, options_action, node_window_action, quit_action] {
+        [this, show_hide_action, send_action, receive_action, convert_action, sign_action, verify_action, options_action, node_window_action, quit_action] {
             if (show_hide_action) show_hide_action->setText(
                 (!isHidden() && !isMinimized() && !GUIUtil::isObscured(this)) ?
                     tr("&Hide") :
@@ -886,6 +888,7 @@ void BitcoinGUI::createTrayIconMenu()
                 if (enableWallet) {
                     send_action->setEnabled(sendCoinsAction->isEnabled());
                     receive_action->setEnabled(receiveCoinsAction->isEnabled());
+                    convert_action->setEnabled(convertCoinsAction->isEnabled());
                     sign_action->setEnabled(signMessageAction->isEnabled());
                     verify_action->setEnabled(verifyMessageAction->isEnabled());
                 }
