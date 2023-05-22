@@ -15,6 +15,7 @@
 #include <qt/receivecoinsdialog.h>
 #include <qt/sendcoinsdialog.h>
 #include <qt/signverifymessagedialog.h>
+#include <qt/transactionrecord.h>
 #include <qt/transactiontablemodel.h>
 #include <qt/transactionview.h>
 #include <qt/walletmodel.h>
@@ -156,6 +157,27 @@ void WalletView::processNewTransaction(const QModelIndex& parent, int start, int
     CAmountType amountType = cashAmount != 0 ? CASH : BOND;
     BitcoinUnit unit = walletModel->getOptionsModel()->getDisplayUnit(amountType);
     Q_EMIT incomingTransaction(date, unit, cashAmount + bondAmount, type, address, label, GUIUtil::HtmlEscape(walletModel->getWalletName()));
+
+    // Check if this is a "Mined" transaction
+    TransactionRecord::Type recordType = (TransactionRecord::Type)ttm->data(index, TransactionTableModel::TypeRole).toInt();
+    if (recordType == TransactionRecord::Type::Generated) {
+        // Emit a second notification for the second mined output
+        // TODO: Combine into a single notification
+        int next = start + 1;
+        QModelIndex index = ttm->index(next, 0, parent);
+        if (!index.isValid())
+            return;
+        QString date = ttm->index(next, TransactionTableModel::Date, parent).data().toString();
+        qint64 cashAmount = ttm->index(next, TransactionTableModel::CashAmount, parent).data(Qt::EditRole).toULongLong();
+        qint64 bondAmount = ttm->index(next, TransactionTableModel::BondAmount, parent).data(Qt::EditRole).toULongLong();
+        QString type = ttm->index(next, TransactionTableModel::Type, parent).data().toString();
+        QString address = ttm->data(index, TransactionTableModel::AddressRole).toString();
+        QString label = GUIUtil::HtmlEscape(ttm->data(index, TransactionTableModel::LabelRole).toString());
+
+        CAmountType amountType = cashAmount != 0 ? CASH : BOND;
+        BitcoinUnit unit = walletModel->getOptionsModel()->getDisplayUnit(amountType);
+        Q_EMIT incomingTransaction(date, unit, cashAmount + bondAmount, type, address, label, GUIUtil::HtmlEscape(walletModel->getWalletName()));
+    }
 }
 
 void WalletView::gotoOverviewPage()
