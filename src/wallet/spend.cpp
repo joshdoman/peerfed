@@ -1146,6 +1146,9 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
     CAmount nFeeRet;
     CAmountType nFeeTypeRet = coin_control.m_fee_type.value_or(wallet.m_pay_tx_fee_type);
     int nChangePosInOut = change_pos;
+    if (nChangePosInOut == 0) {
+        return util::Error{_("Change position cannot be 0. Conversion output must be first.")};
+    }
 
     FastRandomContext rng_fast;
     CMutableTransaction txNew; // The resulting transaction that we make
@@ -1334,8 +1337,8 @@ static util::Result<CreatedTransactionResult> CreateConversionTransactionInterna
     if (change_amount > 0) {
         CTxOut newTxOut(tx_details.inputType, change_amount, scriptChange);
         if (nChangePosInOut == -1) {
-            // Insert change txn at random position:
-            nChangePosInOut = rng_fast.randrange(txNew.vout.size() + 1);
+            // Insert change txn at random position between 1 and vout.size() + 1:
+            nChangePosInOut = rng_fast.randrange(txNew.vout.size()) + 1;
         } else if ((unsigned int)nChangePosInOut > txNew.vout.size()) {
             return util::Error{_("Transaction change output index out of range")};
         }

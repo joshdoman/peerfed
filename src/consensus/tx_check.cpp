@@ -44,15 +44,12 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputs-duplicate");
     }
 
-    // Check for multiple outputs with a conversion script
-    bool has_conversion_script{false};
-    for (const auto& txout : tx.vout)
+    // Check for an output with a conversion script that is not the first output in the transaction
+    for (unsigned int i = 1; i < tx.vout.size(); i++)
     {
+        CTxOut txout = tx.vout[i];
         if (txout.scriptPubKey.IsConversionScript()) {
-            if (has_conversion_script) {
-                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-duplicate-conversion-vouts");
-            }
-            has_conversion_script = true;
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-conversion-vout-not-first");
         }
     }
 
