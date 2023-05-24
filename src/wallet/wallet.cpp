@@ -1375,12 +1375,9 @@ void CWallet::blockConnected(const interfaces::BlockInfo& block)
         if (wtx.isConfirmed() || wtx.isConflicted() || wtx.isExpired()) continue;
         // Only conversion transactions have an expiration deadline
         if (wtx.IsConversion()) {
-            CScript script = wtx.tx->vout[wtx.GetConversionOutputN()].scriptPubKey;
-            CTxConversionInfo conversionInfo;
-            if (ExtractConversionInfo(script, conversionInfo)) {
-                if (conversionInfo.nDeadline && conversionInfo.nDeadline <= (uint32_t)block.height) {
-                    SyncTransaction(wtx.tx, TxStateExpired{});
-                }
+            CTxConversionInfo conversionInfo = GetConversionInfo(*wtx.tx).value();
+            if (conversionInfo.nDeadline && conversionInfo.nDeadline <= (uint32_t)block.height) {
+                SyncTransaction(wtx.tx, TxStateExpired{});
             }
         }
     }

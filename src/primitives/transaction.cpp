@@ -8,6 +8,7 @@
 #include <consensus/amount.h>
 #include <hash.h>
 #include <script/script.h>
+#include <script/standard.h>
 #include <serialize.h>
 #include <tinyformat.h>
 #include <uint256.h>
@@ -113,17 +114,20 @@ unsigned int CTransaction::GetTotalSize() const
 
 bool CTransaction::IsConversion() const
 {
-    return CTransaction::GetConversionOutputN() != -1 && !CTransaction::IsCoinBase();
+    return CTransaction::GetConversionOutput().has_value() && !CTransaction::IsCoinBase();
 }
 
-int CTransaction::GetConversionOutputN() const
+std::optional<CTxOut> CTransaction::GetConversionOutput() const
 {
-    for (unsigned int i = 0; i < vout.size(); i++) {
-        if (vout[i].scriptPubKey.IsConversionScript()) {
-            return i;
+    // Conversion output must be first in the transaction, so we only need to check the first output
+    if (vout.size() > 0 && vout[0].scriptPubKey.IsConversionScript()) {
+        // We make sure the conversion script is formatted correctly to make sure we're returning a valid output
+        CTxConversionInfo conversionInfo;
+        if (ExtractConversionInfo(vout[0].scriptPubKey, conversionInfo)) {
+            return vout[0];
         }
     }
-    return -1;
+    return std::nullopt;
 }
 
 std::string CTransaction::ToString() const

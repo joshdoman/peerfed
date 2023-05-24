@@ -44,6 +44,14 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputs-duplicate");
     }
 
+    // Check for an invalid conversion script
+    if (tx.vout.size() > 0 && tx.vout[0].scriptPubKey.IsConversionScript()) {
+        if (!GetConversionInfo(tx)) {
+            // Unable to extract conversion info from script
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-invalid-conversion-script");
+        }
+    }
+
     // Check for an output with a conversion script that is not the first output in the transaction
     for (unsigned int i = 1; i < tx.vout.size(); i++)
     {
@@ -57,6 +65,8 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
     {
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-cb-length");
+        if (tx.IsConversion())
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-cb-contains-conversion-vout");
     }
     else
     {

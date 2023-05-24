@@ -11,7 +11,7 @@
 #include <consensus/validation.h>
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
-#include <script/standard.h>
+#include <script/script.h>
 #include <util/check.h>
 #include <util/moneystr.h>
 #include <boost/multiprecision/cpp_int.hpp>
@@ -42,13 +42,12 @@ bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 
 bool IsExpiredConversion(const CTransaction &tx, int nBlockHeight)
 {
-    for (const auto& txout : tx.vout) {
-        CTxConversionInfo conversionInfo;
-        if (ExtractConversionInfo(txout.scriptPubKey, conversionInfo)) {
-            return IsExpiredConversionInfo(conversionInfo, nBlockHeight);
-        }
+    std::optional<CTxConversionInfo> conversionInfo = GetConversionInfo(tx);
+    if (conversionInfo) {
+        return IsExpiredConversionInfo(conversionInfo.value(), nBlockHeight);
+    } else {
+        return false;
     }
-    return false;
 }
 
 bool IsExpiredConversionInfo(const CTxConversionInfo &conversionInfo, int nBlockHeight)
@@ -214,25 +213,19 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
 
     // Check for conversion output
     conversionInfoRet = std::nullopt;
-    CAmountType conversionFeeType = 0;
-    CAmount conversionFee = 0;
-    for (const auto& txout : tx.vout)
-    {
-        CTxConversionInfo conversionInfo;
-        if (ExtractConversionInfo(txout.scriptPubKey, conversionInfo)) {
-            conversionInfo.inputs = nValueIn;
-            conversionInfo.minOutputs = tx.GetValuesOut();
-            conversionFeeType = txout.amountType;
-            conversionFee = txout.nValue;
-            conversionInfoRet = std::optional<CTxConversionInfo>{conversionInfo};
-            // Safe to exit because tx_check.cpp checks that there are no duplicate conversion outputs
-            break;
-        }
+    if (tx.IsConversion()) {
+        CTxConversionInfo conversionInfo = GetConversionInfo(tx).value();
+        // Cache amounts in and min amounts out
+        conversionInfo.inputs = nValueIn;
+        conversionInfo.minOutputs = tx.GetValuesOut();
+        conversionInfoRet = std::optional<CTxConversionInfo>{conversionInfo};
     }
-
+    
     if (conversionInfoRet) {
-        txfees[conversionFeeType] = conversionFee;
-        txfees[!conversionFeeType] = 0;
+        CTxOut conversionOut = tx.GetConversionOutput().value();
+        CAmountType feeType = conversionOut.amountType;
+        txfees[feeType] = conversionOut.nValue;
+        txfees[!feeType] = 0;
     } else {
         CAmounts values_out = tx.GetValuesOut();
         if (nValueIn[CASH] < values_out[CASH]) {

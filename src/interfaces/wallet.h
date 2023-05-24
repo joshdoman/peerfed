@@ -472,7 +472,6 @@ struct WalletTx
     std::map<std::string, std::string> value_map;
     bool is_coinbase;
     bool is_conversion;
-    int conversion_out_n;
 
     bool operator<(const WalletTx& a) const { return tx->GetHash() < a.tx->GetHash(); }
 };

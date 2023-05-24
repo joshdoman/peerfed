@@ -114,7 +114,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             //
             CAmounts nTxFee = {0};
             if (wtx.is_conversion) {
-                const CTxOut& txout = wtx.tx->vout[wtx.conversion_out_n];
+                const CTxOut& txout = wtx.tx->GetConversionOutput().value();
                 nTxFee[txout.amountType] = txout.nValue;
             } else {
                 nTxFee[CASH] = nDebit[CASH] - valuesOut[CASH];
@@ -178,7 +178,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
 
             CAmounts nConversionTxFee = {0};
             if (wtx.is_conversion) {
-                const CTxOut& txout = wtx.tx->vout[wtx.conversion_out_n];
+                const CTxOut& txout = wtx.tx->GetConversionOutput().value();
                 nConversionTxFee[txout.amountType] = txout.nValue;
             }
 

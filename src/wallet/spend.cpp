@@ -7,7 +7,6 @@
 #include <interfaces/chain.h>
 #include <policy/policy.h>
 #include <script/signingprovider.h>
-#include <script/standard.h>
 #include <util/check.h>
 #include <util/fees.h>
 #include <util/moneystr.h>

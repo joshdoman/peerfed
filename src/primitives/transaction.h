@@ -353,8 +353,8 @@ public:
 
     // Returns TRUE if conversion output is present and not a coinbase transaction
     bool IsConversion() const;
-    // Returns location of conversion output (-1 if not present)
-    int GetConversionOutputN() const;
+    // Returns the conversion output in the transaction, if present
+    std::optional<CTxOut> GetConversionOutput() const;
 
     friend bool operator==(const CTransaction& a, const CTransaction& b)
     {

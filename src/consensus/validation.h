@@ -152,17 +152,12 @@ class BlockValidationState : public ValidationState<BlockValidationResult> {};
 static inline int64_t GetTransactionWeight(const CTransaction& tx)
 {
     int64_t remainderOutputWeight = 0;
-    for (const auto& txout : tx.vout)
-    {
-        CTxConversionInfo conversionInfo;
-        if (ExtractConversionInfo(txout.scriptPubKey, conversionInfo)) {
-            if (IsValidDestination(conversionInfo.destination)) {
-                CScript remainderScript = GetScriptForDestination(conversionInfo.destination);
-                CTxOut dummyRemainderOut(0, 0, remainderScript);
-                remainderOutputWeight += ::GetSerializeSize(dummyRemainderOut, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(dummyRemainderOut, PROTOCOL_VERSION);
-            }
-            break;
-        }
+    std::optional<CTxConversionInfo> conversionInfo = GetConversionInfo(tx);
+    if (conversionInfo && IsValidDestination(conversionInfo.value().destination)) {
+        // Add the weight of the remainder output unless remainder is sent to the miner
+        CScript remainderScript = GetScriptForDestination(conversionInfo.value().destination);
+        CTxOut dummyRemainderOut(0, 0, remainderScript);
+        remainderOutputWeight += ::GetSerializeSize(dummyRemainderOut, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(dummyRemainderOut, PROTOCOL_VERSION);
     }
     return remainderOutputWeight + ::GetSerializeSize(tx, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(tx, PROTOCOL_VERSION);
 }

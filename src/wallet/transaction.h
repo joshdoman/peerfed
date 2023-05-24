@@ -315,7 +315,6 @@ public:
     const uint256& GetWitnessHash() const { return tx->GetWitnessHash(); }
     bool IsCoinBase() const { return tx->IsCoinBase(); }
     bool IsConversion() const { return tx->IsConversion(); }
-    int GetConversionOutputN() const { return tx->GetConversionOutputN(); }
 
     // Disable copying of CWalletTx objects to prevent bugs where instances get
     // copied in and out of the mapWallet map, and fields are updated in the

@@ -219,7 +219,7 @@ void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
     if (nDebit[CASH] > 0 || nDebit[BOND] > 0) // debit>0 means we signed/sent this transaction
     {
         if (wtx.tx->IsConversion()) {
-            const CTxOut& conversionTxOut = wtx.tx->vout[wtx.tx->GetConversionOutputN()];
+            const CTxOut& conversionTxOut = wtx.tx->GetConversionOutput().value();
             nFee[conversionTxOut.amountType] = conversionTxOut.nValue;
         } else {
             CAmounts nValuesOut = wtx.tx->GetValuesOut();
@@ -270,7 +270,7 @@ void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
                     nNet[txout.amountType] = 0;
                 }
             }
-            else if ((int)i != wtx.tx->GetConversionOutputN())
+            else if (!txout.scriptPubKey.IsConversionScript())
             {
                 // Sent
                 COutputEntry sOutput = {address, txout.amountType, txout.nValue, (int)i};
@@ -281,12 +281,12 @@ void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
         // If nNet is still negative after looking for a change output, create an output with the remaining amount, assigned to the conversion output N
         if (nNet[CASH] < 0) {
             // Converted
-            COutputEntry output = {CNoDestination(), CASH, -nNet[CASH], wtx.tx->GetConversionOutputN()};
+            COutputEntry output = {CNoDestination(), CASH, -nNet[CASH], /** must be first output */ 0};
             listConverted.push_back(output);
         }
         if (nNet[BOND] < 0) {
             // Converted
-            COutputEntry output = {CNoDestination(), BOND, -nNet[BOND], wtx.tx->GetConversionOutputN()};
+            COutputEntry output = {CNoDestination(), BOND, -nNet[BOND], /** must be first output */ 0};
             listConverted.push_back(output);
         }
     } else {

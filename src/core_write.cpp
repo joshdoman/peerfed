@@ -273,7 +273,7 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
 
     if (have_undo) {
         if (tx.IsConversion()) {
-            const CTxOut& txout = tx.vout[tx.GetConversionOutputN()];
+            const CTxOut& txout = tx.GetConversionOutput().value();
             const CAmount feeCash = txout.amountType == CASH ? txout.nValue : 0;
             const CAmount feeBond = txout.amountType == BOND ? txout.nValue : 0;
             entry.pushKV("feecash", ValueFromAmount(feeCash));

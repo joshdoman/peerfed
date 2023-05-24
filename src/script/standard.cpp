@@ -354,6 +354,15 @@ bool ExtractConversionInfo(const CScript& script, CTxConversionInfo& conversionI
     return false;
 }
 
+std::optional<CTxConversionInfo> GetConversionInfo(const CTxOut& txout) {
+    CTxConversionInfo conversionInfo;
+    if (ExtractConversionInfo(txout.scriptPubKey, conversionInfo)) {
+        return conversionInfo;
+    } else {
+        return std::nullopt;
+    }
+}
+
 namespace {
 class CScriptVisitor
 {

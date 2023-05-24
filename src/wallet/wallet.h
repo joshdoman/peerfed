@@ -13,7 +13,6 @@
 #include <outputtype.h>
 #include <policy/feerate.h>
 #include <psbt.h>
-#include <script/standard.h>
 #include <tinyformat.h>
 #include <util/hasher.h>
 #include <util/message.h>

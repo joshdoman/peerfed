@@ -178,8 +178,8 @@ struct CTxConversionInfo {
     CAmountType remainderType;
     CTxDestination destination; // CNoDestination if remainder sent to miner
     uint32_t nDeadline;         // Zero if deadline not present
-    CAmounts inputs;
-    CAmounts minOutputs;
+    CAmounts inputs;            // Cached input amounts
+    CAmounts minOutputs;        // Cached min output amounts
 };
 
 /**
@@ -206,6 +206,11 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
  * the conversionInfoRet parameter and returns true if successful.
  */
 bool ExtractConversionInfo(const CScript& scriptPubKey, CTxConversionInfo& conversionInfoRet);
+
+/**
+ * Helper function to return conversion info in a transaction, if present
+ */
+std::optional<CTxConversionInfo> GetConversionInfo(const CTransaction& tx);
 
 /**
  * Generate a Bitcoin scriptPubKey for the given CTxDestination. Returns a P2PKH

@@ -80,7 +80,6 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
     result.value_map = wtx.mapValue;
     result.is_coinbase = wtx.IsCoinBase();
     result.is_conversion = wtx.IsConversion();
-    result.conversion_out_n = wtx.GetConversionOutputN();
     return result;
 }
 
