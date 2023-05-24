@@ -354,13 +354,16 @@ bool ExtractConversionInfo(const CScript& script, CTxConversionInfo& conversionI
     return false;
 }
 
-std::optional<CTxConversionInfo> GetConversionInfo(const CTxOut& txout) {
-    CTxConversionInfo conversionInfo;
-    if (ExtractConversionInfo(txout.scriptPubKey, conversionInfo)) {
-        return conversionInfo;
-    } else {
-        return std::nullopt;
+std::optional<CTxConversionInfo> GetConversionInfo(const CTransaction& tx) {
+    // Conversion output must be first in the transaction, so we only need to check the first output
+    if (tx.vout.size() > 0 && tx.vout[0].scriptPubKey.IsConversionScript()) {
+        // We make sure the conversion script is formatted correctly to make sure we're returning a valid output
+        CTxConversionInfo conversionInfo;
+        if (ExtractConversionInfo(tx.vout[0].scriptPubKey, conversionInfo)) {
+            return conversionInfo;
+        }
     }
+    return std::nullopt;
 }
 
 namespace {
