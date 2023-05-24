@@ -219,8 +219,9 @@ void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
     if (nDebit[CASH] > 0 || nDebit[BOND] > 0) // debit>0 means we signed/sent this transaction
     {
         if (wtx.tx->IsConversion()) {
-            const CTxOut& conversionTxOut = wtx.tx->GetConversionOutput().value();
-            nFee[conversionTxOut.amountType] = conversionTxOut.nValue;
+            std::optional<CTxOut> wrappedTxOut = wtx.tx->GetConversionOutput();
+            const CTxOut& txout = wrappedTxOut.value();
+            nFee[txout.amountType] = txout.nValue;
         } else {
             CAmounts nValuesOut = wtx.tx->GetValuesOut();
             nFee[CASH] = nDebit[CASH] - nValuesOut[CASH];

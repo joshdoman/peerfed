@@ -865,7 +865,8 @@ RPCHelpMan gettransaction()
     CAmounts nFee = {0};
     if (CachedTxIsFromMe(*pwallet, wtx, filter)) {
         if (wtx.tx->IsConversion()) {
-            const CTxOut& txout = wtx.tx->GetConversionOutput().value();
+            std::optional<CTxOut> wrappedTxOut = wtx.tx->GetConversionOutput();
+            const CTxOut& txout = wrappedTxOut.value();
             nFee[txout.amountType] = -txout.nValue;
         } else {
             CAmounts valuesOut = wtx.tx->GetValuesOut();

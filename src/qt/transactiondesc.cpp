@@ -304,7 +304,8 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
 
                 CAmounts nConversionTxFee = {0};
                 if (wtx.is_conversion) {
-                    const CTxOut& txout = wtx.tx->GetConversionOutput().value();
+                    std::optional<CTxOut> wrappedTxOut = wtx.tx->GetConversionOutput();
+                    const CTxOut& txout = wrappedTxOut.value();
                     nConversionTxFee[txout.amountType] = txout.nValue;
                 }
 
@@ -354,7 +355,8 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
 
             CAmounts nTxFee = {0};
             if (wtx.is_conversion) {
-                const CTxOut& txout = wtx.tx->GetConversionOutput().value();
+                std::optional<CTxOut> wrappedTxOut = wtx.tx->GetConversionOutput();
+                const CTxOut& txout = wrappedTxOut.value();
                 nTxFee[txout.amountType] = txout.nValue;
             } else {
                 nTxFee[CASH] = nDebit[CASH] - valuesOut[CASH];
