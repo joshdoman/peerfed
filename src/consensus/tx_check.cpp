@@ -65,7 +65,7 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
     {
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-cb-length");
-        if (tx.IsConversion())
+        if (tx.GetConversionOutput())
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-cb-contains-conversion-vout");
     }
     else
