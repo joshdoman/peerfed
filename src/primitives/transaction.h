@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 #include <array>
+#include <optional>
 
 /**
  * A flag that is ORed into the protocol version to designate that a transaction
