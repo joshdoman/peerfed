@@ -96,7 +96,7 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
     std::set<CTxDestination> cashDestinations;
     std::set<CTxDestination> bondDestinations;
     bool has_data{false};
-    bool has_conversion_info_output{false};
+    bool has_conversion_output{false};
 
     for (size_t i = 0; i < outputs.size(); ++i) {
         const UniValue& output = outputs[i];
@@ -126,19 +126,21 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
             } else if (output["remainderType"].isNull()) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Missing parameter: remainderType"));
             }
-            if (has_conversion_info_output) {
+            if (has_conversion_output) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, duplicate object: conversion output");
+            } else if (i > 0) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, conversion output must appear first");
             }
-            has_conversion_info_output = true;
+            has_conversion_output = true;
 
             CAmount nAmount = DescaleAmount(AmountFromValue(output["conversionFee"]), scaleFactor);
             CAmountType feeAmountType = AmountTypeFromValue(output["feeType"]);
 
             CTxDestination destination;
-            if (!output["slippageAddress"].isNull()) {
-                destination = DecodeDestination(output["slippageAddress"].get_str());
+            if (!output["remainderAddress"].isNull()) {
+                destination = DecodeDestination(output["remainderAddress"].get_str());
                 if (!IsValidDestination(destination)) {
-                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid address: ") + output["slippageAddress"].get_str());
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid address: ") + output["remainderAddress"].get_str());
                 }
             } else {
                 destination = CNoDestination();
