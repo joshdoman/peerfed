@@ -213,8 +213,12 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
 
     // Check for conversion output
     conversionInfoRet = std::nullopt;
-    if (tx.IsConversion()) {
-        CTxConversionInfo conversionInfo = GetConversionInfo(tx).value();
+    if (tx.vout.size() > 0 && tx.vout[0].scriptPubKey.IsConversionScript()) {
+        CTxConversionInfo conversionInfo;
+        if (!ExtractConversionInfo(tx.vout[0].scriptPubKey, conversionInfo)) {
+            // Invalid conversion script
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-invalid-conversion-script");
+        }
         // Cache amounts in and min amounts out
         conversionInfo.inputs = nValueIn;
         conversionInfo.minOutputs = tx.GetValuesOut();

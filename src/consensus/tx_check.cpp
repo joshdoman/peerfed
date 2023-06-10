@@ -7,7 +7,6 @@
 #include <consensus/amount.h>
 #include <primitives/transaction.h>
 #include <consensus/validation.h>
-#include <script/standard.h>
 
 bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
 {
@@ -42,14 +41,6 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
     for (const auto& txin : tx.vin) {
         if (!vInOutPoints.insert(txin.prevout).second)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputs-duplicate");
-    }
-
-    // Check for an invalid conversion script
-    if (tx.vout.size() > 0 && tx.vout[0].scriptPubKey.IsConversionScript()) {
-        if (!GetConversionInfo(tx)) {
-            // Unable to extract conversion info from script
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-invalid-conversion-script");
-        }
     }
 
     // Check for an output with a conversion script that is not the first output in the transaction

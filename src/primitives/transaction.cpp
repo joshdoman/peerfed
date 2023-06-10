@@ -8,7 +8,6 @@
 #include <consensus/amount.h>
 #include <hash.h>
 #include <script/script.h>
-#include <script/standard.h>
 #include <serialize.h>
 #include <tinyformat.h>
 #include <uint256.h>
@@ -121,11 +120,9 @@ std::optional<CTxOut> CTransaction::GetConversionOutput() const
 {
     // Conversion output must be first in the transaction, so we only need to check the first output
     if (vout.size() > 0 && vout[0].scriptPubKey.IsConversionScript()) {
-        // We make sure the conversion script is formatted correctly to make sure we're returning a valid output
-        CTxConversionInfo conversionInfo;
-        if (ExtractConversionInfo(vout[0].scriptPubKey, conversionInfo)) {
-            return vout[0];
-        }
+        // NOTE: We do not test to make sure this is a valid conversion output. Testing requires 
+        // calling GetConversionInfo() on the transaction (see "script/standard.h")
+        return vout[0];
     }
     return std::nullopt;
 }
