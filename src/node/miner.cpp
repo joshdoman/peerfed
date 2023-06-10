@@ -829,9 +829,7 @@ void static BitcoinMiner(ChainstateManager* chainman, CConnman* connman, CWallet
     CScript coinbaseScript = CScript();
     std::shared_ptr<CReserveDestination> reserveDest;
     if (pwallet)
-        // TODO: Replace with getting destination for specific wallet (temporarily removed due to build error on Linux)
-        // pwallet->reserveDestinationForMining(reserveDest);
-        GetMainSignals().ReserveDestinationForMining(reserveDest);
+        static_cast<interfaces::Chain::Notifications>(*pwallet).reserveDestinationForMining(reserveDest);
     else
         // Wallet not explicitly provided. Scan for any registered wallets.
         GetMainSignals().ReserveDestinationForMining(reserveDest);
